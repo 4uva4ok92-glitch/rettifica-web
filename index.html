@@ -906,7 +906,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
 .ai-btns{display:flex;gap:8px;margin-top:8px}.ai-btns .btn{flex:1;min-height:56px;font-size:17px}
 .ai-err,.ai-warn{display:block;color:#ff8a8a;font-weight:700}.ai-warn{margin-top:8px;font-size:13px}
 .btn.off{opacity:.45}.ai-why{color:var(--muted);margin:0 0 6px}
-/* Beta 0.6.0 chat */
+/* Beta 0.6.1 chat */
 .key-help{margin:8px 0}.kh-btns{display:flex;gap:8px}.kh-btns .btn{flex:1;min-height:56px;font-size:16px}
 .kh-steps{margin:8px 0 0;padding-left:22px;font-size:15px;line-height:1.4}.kh-steps li{margin:2px 0}
 .chat-key{padding:10px 12px;border-radius:14px;border:2px solid var(--orange);background:rgba(255,138,31,.08)}.chat-key p{margin:4px 0;font-size:14px;color:var(--muted)}
@@ -1241,7 +1241,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
     </div>
     <input type="file" id="importFile" accept="application/json,.json,text/plain" class="hidden"/>
     <button type="button" class="btn btn-danger" id="btnReset" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗑 Azzera tutto</button>
-    <p class="ver">Rettifica Beta v0.6.0 · diametri in mm · giochi e correzioni in µm</p>
+    <p class="ver">Rettifica Beta v0.6.1 · diametri in mm · giochi e correzioni in µm</p>
   </section>
 
   <section class="page" id="page-guida">
@@ -1252,7 +1252,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
     <div class="guida">
       <details class="g-sec" open><summary><span class="g-ico">🎯</span>Cosa fa l'app</summary>
         <p>Misuri il pezzo <b>S</b> (o fai una foto del foglio di misura) e l'app ti dice <b>quale pezzo di accoppiamento</b> (il numero) usare per avere il <b>gioco giusto</b>.</p>
-        <ul><li>Ti dice anche se correggere la macchina e di quante <b>tocchi</b>.</li>
+        <ul><li>Ti dice anche se correggere la macchina e di quanti <b>tocchi</b>.</li>
         <li>Ti fa segnare la <b>conicità</b> (davanti / in fondo) e ti dice subito da che parte girare la manopola. L'<b>ovalità</b> si controlla dopo (massimo 2–3 µm).</li>
         <li>Conta i pezzi del turno e salva lo storico.</li></ul>
       </details>
@@ -1319,7 +1319,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
         <ol><li><b>Femmina nominale · tolleranze · gioco ✎</b>: nominale, tolleranza − e +, gioco min/max. Restano salvati per <b>questo lavoro</b>.</li>
         <li><b>Femmina misurata F</b>: scrivi solo le cifre dopo la virgola (es. <b>122</b> = 20,122) oppure la misura intera con la virgola.</li>
         <li>Vedi subito se la femmina è <b>in tolleranza</b> o <b>maggiorata +122 µm</b> / <b>minorata</b> (e di quanto è fuori), e in grande la <b>Misura da fare (maschio)</b>: centro e da F − gioco max a F − gioco min.</li>
-        <li>Facoltativo: tocca <b>Maschio ora S</b> e scrivi la misura del pezzo sulla macchina (se oggi hai salvato un maschio in Calcolo è già scritta): l'app ti dice quanto manca al centro e le <b>tocchi</b> (es. <b>+ ×2</b> = più piccolo).</li>
+        <li>Facoltativo: tocca <b>Maschio ora S</b> e scrivi la misura del pezzo sulla macchina (se oggi hai salvato un maschio in Calcolo è già scritta): l'app ti dice quanto manca al centro e i <b>tocchi</b> (es. <b>+ ×2</b> = più piccolo).</li>
         <li><b>✓ SALVA femmina</b>: la salva (Storico → <b>Femmine salvate</b>, CSV, riga nel Turno). <b>↶ Annulla</b> per 8 s. Torna a Calcolo con <b>←</b>.</li></ol>
         <p class="g-tip">Esempio: nominale 20 ±0,1, gioco 8–11 µm, femmina <b>20,122</b> → <b>maggiorata +122 µm</b> (fuori di 22 µm) → maschio da fare <b>20,1110–20,1140</b>, centro <b>20,1125</b>.</p>
       </details>
@@ -1386,7 +1386,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
         <p><b>Guanti?</b><br/>I tasti sono grandi apposta. Ogni bottone foto (📷 Nuovo lavoro, 📷 leggi S, 📷 in Adatta alla femmina) chiede: <b>📷 Scatta foto</b> oppure <b>🖼 Dalla galleria</b> (una foto già fatta). Poi stesso ritaglio e stessa lettura.</p>
       </details>
     </div>
-    <p class="ver">Rettifica Beta v0.6.0</p>
+    <p class="ver">Rettifica Beta v0.6.1</p>
   </section>
   <section class="page" id="page-macchine">
     <button type="button" class="btn btn-sec" id="btnBackSetup1">← Setup</button>
@@ -1426,7 +1426,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
   <button type="button" class="new cond" id="btnNuova">Nuova misura</button>
 </div>
 
-<!-- Beta 0.6.0: Chat with the AI (own tab: never covers the Calcolo keypad) -->
+<!-- Beta 0.6.1: Chat with the AI (own tab: never covers the Calcolo keypad) -->
 <section class="page" id="page-chat"><div class="chat-wrap" id="chatWrap">
   <div class="chat-head"><div><h2>💬 Chat</h2><span class="meta" id="chatProv">—</span></div><button type="button" class="btn btn-sec" id="chatNew">＋ Nuova chat</button></div>
   <details class="ai-app chat-app" id="chatApp"><summary>📐 Calcolo dell'app <span class="meta">(tocca per vedere)</span></summary><div id="aiApp"></div></details>

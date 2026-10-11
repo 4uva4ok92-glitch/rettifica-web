@@ -1,4 +1,4 @@
-/* Rettifica Beta v0.6.0 (base: Rettifica OmT v2.0.8) */
+/* Rettifica Beta v0.6.1 (base: Rettifica OmT v2.0.8) */
 (function () {
   const STORAGE_KEY = 'rweb_v1';
   const PREFS_KEY = 'rweb_v1_prefs';
@@ -6,7 +6,7 @@
   const CLEAN_KEY = 'rweb_clean_206';       // v2.0.6 one-time clean start done
   const BACKUP_KEY = 'rweb_backup_pre206';
   const BACKUPS_KEY = 'rweb_backups';           // Beta 0.1.0: last 5 automatic backups (before migration / import / wipe)
-  const APP_VERSION = '0.6.0';
+  const APP_VERSION = '0.6.1';
   /** Beta 0.1.0: automatic local backup; also kept as the «hidden restore» backup (Setup). */
   function autoBackup(why, rawData, rawPrefs) {
     try {
@@ -561,7 +561,7 @@
     $('prefixMenu').innerHTML = '<div class="pm-h">Intero · resta fisso</div>' + [bi - 1, bi, bi + 1].map((p) =>
       `<button type="button" data-pref="${p}" class="${p === cur ? 'on' : ''}">${p},</button>`).join('');
   }
-  /** Beta 0.6.0: big live preview of the measure the app will use, with machine, job, base and gioco nearby. */
+  /** Beta 0.6.1: big live preview of the measure the app will use, with machine, job, base and gioco nearby. */
   function renderLivePrev(series, p) {
     const el = $('livePreview'), cx = $('liveCtx'); if (!el) return;
     const m = myMachine(), j = jobsOn ? activeJob() : null;
@@ -692,7 +692,7 @@
     if (lastCalc.acc.recommended[0] != null) return lastCalc.acc.recommended[0];
     return Math.round(lastCalc.acc.ideal);
   }
-  // ── Beta 0.6.0: per-machine calibration (µm per tocco, diametro/raggio, verso del +, stato). Default = identical to before. ──
+  // ── Beta 0.6.1: per-machine calibration (µm per tocco, diametro/raggio, verso del +, stato). Default = identical to before. ──
   function taperOpts(m) { const L = limOf(); return { invert: calOf(m).taper === 'invertito', okUm: L.conOk, maxUm: L.conMax }; }
   function calOf(m) { return machineCal(m || myMachine()); }
   function calT(o, diffKey, m) { // tocchi from the µm change (configuration only)
@@ -1516,7 +1516,7 @@
     saveLock = true; setTimeout(() => { saveLock = false; }, 700);
     const gioco = giocoOf(n, acc);
     const L0 = limOf(series);
-    const status = (st === 'no' || formStatus(lastCalc.con, L0.conOk, L0.conMax) === 'no' || formStatus(lastCalc.oval, L0.ovalOk, L0.ovalMax) === 'no') ? 'scarto' : 'buono'; // Beta 0.6.0: job limits
+    const status = (st === 'no' || formStatus(lastCalc.con, L0.conOk, L0.conMax) === 'no' || formStatus(lastCalc.oval, L0.ovalOk, L0.ovalMax) === 'no') ? 'scarto' : 'buono'; // Beta 0.6.1: job limits
     const id = uid(), ts = new Date().toISOString();
     series.history = series.history || [];
     series.history.push({ id, ts, S: lastCalc.S, chosen: n, gioco, oval: lastCalc.oval != null ? lastCalc.oval : null,
@@ -2684,7 +2684,7 @@
     const gMax0 = plan.gmax != null ? plan.gmax : (ser0 ? ser0.giocoMax : '');
     // idea 7: paired photo → verdict straight from the G row
     let pairedBox = '';
-    const gi = interpretG(G, paired ? F : null, paired ? S : null); // Beta 0.6.0: G with its own sign, gioco = F − S, never flipped silently
+    const gi = interpretG(G, paired ? F : null, paired ? S : null); // Beta 0.6.1: G with its own sign, gioco = F − S, never flipped silently
     if (paired && gUm != null && fromPhoto && !useF && gi.giocoUm != null) {
       const gap = gi.giocoUm, ok = !gi.interferenza && gap >= parsed.giocoMin - 0.05 && gap <= parsed.giocoMax + 0.05;
       pairedBox = `<div class="paired-verdict ${ok ? 'ok' : 'no'}">Pezzo già accoppiato · gioco di accoppiamento ${esc((gap > 0 ? '+' : gap < 0 ? '−' : '') + fmtUm(Math.abs(gap)))} µm → <b>${gi.interferenza ? 'INTERFERENZA' : ok ? 'GIOCO CONFORME' : 'FUORI GIOCO'}</b> <span>(${parsed.giocoMin}–${parsed.giocoMax} µm)</span><small class="pv-g">${esc(gi.note)}</small></div>`;
@@ -2807,7 +2807,7 @@
         }
         note = `Nuova serie Base ${fmtMm3(ser.base)} · gioco ${g.min}–${g.max} creata dalla foto`;
         saveData(state);
-      } else if (!$('ocrGSave').classList.contains('hidden') && $('ocrApSer').checked) { // Beta 0.6.0: the user chose «Aggiorna anche la serie»
+      } else if (!$('ocrGSave').classList.contains('hidden') && $('ocrApSer').checked) { // Beta 0.6.1: the user chose «Aggiorna anche la serie»
         note = `Base ${fmtMm3(ser.base)}: gioco della serie aggiornato ${ser.giocoMin}–${ser.giocoMax} → ${g.min}–${g.max} µm (era ${ser.giocoMin}–${ser.giocoMax})`;
         ser.giocoPrev = (ser.giocoPrev || []).concat([{ ts: new Date().toISOString(), min: ser.giocoMin, max: ser.giocoMax }]).slice(-10);
         ser.giocoMin = g.min; ser.giocoMax = g.max;
