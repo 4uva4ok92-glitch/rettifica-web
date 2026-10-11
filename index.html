@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
+<meta name="theme-color" content="#121418"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<meta name="theme-color" content="#ff8a1f"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Rettifica"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<link rel="icon" type="image/png" href="icon-192.png"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<title>Rettifica Web</title>
+<style>
+@font-face{font-family:"Barlow";font-weight:400;font-style:normal;src:url("fonts/barlow-400.woff2") format("woff2");font-display:swap}
+@font-face{font-family:"Barlow";font-weight:600;font-style:normal;src:url("fonts/barlow-600.woff2") format("woff2");font-display:swap}
+@font-face{font-family:"Barlow";font-weight:700;font-style:normal;src:url("fonts/barlow-700.woff2") format("woff2");font-display:swap}
+@font-face{font-family:"Barlow";font-weight:800;font-style:normal;src:url("fonts/barlow-800.woff2") format("woff2");font-display:swap}
+@font-face{font-family:"Barlow Condensed";font-weight:600;font-style:normal;src:url("fonts/barlow-cond-600.woff2") format("woff2");font-display:swap}
+@font-face{font-family:"Barlow Condensed";font-weight:700;font-style:normal;src:url("fonts/barlow-cond-700.woff2") format("woff2");font-display:swap}
+@font-face{font-family:"IBM Plex Mono";font-weight:400;font-style:normal;src:url("fonts/plex-mono-400.woff2") format("woff2");font-display:swap}
+@font-face{font-family:"IBM Plex Mono";font-weight:600;font-style:normal;src:url("fonts/plex-mono-600.woff2") format("woff2");font-display:swap}
+
+:root{
+  --bg:#121418;--bg2:#181b20;--surface:#1c1f26;--surface2:#22262e;
+  --neu-hi:rgba(255,255,255,.07);--neu-lo:rgba(0,0,0,.55);
+  --line:rgba(255,255,255,.06);--line2:rgba(255,255,255,.12);
+  --text:#f2f4f8;--muted:#8b93a3;--orange:#ff8a1f;--orange2:#ffb45a;
+  --green:#3ddc84;--amber:#ffc53d;--red:#ff5a5a;--teal:#19e3d0;
+  --radius:22px;--radius-sm:16px;--nav-h:78px;
+  --shadow-out:8px 8px 18px var(--neu-lo),-5px -5px 14px var(--neu-hi);
+  --shadow-in:inset 5px 5px 12px var(--neu-lo),inset -4px -4px 10px var(--neu-hi);
+  --shadow-btn:6px 6px 14px var(--neu-lo),-4px -4px 10px var(--neu-hi);
+  --glow-orange:0 8px 28px rgba(255,138,31,.38);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%;height:100%;overflow:hidden}
+body{
+  width:100%;max-width:480px;margin:0 auto;height:100dvh;position:relative;
+  color:var(--text);font-family:"Barlow",system-ui,sans-serif;
+  background:radial-gradient(520px 340px at 80% -40px,rgba(255,138,31,.08),transparent 65%),var(--bg);
+}
+.mono{font-family:"IBM Plex Mono",monospace}
+.cond{font-family:"Barlow Condensed","Barlow",sans-serif}
+.hidden{display:none!important}
+.wrap{height:calc(100% - var(--nav-h));overflow:auto;padding:12px 16px calc(var(--nav-h) + 24px);-webkit-overflow-scrolling:touch}
+.page{display:none}.page.active{display:block}
+.card{
+  background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
+  border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow-out);
+}
+.neu-in{background:var(--surface);box-shadow:var(--shadow-in);border:1px solid var(--line)}
+.sec-title{font-size:12px;letter-spacing:1.4px;font-weight:800;color:var(--muted);text-transform:uppercase;margin:16px 0 10px}
+.meta{font-size:13px;color:var(--muted);font-weight:600}
+.empty{text-align:center;color:var(--muted);padding:1.1rem;font-weight:600}
+
+/* Context pills */
+.ctx-pills{display:flex;gap:8px;align-items:center;margin-top:4px}
+.pill{
+  flex:1;min-height:48px;padding:8px 12px;border-radius:999px;border:1px solid var(--line);
+  background:var(--surface);box-shadow:var(--shadow-btn);color:var(--text);
+  display:flex;flex-direction:column;justify-content:center;align-items:flex-start;
+  cursor:pointer;font-family:inherit;text-align:left;
+}
+.pill .pl{font-size:10px;letter-spacing:1px;font-weight:700;color:var(--muted);text-transform:uppercase}
+.pill .pv{font-size:15px;font-weight:800;line-height:1.15;margin-top:2px;display:flex;align-items:center;gap:4px}
+.pill .pv::after{content:"▾";font-size:11px;color:var(--muted);margin-left:2px}
+.ib{
+  width:48px;height:48px;border-radius:16px;display:grid;place-items:center;flex-shrink:0;
+  background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-btn);
+  color:#cfd8e3;cursor:pointer;font-family:inherit;
+}
+.ib svg,.nv svg,.cam svg,.icon svg,.row-ico svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* Input measure */
+.disp{margin-top:12px;padding:14px 14px 12px;position:relative}
+.lbl{display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:1.5px;font-weight:800;color:var(--muted);text-transform:uppercase}
+.val{display:flex;align-items:baseline;line-height:1;margin-top:6px}
+.pre{font-size:56px;font-weight:700;color:var(--orange2);display:flex;align-items:baseline;cursor:pointer}
+.pre i{font-style:normal;font-size:16px;color:var(--orange);margin:0 4px 0 -2px}
+.dig{font-size:72px;font-weight:800;letter-spacing:-1px}
+.cur{width:3px;height:52px;background:var(--orange);border-radius:2px;margin-left:4px;align-self:center;box-shadow:0 0 12px var(--orange);animation:blink 1s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+.u{font-size:18px;color:var(--muted);margin-left:8px;font-weight:700}
+.status{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px;font-weight:700;color:var(--green)}
+.status .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+.status.bad{color:var(--amber)}.status.bad .dot{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.cam{position:absolute;right:12px;top:12px}
+.recent{display:flex;gap:8px;margin-top:12px;align-items:center;overflow-x:auto;scrollbar-width:none}
+.recent::-webkit-scrollbar{display:none}
+.recent .h{font-size:10px;letter-spacing:1.4px;color:var(--muted);font-weight:800;flex-shrink:0}
+.rc{height:44px;padding:0 12px;border-radius:999px;display:flex;align-items:center;gap:6px;
+  background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-btn);
+  font-size:14px;font-weight:700;color:#cfd8e3;cursor:pointer;font-family:inherit;flex-shrink:0}
+.rc b{color:var(--orange)}
+
+/* Keypad neumorphic */
+.pad{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,64px);gap:10px;margin-top:14px}
+.k{
+  border-radius:18px;display:grid;place-items:center;font-size:28px;font-weight:700;
+  background:var(--surface2);border:1px solid var(--line);box-shadow:var(--shadow-btn);
+  color:var(--text);cursor:pointer;font-family:inherit;-webkit-appearance:none;appearance:none;
+}
+.k:active{box-shadow:var(--shadow-in);transform:scale(.97)}
+.k.fn{font-size:18px;color:#cfd8e3;font-weight:700}
+.k.go{
+  grid-column:4;grid-row:2/5;background:linear-gradient(160deg,#ffb14a,#ff7a12);
+  color:#1a0d00;border:none;font-size:16px;font-weight:800;letter-spacing:.5px;
+  display:flex;flex-direction:column;gap:2px;box-shadow:var(--glow-orange);
+}
+.k.go span{font-size:30px;line-height:1}
+
+/* Result */
+.sum{
+  display:flex;flex-direction:column;align-items:center;padding:12px 14px 12px;margin-top:10px;position:relative;text-align:center
+}
+.sum .m{font-size:44px;font-weight:800;line-height:1;letter-spacing:-.5px}
+.sum .m small{font-size:16px;color:var(--muted);font-weight:700}
+.sum .d{margin-top:4px;line-height:1.15;display:flex;align-items:baseline;gap:6px}
+.sum .d b{font-size:20px;color:var(--orange);font-weight:800}
+.sum .d span{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px}
+.sum .edit{position:absolute;right:12px;top:12px}
+.scale-strip{width:100%;height:18px;margin-top:10px;border-radius:10px;position:relative;
+  background:linear-gradient(90deg,rgba(255,90,90,.25),rgba(255,197,61,.2) 35%,rgba(61,220,132,.25) 50%,rgba(255,197,61,.2) 65%,rgba(255,90,90,.25));
+  box-shadow:var(--shadow-in);overflow:hidden}
+.scale-strip .marker{position:absolute;top:2px;bottom:2px;width:3px;background:var(--orange);border-radius:2px;
+  box-shadow:0 0 10px var(--orange);transform:translateX(-50%)}
+.hero{margin-top:10px;padding:12px 12px 10px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.pz{
+  border-radius:20px;padding:8px 10px 12px;text-align:center;cursor:pointer;font-family:inherit;
+  background:var(--surface);border:1.5px solid var(--line2);box-shadow:var(--shadow-btn);color:var(--text);
+}
+.pz.sel{background:rgba(255,138,31,.12);border:2px solid var(--orange);box-shadow:0 0 24px rgba(255,138,31,.28)}
+.pz .n{font-size:62px;line-height:.95;font-weight:800;color:var(--text)}
+.pz.sel .n{color:var(--orange)}
+.pz .g{font-size:14px;font-weight:700;color:var(--muted);margin-top:2px}
+.pz.sel .g{color:var(--orange2)}
+.ruler{margin-top:10px}
+.ticks{display:grid;grid-template-columns:repeat(8,1fr);gap:5px}
+.tk{
+  height:42px;border-radius:12px;display:grid;place-items:center;font-size:18px;font-weight:800;
+  border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow-btn);cursor:pointer;font-family:inherit;color:var(--text)
+}
+.tk.no{color:#ff8a8a;background:rgba(255,90,90,.08);border-color:rgba(255,90,90,.25);box-shadow:none}
+.tk.lim{color:var(--amber);background:rgba(255,197,61,.1);border-color:rgba(255,197,61,.35)}
+.tk.ok{color:#1a0d00;background:linear-gradient(160deg,#ffb14a,#ff7a12);border-color:transparent;box-shadow:0 4px 14px rgba(255,138,31,.3)}
+.tk.sel{outline:2px solid #fff;outline-offset:2px}
+.legend{display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--muted);font-weight:600}
+.legend b{color:var(--text)}
+.check{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.st{padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.st .lbl{font-size:10px}
+.stp{display:flex;align-items:center;justify-content:space-between}
+.stp .b{
+  width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:26px;font-weight:800;
+  background:var(--surface2);border:1px solid var(--line);box-shadow:var(--shadow-btn);cursor:pointer;font-family:inherit;color:var(--text)
+}
+.stp .v{font-size:28px;font-weight:800}.stp .v small{font-size:13px;color:var(--muted)}
+.okm{color:var(--green);font-size:12px;font-weight:800}
+.okm.lim{color:var(--amber)}.okm.no{color:var(--red)}
+/* v1.9: forma (ovalità/conicità) helper */
+.formbox{margin-top:10px;padding:12px 14px}
+.formbox .tt{font-size:14px;font-weight:800;color:var(--amber);display:flex;align-items:center;gap:8px}
+.formbox .tt.no{color:var(--red)}
+.formbox .tt .dot{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor;flex-shrink:0}
+.formbox .oval-line{font-size:13px;font-weight:700;margin-bottom:8px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.seg button{min-height:56px;border-radius:16px;background:var(--surface2);border:1px solid var(--line);box-shadow:var(--shadow-btn);
+  color:var(--text);font-weight:800;font-size:16px;font-family:inherit;cursor:pointer;line-height:1.1}
+.seg button small{display:block;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;margin-top:2px}
+.seg button:active{box-shadow:var(--shadow-in)}
+.seg button.on{background:rgba(255,138,31,.14);border:2px solid var(--orange);color:var(--orange);box-shadow:0 0 18px rgba(255,138,31,.25)}
+.knob-hint{margin-top:10px;display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:16px;background:var(--bg2);border:1px solid rgba(255,138,31,.35);box-shadow:var(--shadow-in)}
+.knob-hint .kn{width:46px;height:46px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-size:24px;font-weight:800;color:#1a0d00;
+  background:linear-gradient(160deg,#ffb14a,#ff7a12);box-shadow:var(--glow-orange)}
+.knob-hint .kt{font-size:15px;font-weight:700;line-height:1.3}
+.knob-hint .kt b{color:var(--orange)}
+.formbox .rem{font-size:12px;color:var(--muted);font-weight:600;margin-top:8px;line-height:1.3}
+/* v1.9.3: manopola conicità — tacche + taratura */
+.knob-hint.tacche{border:1.5px solid var(--orange);background:linear-gradient(160deg,rgba(255,138,31,.10),rgba(255,138,31,.02)),var(--bg2)}
+.knob-hint .kt .kbig{display:block;font-size:20px;font-weight:800;line-height:1.15;margin-top:2px}
+.knob-hint .kt small{display:block;font-size:11px;color:var(--muted);font-weight:600;margin-top:4px}
+.formbox .rem a,.formbox .rem.knob-k a{color:var(--orange);font-weight:800}
+.calib-cta{width:100%;margin-top:10px;display:flex;align-items:center;gap:12px;text-align:left;min-height:58px;border:1px dashed rgba(255,138,31,.55)!important}
+.calib-cta small{display:block;font-size:12px;color:var(--muted);font-weight:600}
+.calib-cta .chev,.knob-row .chev{margin-left:auto;color:var(--muted);font-size:22px}
+.ci{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;font-size:20px;font-weight:800;color:#1a0d00;background:linear-gradient(160deg,#ffb14a,#ff7a12);box-shadow:var(--glow-orange)}
+.knob-row{width:100%;margin-top:10px;display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:16px;background:var(--surface2);border:1px solid var(--line);box-shadow:var(--shadow-btn);color:var(--text);font-family:inherit;font-weight:800;font-size:15px;text-align:left;cursor:pointer;min-height:56px}
+.knob-row small{display:block;font-size:12px;color:var(--orange);font-weight:700}
+.knob-row.unk small{color:var(--amber)}
+.modal.calib{max-height:92vh}
+.calib-hd{display:flex;gap:12px;align-items:center}
+.kn.big{width:52px;height:52px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;color:#1a0d00;background:linear-gradient(160deg,#ffb14a,#ff7a12);box-shadow:var(--glow-orange)}
+.modal .rem{font-size:12px;color:var(--muted);font-weight:600;margin-top:6px;line-height:1.35}
+.cstep{display:flex;gap:12px;margin-top:12px;position:relative}
+.cstep:not(.last)::after{content:"";position:absolute;left:15px;top:36px;bottom:-10px;width:2px;background:var(--line2)}
+.cstep .cn{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-weight:800;color:var(--orange);border:2px solid var(--orange);background:rgba(255,138,31,.08);z-index:1}
+.cstep .cb{flex:1;min-width:0;padding:10px 12px;border-radius:16px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-btn)}
+.cstep .ct{font-size:15px;font-weight:700;margin-bottom:6px}.cstep .ct b{color:var(--orange)}
+.cstp{margin-top:4px}.cstp .b{width:56px;height:56px}
+.cseg{margin-top:8px}.cseg button{min-height:52px;font-size:14px}
+.cres{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.cres .mono{font-size:12px;color:var(--muted)}
+.cres b{font-size:34px;font-weight:800;color:var(--muted)}.cres.ok b{color:var(--orange)}
+.cres b small{font-size:14px;color:var(--muted)}
+.btn[disabled]{opacity:.45;box-shadow:none;cursor:default}
+.ctrials{margin-top:12px;padding:10px 12px;border-radius:16px;background:var(--bg);border:1px solid var(--line)}
+.ctrials .lbl{display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.ctrial{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:14px;font-weight:600}
+.ctrial b{margin-left:auto;color:var(--orange)}
+.cdel{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--surface2);color:var(--muted);font-size:20px;cursor:pointer}
+.cdiv{text-align:center;color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:2px;margin:16px 0 4px}
+html[data-theme="light"] .cstep .cb,html[data-theme="light"] .knob-row{background:#fff}
+html[data-theme="light"] .ctrials{background:#eef1f6}
+.pezzi-ph{font-size:16px;color:var(--muted);font-weight:700;font-family:"Barlow",sans-serif}
+.stock-more{width:100%;margin-top:8px;min-height:44px}
+.corr{margin-top:10px;display:flex;align-items:center;gap:12px;padding:12px 14px}
+.corr .key{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:30px;font-weight:800;color:var(--orange);border:2px solid var(--orange);background:rgba(255,138,31,.1)}
+.corr .x{font-size:32px;font-weight:800;color:var(--orange)}
+.corr .t{font-size:14px;font-weight:700;line-height:1.25}.corr .t small{display:block;color:var(--muted);font-weight:600;font-size:12px}
+.corr .chev{margin-left:auto;color:var(--muted);font-size:22px}
+
+/* Action bar + nav */
+.actbar{position:fixed;left:16px;right:16px;bottom:calc(var(--nav-h) + 8px);max-width:448px;margin:0 auto;z-index:25;display:flex;gap:10px}
+.save{
+  flex:1;height:58px;border-radius:18px;display:flex;align-items:center;justify-content:center;gap:8px;
+  background:linear-gradient(160deg,#ffb14a,#ff7a12);color:#1a0d00;font-size:18px;font-weight:800;
+  box-shadow:var(--glow-orange);border:none;cursor:pointer;font-family:inherit
+}
+.save.done{background:var(--green);color:#04210f;box-shadow:none}
+.new{
+  width:112px;height:58px;border-radius:18px;display:grid;place-items:center;
+  background:var(--surface);border:1px solid var(--line2);box-shadow:var(--shadow-btn);
+  font-size:14px;font-weight:800;color:var(--text);cursor:pointer;font-family:inherit
+}
+.nav{
+  position:fixed;left:12px;right:12px;bottom:10px;max-width:456px;margin:0 auto;z-index:30;
+  height:64px;display:flex;justify-content:space-around;align-items:center;
+  background:rgba(22,25,32,.94);border:1px solid var(--line2);border-radius:999px;
+  box-shadow:0 10px 40px rgba(0,0,0,.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  padding:0 6px;
+}
+.nv{
+  display:flex;flex-direction:column;align-items:center;gap:2px;width:72px;padding:8px 0;border-radius:999px;
+  font-size:11px;font-weight:700;color:var(--muted);background:transparent;border:none;
+  cursor:pointer;font-family:inherit;-webkit-appearance:none;appearance:none
+}
+.nv svg{stroke:currentColor}.nv.on{color:var(--orange);background:rgba(255,138,31,.12)}
+
+/* Toast */
+.toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 72px);transform:translateX(-50%);
+  background:rgba(22,25,32,.96);border:1px solid var(--orange);color:var(--orange);
+  padding:.65rem 1.1rem;border-radius:999px;font-weight:800;z-index:60;opacity:0;pointer-events:none;
+  transition:opacity .2s;max-width:86%;text-align:center;font-size:.95rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:var(--glow-orange)}
+.toast.show{opacity:1}
+.toast.warn{border-color:var(--amber);color:var(--amber);box-shadow:0 8px 28px rgba(255,197,61,.25)}
+
+/* Buttons */
+.btn{min-height:48px;border-radius:16px;border:none;font-weight:800;font-size:15px;padding:.65rem 1rem;cursor:pointer;font-family:inherit}
+.btn-teal,.btn-primary{background:linear-gradient(160deg,#ffb14a,#ff7a12);color:#1a0d00;box-shadow:var(--glow-orange)}
+.btn-sec{background:var(--surface);color:var(--text);border:1px solid var(--line);box-shadow:var(--shadow-btn)}
+.btn-orange{background:linear-gradient(160deg,#ffb14a,#ff7a12);color:#1a0d00;box-shadow:var(--glow-orange)}
+.btn-danger{background:rgba(255,90,90,.1);color:var(--red);border:1px solid rgba(255,90,90,.3)}
+.btn-danger.primary-danger{background:rgba(120,20,20,.55);color:#ffb0b0;border:1px solid rgba(255,90,90,.35);box-shadow:var(--shadow-btn)}
+.row-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+/* Turno */
+.page-head{display:flex;align-items:center;justify-content:space-between;margin:4px 0 12px}
+.page-head h2{font-size:26px;font-weight:800;letter-spacing:-.3px}
+.badge-live{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;
+  background:rgba(255,138,31,.12);border:1px solid rgba(255,138,31,.35);color:var(--orange);font-size:12px;font-weight:800}
+.badge-live .dot{width:7px;height:7px;border-radius:50%;background:var(--orange);box-shadow:0 0 8px var(--orange);animation:pulse 1.6s ease infinite}
+@keyframes pulse{50%{opacity:.45}}
+.totale-card{padding:18px 16px;text-align:center;margin-bottom:12px}
+.totale-card .tl{font-size:11px;letter-spacing:1.4px;font-weight:800;color:var(--muted);text-transform:uppercase}
+.totale-card .tn{font-size:72px;font-weight:800;line-height:1;margin:4px 0;letter-spacing:-1px}
+.totale-card .ts{font-size:14px;color:var(--muted);font-weight:700}
+/* v2.0.0 mating range */
+.mating{margin-top:10px;padding:10px 12px;border-radius:16px;background:rgba(25,227,208,.07);border:1.5px solid rgba(25,227,208,.55);user-select:text;-webkit-user-select:text}
+.mating:empty{display:none}
+.mt-h{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.mt-h span:last-child{text-transform:none;letter-spacing:0;color:var(--teal)}
+.mt-r{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;margin-top:4px}
+.mt-r b{font-size:31px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+.mt-w{font-size:16px;font-weight:700;color:var(--muted)}.mt-u{font-size:16px;font-weight:700;color:var(--muted)}
+.mt-f{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px}
+.mt-c{display:flex;flex-direction:column;font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.mt-cv{font-size:16px;text-transform:none;letter-spacing:0;white-space:nowrap}.mt-c b{font-size:24px;color:var(--teal)}
+.mt-copy{min-height:48px;min-width:96px;padding:0 14px;border-radius:12px;border:1.5px solid var(--teal);background:transparent;color:var(--teal);font-weight:800;font-size:16px;font-family:inherit;cursor:pointer;flex:none}
+.mt-pick{margin:4px 0 10px}
+.last-hint .lh-m{display:block;font-size:14px;color:var(--muted);margin-top:1px}.last-hint .lh-m b.lh-r{color:var(--teal);font-size:15px}
+.officina .of-mt{font-size:26px;margin-top:18px;font-weight:800}
+.officina .of-mc{font-size:22px;margin-top:2px}
+html[data-theme="light"] .mating{background:rgba(13,148,136,.06);border-color:rgba(13,148,136,.55)}
+html[data-theme="light"] .mt-h span:last-child,html[data-theme="light"] .mt-c b,html[data-theme="light"] .last-hint .lh-m b.lh-r{color:#0f766e}
+html[data-theme="light"] .mt-copy{border-color:#0f766e;color:#0f766e}
+/* v2.0.0 Pezzi fatti */
+.fatti-card .fs{font-size:15px;font-weight:800;margin-top:6px;color:var(--muted)}
+.fatti-card .fs .fs-ok{color:var(--green)}.fatti-card .fs .fs-no{color:var(--red)}
+.fatti-card .fm{margin-top:12px;border-top:1px solid var(--line);text-align:left}
+.fm-row{display:grid;grid-template-columns:1fr auto;grid-template-areas:"n c" "s c";align-items:center;column-gap:12px;min-height:56px;padding:6px 2px;border-bottom:1px solid var(--line)}
+.fm-row:last-child{border-bottom:none}
+.fm-n{grid-area:n;font-size:18px;font-weight:800;color:var(--text);overflow-wrap:anywhere}
+.fm-c{grid-area:c;font-size:40px;font-weight:800;line-height:1;color:var(--orange)}
+.fm-s{grid-area:s;font-size:14px;font-weight:700;color:var(--muted)}.fm-s.ok{color:var(--green)}.fm-s .fs-no{color:var(--red)}
+.rp-mac{font-weight:800;font-size:15px;line-height:1.5}
+html[data-theme="light"] .fatti-card .fs .fs-ok,html[data-theme="light"] .fm-s.ok{color:#15803d}
+html[data-theme="light"] .fatti-card .fs .fs-no,html[data-theme="light"] .fm-s .fs-no{color:#b91c1c}
+html[data-theme="light"] .fm-c{color:#c2410c}
+.pezzi-item{display:flex;align-items:center;gap:12px;padding:14px 14px;border-radius:18px;
+  background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-btn);margin-bottom:8px}
+.pezzi-item .pn{font-size:28px;font-weight:800;min-width:48px}
+.pezzi-item .pm{flex:1;font-size:13px;color:var(--muted);font-weight:600}
+.pezzi-item .del{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;
+  background:rgba(255,90,90,.08);border:1px solid rgba(255,90,90,.25);color:var(--red);cursor:pointer;font-family:inherit}
+.pezzi-item .del svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.input-preview{text-align:center;padding:8px 0 4px}
+.input-preview .dig{font-size:48px}
+
+/* Setup rows */
+.setup-group{border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow-out);background:var(--surface);margin-bottom:14px}
+.setup-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);cursor:pointer;min-height:56px;background:transparent;width:100%;color:var(--text);font-family:inherit;text-align:left;border-left:none;border-right:none;border-top:none}
+.setup-row:last-child{border-bottom:none}
+.setup-row .row-ico{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:rgba(255,138,31,.1);color:var(--orange);flex-shrink:0}
+.setup-row .row-txt{flex:1}.setup-row .row-txt b{display:block;font-size:15px;font-weight:700}
+.setup-row .row-txt span{font-size:12px;color:var(--muted);font-weight:600}
+.setup-row .chev{color:var(--muted);font-size:18px}
+.toggle{width:52px;height:30px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--line2);position:relative;flex-shrink:0;cursor:pointer;transition:background .2s}
+.toggle.on{background:rgba(255,138,31,.35);border-color:var(--orange)}
+.toggle i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#cfd8e3;transition:transform .2s,background .2s;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.toggle.on i{transform:translateX(22px);background:var(--orange)}
+.ctx-panel{padding:14px;margin-bottom:14px}
+.ctx-panel label{display:block;font-size:11px;letter-spacing:1px;color:var(--muted);font-weight:800;text-transform:uppercase;margin:.5rem 0 .3rem}
+.ctx-panel select,.ctx-panel input,select.neu,textarea.neu{
+  width:100%;min-height:48px;border-radius:14px;border:1px solid var(--line);
+  background:var(--bg2);color:var(--text);padding:0 12px;font-size:16px;font-family:inherit;box-shadow:var(--shadow-in)
+}
+textarea.neu{min-height:70px;padding:10px 12px}
+
+/* Misc */
+.prefix-menu{position:absolute;left:14px;top:70px;background:var(--surface2);border:1px solid var(--line2);border-radius:14px;padding:6px;z-index:20;display:none;flex-direction:column;gap:4px;min-width:90px;box-shadow:0 12px 40px rgba(0,0,0,.55)}
+.prefix-menu.open{display:flex}
+.prefix-menu button{height:52px;min-width:96px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-weight:800;font-size:20px;font-family:inherit}
+.prefix-menu button.on{border-color:var(--orange);color:var(--orange)}
+.typo-box{margin-top:10px;padding:12px;border-radius:16px;background:rgba(255,197,61,.08);border:1px solid rgba(255,197,61,.35)}
+.typo-box .actions{display:flex;gap:8px;margin-top:8px}
+/* v1.9.9 correction hints */
+.hint-row{margin-top:10px}
+.hr-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.hr-h .mono{text-transform:none;letter-spacing:0;font-weight:600;white-space:nowrap}
+.hr-c{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:6px}
+.hr-c2{display:flex;gap:6px;margin-top:6px}.hr-c2 .hc{flex:1}
+.hc{min-height:52px;border-radius:14px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;font-family:inherit;
+  background:var(--surface2);border:1.5px solid var(--line2);color:var(--text);font-size:15px;font-weight:800;line-height:1.15;text-align:center}
+.hc b{font-size:22px;font-weight:800;line-height:1}
+.hc span{font-size:14px;font-weight:800;color:var(--orange2)}
+.hc.hc-ok span{color:var(--green);font-size:12.5px}
+.hc.hc-cur{border-color:var(--orange);background:rgba(255,138,31,.10)}
+.hc.hc-tgt{box-shadow:0 0 0 3px rgba(25,227,208,.55)}
+.hc.hc-more{font-size:15px;color:var(--muted);flex-direction:row}
+.hc.hc-ex{flex-direction:row;gap:8px}
+.last-hint{display:flex;align-items:center;gap:8px;width:100%;min-height:48px;margin:0 0 8px;padding:6px 10px 6px 12px;border-radius:14px;cursor:pointer;font-family:inherit;text-align:left;
+  background:var(--surface);border:1.5px solid var(--orange);color:var(--text);font-size:15px;font-weight:700}
+.last-hint.hidden{display:none}
+.last-hint .lh-h{font-size:10px;letter-spacing:1.2px;color:var(--muted);font-weight:800;flex:none}
+.last-hint .lh-c{flex:1;line-height:1.25}.last-hint .lh-c b{color:var(--orange);font-size:17px}
+.last-hint .chev{color:var(--muted);font-size:20px}
+.hp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.hp{min-height:58px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;cursor:pointer;
+  background:var(--surface2);border:1.5px solid var(--line2);color:var(--text)}
+.hp b{font-size:22px;font-weight:800;line-height:1}.hp span{font-size:13px;font-weight:800;color:var(--orange2)}
+.hp.hp-ok{border-color:rgba(255,138,31,.55)}.hp.hp-lim{border-color:rgba(232,197,71,.6)}.hp.hp-no{opacity:.75}
+.hp.hp-cen{background:rgba(255,138,31,.12);border-color:var(--orange)}
+.hp.hp-sel{box-shadow:0 0 0 3px rgba(25,227,208,.6)}
+html[data-theme="light"] .hc span,html[data-theme="light"] .hp span{color:#b45309}
+html[data-theme="light"] .hc.hc-ok span{color:#15803d}
+/* v1.9.8 crop step */
+.crop-bg{position:fixed;inset:0;z-index:95;background:var(--bg);display:flex;flex-direction:column;padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
+.crop-head h2{font-size:19px;margin:2px 0 0}
+.crop-hint{font-size:14px;line-height:1.35;color:var(--muted);margin:4px 0 8px}.crop-hint b{color:var(--text)}
+.crop-stage{position:relative;flex:1;min-height:180px;overflow:hidden;border-radius:14px;background:#000;touch-action:none;user-select:none;-webkit-user-select:none}
+.crop-stage img{position:absolute;pointer-events:none;-webkit-user-drag:none;user-select:none}
+.crop-box{position:absolute;border:3px solid var(--teal);box-shadow:0 0 0 9999px rgba(0,0,0,.55);box-sizing:border-box;cursor:move}
+.crop-guide{position:absolute;inset:0;pointer-events:none}
+.crop-guide .gl{position:absolute;left:0;right:0;border-top:2px dashed rgba(25,227,208,.75)}
+.crop-guide .gt{position:absolute;left:6px;font:800 12px/1 ui-monospace,monospace;color:#19e3d0;background:rgba(0,0,0,.6);padding:3px 5px;border-radius:5px}
+.crop-h{position:absolute;width:52px;height:52px;margin:-26px 0 0 -26px;touch-action:none;z-index:2}
+.crop-h::after{content:'';position:absolute;left:13px;top:13px;width:26px;height:26px;border-radius:50%;background:#19e3d0;border:3px solid #fff;box-sizing:border-box;box-shadow:0 1px 6px rgba(0,0,0,.6)}
+.crop-actions{display:flex;gap:8px;margin-top:10px}
+.crop-actions .btn{min-height:58px;flex:1;font-size:16px;padding:0 8px}
+.crop-actions #cropGo{flex:1.7;font-size:17px;font-weight:800}
+.crop-foot{font-size:12px;color:var(--muted);text-align:center;margin:6px 0 0}
+.photo-note.warn{border-color:var(--amber);background:rgba(255,197,61,.12)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:80;display:flex;align-items:flex-end;justify-content:center}
+.modal{width:100%;max-width:480px;max-height:88vh;overflow:auto;background:var(--bg2);border-radius:22px 22px 0 0;border:1px solid var(--line2);padding:16px 16px 28px;box-shadow:0 -10px 40px rgba(0,0,0,.5)}
+.modal h2{font-size:1.2rem;margin-bottom:8px}
+.modal label{display:block;font-size:12px;color:var(--muted);margin:.45rem 0 .2rem;font-weight:700}
+.modal input,.modal select,.modal textarea{width:100%;min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 12px;font-size:16px;font-family:inherit}
+.modal textarea{min-height:80px;padding:10px 12px}
+.sheet-item{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--surface);margin-bottom:8px;cursor:pointer;box-shadow:var(--shadow-btn)}
+.sheet-item.on{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange)}
+.mc{height:40px;padding:0 10px;border-radius:12px;display:grid;place-items:center;background:rgba(255,138,31,.12);border:1px solid rgba(255,138,31,.4);color:var(--orange);font-weight:800;font-size:15px}
+.drift{margin-top:10px;padding:10px 12px;border-radius:16px;background:rgba(255,197,61,.1);border:1px solid rgba(255,197,61,.35);font-weight:700;font-size:14px;color:#ffe2a0}
+.chart{height:140px;margin-top:8px;border-radius:14px;background:var(--bg2);border:1px solid var(--line);position:relative;overflow:hidden;box-shadow:var(--shadow-in)}
+.chart svg{width:100%;height:100%;display:block}
+.stock-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.stock-cell{border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:8px;text-align:center;box-shadow:var(--shadow-btn)}
+.stock-cell .n{font-size:22px;font-weight:800}
+.stock-cell .c{font-size:14px;color:var(--muted);font-weight:700}
+.stock-cell .row{display:flex;gap:4px;margin-top:6px}
+.stock-cell button{flex:1;height:36px;border-radius:10px;border:1px solid var(--line2);background:var(--bg2);color:var(--text);font-weight:800;font-size:18px}
+.stock-cell.low{border-color:var(--amber)}
+.stock-cell.empty{opacity:.45}
+.item{padding:12px;border-radius:16px;border:1px solid var(--line);background:var(--surface);margin-bottom:8px;box-shadow:var(--shadow-btn)}
+.item .meta{font-size:13px;color:var(--muted);margin:4px 0}
+.item .actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.expl-bar{margin-top:10px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:10px 12px;box-shadow:var(--shadow-btn)}
+.expl-bar summary{cursor:pointer;font-weight:800;color:var(--orange);list-style:none}
+.expl-bar summary::-webkit-details-marker{display:none}
+.ocr-confirm .low{border-color:var(--amber)!important;box-shadow:0 0 0 2px rgba(255,197,61,.25)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.officina{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+.officina .big{font-size:200px;line-height:1;font-weight:800}
+.officina .sub{font-size:28px;font-weight:700;margin-top:8px}
+.officina.ok{background:#0a5c32;color:#b7ffd3}
+.officina.lim{background:#7a5a00;color:#ffe9a8}
+.officina.no{background:#7a1515;color:#ffc9c9}
+.train-card{padding:16px;border-radius:18px;border:1px solid var(--line);background:var(--surface);margin-top:10px;box-shadow:var(--shadow-out)}
+.train-card .S{font-size:48px;font-weight:800}
+.ok-badge{color:var(--green);font-weight:900}.scarto-badge{color:var(--red);font-weight:900}.lim-badge{color:var(--amber);font-weight:900}
+.summary-card{padding:14px;border-radius:18px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow-out)}
+.chips-scroll{display:flex;gap:8px;overflow-x:auto;padding:8px 0 4px;scrollbar-width:none}
+.chips-scroll::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:14px;color:#cfd8e3;box-shadow:var(--shadow-btn)}
+.chip.on{background:rgba(255,138,31,.14);border-color:rgba(255,138,31,.55);color:var(--orange)}
+.ver{text-align:center;margin-top:16px;color:var(--muted);font-size:12px;font-weight:600}
+
+/* Light theme */
+html[data-theme="light"]{
+  --bg:#e8ecf2;--bg2:#f4f6fa;--surface:#f0f2f7;--surface2:#ffffff;
+  --neu-hi:rgba(255,255,255,.9);--neu-lo:rgba(163,177,198,.55);
+  --line:rgba(0,0,0,.06);--line2:rgba(0,0,0,.12);
+  --text:#0b1220;--muted:#5a6a7e;
+  --shadow-out:8px 8px 18px var(--neu-lo),-5px -5px 14px var(--neu-hi);
+  --shadow-in:inset 5px 5px 12px var(--neu-lo),inset -4px -4px 10px var(--neu-hi);
+  --shadow-btn:6px 6px 14px var(--neu-lo),-4px -4px 10px var(--neu-hi);
+}
+html[data-theme="light"] body{background:radial-gradient(520px 340px at 80% -40px,rgba(255,138,31,.1),transparent 65%),var(--bg)}
+html[data-theme="light"] .nav{background:rgba(240,242,247,.95)}
+html[data-theme="light"] .toast{background:#fff;color:#c45a00;border-color:var(--orange)}
+html[data-theme="light"] .tk.ok{color:#1a0d00}
+html[data-theme="light"] .modal{background:#f4f6fa}
+html[data-theme="light"] .pre{color:#c45a00}
+html[data-theme="light"] .toggle{background:rgba(0,0,0,.08)}
+html[data-theme="light"] .ctx-panel select,html[data-theme="light"] select.neu,html[data-theme="light"] textarea.neu{background:#fff}
+html[data-theme="light"] .k:not(.go){background:#fff}
+html[data-theme="light"] .k.fn,html[data-theme="light"] .ib,html[data-theme="light"] .rc{color:#334155}
+html[data-theme="light"] .new,html[data-theme="light"] .btn-sec{background:#fff;color:#0b1220}
+html[data-theme="light"] .stp .b,html[data-theme="light"] .tk:not(.ok):not(.no):not(.lim),html[data-theme="light"] .pz:not(.sel){background:#fff}
+html[data-theme="light"] .pz.sel .n{color:#d06200}
+html[data-theme="light"] .sum .d b,html[data-theme="light"] .nv.on,html[data-theme="light"] .badge-live{color:#c45a00}
+html[data-theme="light"] .drift{color:#7a5a00}
+html[data-theme="light"] .btn-danger.primary-danger{background:#fde2e2;color:#b91c1c}
+html[data-theme="light"] .pz.sel .g{color:#a84f00}
+html[data-theme="light"] .tk.lim{color:#8a5d00;background:rgba(255,197,61,.22)}
+html[data-theme="light"] .tk.no{color:#b42318}
+html[data-theme="light"] .okm.lim,html[data-theme="light"] .formbox .tt{color:#9a6400}
+html[data-theme="light"] .okm.no,html[data-theme="light"] .formbox .tt.no{color:#b42318}
+html[data-theme="light"] .knob-hint{background:#fff}
+html[data-theme="light"] .knob-hint .kt b,html[data-theme="light"] .seg button.on{color:#b35500}
+html[data-theme="light"] .seg button:not(.on){background:#fff}
+html[data-theme="light"] #resGiocoRange,html[data-theme="light"] .expl-bar summary{color:#b35500!important}
+
+/* v1.9.4 */
+.pill .pv.mach{max-width:100%;overflow:hidden}
+.pill .pv.mach #machCode{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;display:inline-block}
+.pill{min-width:0}
+.ticks{grid-template-columns:repeat(var(--n,6),1fr);gap:6px}
+.tk{height:52px;font-size:20px;min-width:44px}
+.okm.na{color:var(--amber);display:block;margin:2px 0 0;font-size:11px}
+/* v2.0.1 two-side conicità */
+.taper{margin-top:10px}
+.taper .lbl{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.taper .tp-q{font-size:11px;color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0;margin-left:6px}
+.tp-row{display:flex;align-items:center;gap:10px;padding:4px 6px;border-radius:14px;border:1px solid transparent}
+.tp-row .tp-s{flex:1;font-size:17px;font-weight:800}
+.tp-row .stp{gap:10px}
+.tp-row .stp .b{width:56px;height:56px;font-size:30px}
+.tp-row .stp .v{min-width:72px;font-size:26px}
+.tp-row.big{background:rgba(61,220,132,.12);border-color:rgba(61,220,132,.5)}
+.tp-row.big.lim{background:rgba(255,197,61,.14);border-color:rgba(255,197,61,.6)}
+.tp-row.big.no{background:rgba(255,90,90,.14);border-color:rgba(255,90,90,.6)}
+.formbox .tt.ok{color:var(--green)}
+.formbox .kopt{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:2px}
+html[data-theme="light"] .formbox .tt.ok{color:#137a3b}
+/* v2.0.6 photo source choice */
+.src-gal small{font-size:13px;font-weight:600;color:var(--muted)}
+.src-pick .btn-job{min-height:72px}
+/* v2.0.6 empty state */
+#calcInputView.is-empty > :not(#emptyCard){display:none !important}
+.empty-card{padding:18px 16px;margin-top:10px}
+.empty-card h2{margin:0 0 6px;font-size:24px}
+.empty-card p{margin:0 0 12px;font-size:16px;font-weight:600}
+/* v2.0.5 simpler Calcolo + Femmina page */
+body[data-page="femmina"] .undo-bar{left:76px;right:12px;max-width:none}
+.nv{width:auto;flex:1;min-width:0;font-size:10.5px}
+.nav{padding:0 4px;gap:2px}
+#calcInputView.has-hint .recent{display:none} /* one of ULTIMO / ULTIMI */
+#calcInputView .last-hint{margin-top:6px}
+@media (min-height:820px){#calcInputView.has-hint .recent{display:flex}} /* v2.0.6: tall phones keep the ULTIMI chips too */
+.ctx-pills .job-pill{min-height:56px}
+.ctx-pills .job-pill .pv{white-space:nowrap;overflow:hidden}
+.cam.cam-lbl{width:auto;min-width:56px;height:56px;flex-direction:column;gap:0;display:flex;align-items:center;justify-content:center;padding:4px 8px}
+.cam.cam-lbl small{font-size:10px;font-weight:800;color:var(--muted);line-height:1}
+.sticky-corr{position:static;background:var(--surface)} /* Beta 0.2.1: normal flow, scrolls with the page */
+html[data-theme="light"] .sticky-corr{background:#fff}
+#matingBox .mt-r b{font-size:22px}
+#matingBox .mt-c b{font-size:19px}
+#matingBox .mt-h{font-size:11px}
+.fm-top{display:flex;align-items:center;gap:10px;margin-top:2px}
+.fm-title{font-size:24px;margin:0;font-weight:800;color:var(--teal)}
+.fm-cfg{flex:1;min-width:0;min-height:52px}
+.fm-cfg .pl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fm-cfg .fm-title{font-size:13px;color:var(--teal);font-weight:800;text-transform:none;letter-spacing:0}
+.fm-cam{flex-direction:column;gap:0;width:56px;height:52px}.fm-cam small{font-size:10px;font-weight:800;color:var(--muted);line-height:1}
+.fm-fields .fm-f{flex:1.45}
+.fm-fields .fm-g{flex:1;align-items:center;text-align:center;border-color:rgba(255,138,31,.55)}
+.fm-fields .fm-g .fl{font-size:10.5px}
+.fm-fields .fm-g .fv{font-size:24px}
+.fm-fields .fm-g .fv small{font-size:12px;color:var(--muted)}
+.fm-fields .fm-g.on{border-color:var(--orange);background:rgba(255,138,31,.10)}
+.fm-fields .fm-g.on .fv::after{background:var(--orange)}
+.fm-sline{width:100%;min-height:48px;margin-top:6px;flex-direction:row;align-items:center;justify-content:space-between;gap:8px}
+.fm-sline .fv{font-size:21px}
+.fm-gnote{font-size:12px;color:var(--muted);font-weight:700}
+.fm-top .ib{font-size:24px;font-weight:800}
+.fm-title{font-size:21px}
+.fm-field .fl i{font-style:normal;text-transform:none;font-weight:600}
+.disp .lbl,.disp .status{margin-right:68px}
+.disp .status{margin-top:4px;min-height:22px}
+.disp .val{margin-top:4px}
+.fem-open{position:static;display:block;width:100%;margin-top:8px;min-height:44px;padding:0 12px;border-radius:12px;border:1.5px solid var(--teal);background:transparent;color:var(--teal);font-weight:800;font-size:13px;font-family:inherit;cursor:pointer}
+html[data-theme="light"] .fem-open{color:#0b7d73;border-color:#0b9d90}
+.fm-res .fr-st{flex-wrap:wrap}
+.fm-fields{display:flex;gap:8px;margin-top:8px}
+.fm-field{flex:1;min-height:68px;border-radius:16px;border:1.5px solid var(--line2);background:var(--surface);color:var(--text);font-family:inherit;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:6px 10px;cursor:pointer;text-align:left}
+.fm-field .fl{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.fm-field .fv{font-size:25px;font-weight:800;line-height:1.15}
+.fm-field.on{border:2.5px solid var(--teal);background:rgba(25,227,208,.08)}
+.fm-field.on .fv::after{content:'';display:inline-block;width:3px;height:22px;margin-left:2px;background:var(--teal);vertical-align:-3px;animation:blink 1s steps(1) infinite}
+.fm-res{margin-top:8px;padding:10px 12px;border:2px solid var(--teal)}
+.fm-res .fr-st{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800}
+.fm-res .fr-st .pillst{padding:3px 10px;border-radius:999px;font-size:14px}
+.fm-res .fr-st .pillst.ok{background:rgba(61,220,132,.15);color:var(--green)}
+.fm-res .fr-st .pillst.no{background:rgba(255,107,107,.18);color:#ff8a8a}
+.fm-res .fr-h{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:6px}
+.fm-res .fr-big{font-size:42px;font-weight:800;color:var(--teal);line-height:1.05}
+.fm-res .fr-big small{font-size:14px;color:var(--muted)}
+.fm-res .fr-r{font-size:17px;font-weight:700}
+.fm-res .fr-corr{display:flex;align-items:center;gap:10px;margin-top:6px;padding:6px 10px;border-radius:12px;border:1.5px solid var(--orange);background:rgba(255,138,31,.08);font-weight:800}
+.fm-res .fr-corr.ok{border-color:var(--green);background:rgba(61,220,132,.08)}
+.fm-res .fr-corr .fk{font-size:28px;color:var(--orange);min-width:58px;text-align:center}
+.fm-res .fr-corr.ok .fk{color:var(--green)}
+.fm-res .fr-corr small{display:block;font-size:12px;color:var(--muted);font-weight:600}
+.fm-res .fr-empty{font-size:15px;color:var(--muted);font-weight:700;padding:6px 0}
+.fm-pad{margin-top:8px}
+.fm-pad .k.go small{display:block;font-size:11px;font-weight:800}
+.fm-pad .k.go.off{opacity:.45}
+html[data-theme="light"] .fm-title,html[data-theme="light"] .fm-res .fr-big{color:#0b7d73}
+html[data-theme="light"] .fm-field{background:#fff}
+html[data-theme="light"] .fm-field.on{border-color:#0b9d90;background:#f0fbfa}
+html[data-theme="light"] .fm-res{background:#f0fbfa;border-color:#0b9d90}
+html[data-theme="light"] .fm-res .fr-st .pillst.no{color:#c0392b}
+html[data-theme="light"] .fm-res .fr-st .pillst.ok{color:#1e8e4f}
+.fem-row{display:flex;gap:10px;align-items:center;min-height:48px;padding:8px 12px;margin-bottom:6px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+.fem-row small{color:var(--muted)}
+html[data-theme="light"] .fem-row{background:#fff}
+/* v2.0.4 Lavoro Maschio / Femmina */
+.lav-seg{display:flex;gap:6px;margin-right:60px;margin-bottom:2px}
+.lav-seg button{flex:1;min-height:48px;border-radius:14px;border:1px solid var(--line2);background:var(--surface);color:var(--muted);font-family:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;padding:2px 6px;cursor:pointer}
+.lav-seg button b{font-size:15px;font-weight:800}
+.lav-seg button small{font-size:11px;font-weight:700;opacity:.85}
+.lav-seg button.on{border:2px solid var(--orange);color:var(--orange);background:rgba(255,138,31,.12)}
+.card.disp.fem .lav-seg button.on{border-color:var(--teal);color:var(--teal);background:rgba(25,227,208,.1)}
+.fem-target{margin-top:10px;border:2px solid var(--teal);background:linear-gradient(160deg,rgba(25,227,208,.10),rgba(25,227,208,.02)),var(--surface);padding:12px 14px}
+.fem-target .ft-h{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted);font-weight:700}
+.fem-target .ft-h b{color:var(--teal)}
+.fem-target .ft-big{font-size:52px;font-weight:800;color:var(--teal);line-height:1.05;margin-top:4px}
+.fem-target .ft-big small{font-size:15px;color:var(--muted);font-weight:700}
+.fem-target .ft-r{font-size:20px;font-weight:700}
+.fem-target .ft-r b{font-size:24px}
+.fem-target .ft-corr{display:flex;gap:12px;align-items:center;margin-top:10px;padding:8px 10px;border-radius:14px;border:1.5px solid var(--orange);background:rgba(255,138,31,.08)}
+.fem-target .ft-corr.ok{border-color:var(--green);background:rgba(61,220,132,.08)}
+.fem-target .ft-k{min-width:64px;font-size:34px;font-weight:800;color:var(--orange);text-align:center;line-height:1}
+.fem-target .ft-corr.ok .ft-k{color:var(--green)}
+.fem-target .ft-k small{display:block;font-size:20px}
+.fem-target .ft-ct{font-size:17px;font-weight:800}
+.fem-target .ft-ct small{display:block;font-size:13px;color:var(--muted);font-weight:600;margin-top:2px}
+.fem-target .ft-f{display:flex;gap:8px;align-items:flex-end;margin-top:10px}
+.fem-target .ft-s{flex:1;font-size:12px;font-weight:700;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.fem-target .ft-s input{min-height:52px;font-size:22px;font-weight:800;border-radius:12px;padding:0 10px;width:100%;box-sizing:border-box}
+.fem-target .mt-copy{min-height:52px}
+.officina .of-fh{font-size:20px}
+.officina .of-fc{color:var(--teal)}
+html[data-theme="light"] .fem-target{background:#f0fbfa;border-color:#0b9d90}
+html[data-theme="light"] .fem-target .ft-big,html[data-theme="light"] .fem-target .ft-h b,html[data-theme="light"] .card.disp.fem .lav-seg button.on{color:#0b7d73}
+html[data-theme="light"] .lav-seg button{background:#fff}
+html[data-theme="light"] .lav-seg button.on{color:#c45a00}
+/* v2.0.3 delete jobs / machine names */
+.job-row{display:flex;gap:8px;align-items:stretch}
+.job-row .job-card{flex:1;min-width:0}
+.job-del,.chip-del{flex:none;width:56px;min-height:56px;border-radius:16px;border:1px solid rgba(255,90,90,.35);background:rgba(255,90,90,.08);color:var(--red);display:grid;place-items:center;cursor:pointer;font-family:inherit}
+.chip-del{width:48px;min-height:48px;border-radius:999px}
+.mch{display:inline-flex;gap:4px;align-items:center}
+.mch .chip{min-height:48px}
+.del-confirm h2{font-size:21px;line-height:1.25}
+.del-p{font-size:15px;line-height:1.4;margin:6px 0}
+.del-btn{width:100%;min-height:60px;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:17px;font-weight:800}
+.del-chk{display:flex;align-items:center;gap:12px;min-height:56px;margin:8px 0;font-size:14px;color:var(--text);cursor:pointer}
+.del-chk input{width:28px;height:28px;min-height:28px;flex:none;accent-color:var(--red)}
+.mch-confirm{margin-top:10px;padding:12px;border-radius:16px;border:1px solid rgba(255,90,90,.4);background:rgba(255,90,90,.06)}
+.mch-act{display:flex;gap:8px;margin-top:8px}.mch-act .btn{flex:1;min-height:56px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800}
+.undo-bar.del{z-index:95;border-color:var(--red)}
+.undo-bar.del .ub-ok{background:rgba(255,90,90,.2)}
+html[data-theme="light"] .job-del,html[data-theme="light"] .chip-del{background:#fff1f1;color:#b42318;border-color:#f3b4b4}
+html[data-theme="light"] .mch-confirm{background:#fff5f5}
+.s-del{flex:none!important;width:56px;min-height:52px;display:grid;place-items:center;padding:0}
+/* v2.0.3 Nuovo lavoro setup (no calculation) */
+.job-setup h2{margin-bottom:4px}
+.job-setup .js-sub{margin:0 0 6px;font-size:13px}
+.job-setup .js-f{flex:1;min-width:0}
+.job-setup .js-f label,.job-setup .js-gl{display:block;margin:8px 0 4px;font-size:12px;font-weight:700;color:var(--muted)}
+.job-setup .big-input{width:100%;min-height:56px;font-size:22px;box-sizing:border-box}
+.job-setup .big-input.empty{border-color:rgba(255,197,61,.7)}
+.job-setup .field-row{display:flex;gap:10px}
+.job-setup .js-guess{margin-top:8px;min-height:48px}
+.job-setup .js-plan{margin:10px 0 4px;font-size:14px;font-weight:700;color:var(--teal)}
+.job-setup .js-recrop{width:100%;min-height:52px;margin:6px 0}
+.job-setup .js-act{display:flex;gap:8px;margin-top:8px}
+.job-setup .js-act .btn{min-height:60px;font-size:18px}
+.job-setup .js-act #jsCancel{flex:1}.job-setup .js-act #jsSave{flex:1.6}
+html[data-theme="light"] .job-setup .js-plan{color:#0b7d73}
+html[data-theme="light"] .job-setup .big-input.empty{border-color:#d08a00}
+/* v2.0.2 sticky integer */
+.prefix-menu .pm-h{font-size:11px;color:var(--muted);font-weight:700;padding:4px 8px 2px;text-align:center}
+.pre.sticky{color:var(--teal)}
+.typo .pin-note,#typoBox .pin-note{font-size:13px;margin:.2rem 0 .4rem;opacity:.9}
+html[data-theme="light"] .pre.sticky{color:#0b7d73}
+html[data-theme="light"] .okm.na,html[data-theme="light"] .na-rem{color:#a15c00!important}
+.stp .v{cursor:pointer;min-width:56px;text-align:center}
+.stp .v.na{color:var(--muted)}
+.na-rem{color:var(--amber)!important;font-weight:700}
+.corr.none .key{color:var(--green);border-color:var(--green);background:rgba(61,220,132,.1)}
+.corr .t{flex:1}
+.corr-done{display:block;margin-top:8px;min-height:48px;width:100%;border-radius:12px;border:1px solid var(--line2);background:var(--surface2);color:var(--text);font-weight:800;font-size:15px;font-family:inherit;cursor:pointer}
+.corr-done.on{background:rgba(61,220,132,.15);border-color:var(--green);color:var(--green)}
+.save.danger{background:linear-gradient(160deg,#ff6b6b,#d92b2b);color:#fff;box-shadow:0 8px 24px rgba(217,43,43,.35)}
+.typo-box.bad,.typo-box.hard{background:rgba(255,90,90,.1);border-color:rgba(255,90,90,.45)}
+.btn-red-solid{background:#d92b2b;color:#fff;border:none;min-height:58px;font-size:18px;font-weight:800}
+.danger-modal{border-top:4px solid var(--red)}
+.form-err{margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(255,90,90,.12);border:1px solid rgba(255,90,90,.45);color:#ffb0b0;font-weight:700;font-size:14px}
+.undo-bar{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 8px);min-height:60px;max-width:448px;margin:0 auto;z-index:26;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;border-radius:16px;background:#2a2f38;border:1px solid var(--line2);box-shadow:0 8px 24px rgba(0,0,0,.45);color:#f2f4f8;font-weight:700}
+.undo-bar .ub-t{flex:1;font-size:16px;line-height:1.25}
+.undo-bar .ub-ok{width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--green);color:#06210f;font-weight:900}
+.undo-bar.scarto{border-color:var(--red)}
+.undo-bar.scarto .ub-ok{background:var(--red);color:#fff}
+.undo-bar button{min-height:48px;padding:0 16px;border-radius:12px;border:1px solid var(--orange);background:transparent;color:var(--orange);font-weight:800;font-size:16px;font-family:inherit}
+.actbar::before{content:"";position:absolute;left:-16px;right:-16px;top:-14px;bottom:-12px;z-index:-1;background:linear-gradient(to bottom,transparent,var(--bg) 38%);pointer-events:none}
+.stock-grid{grid-template-columns:repeat(3,1fr)}
+.stock-cell button{height:48px;font-size:22px}
+.stock-cell.empty{opacity:.7}
+.stock-cell.empty .n,.stock-cell.empty .c{color:var(--muted)}
+.big-input{font-size:28px!important;font-weight:700;min-height:60px!important}
+.mach-dialog .knob-row{margin-top:10px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.chip{min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line2);background:var(--surface);color:var(--text);font-weight:700;font-family:inherit}
+.adv{margin-top:12px}.adv summary{cursor:pointer;color:var(--muted);font-weight:800;min-height:48px;display:flex;align-items:center}
+.sheet-item .mc{min-width:76px}
+.sheet-on{font-size:11px;font-weight:800;color:var(--orange);letter-spacing:1px}
+.item.on{border-color:var(--orange)}
+.f-input{width:100%;min-height:52px;border-radius:12px;border:1px solid var(--line2);background:var(--surface);color:var(--text);padding:0 12px;font-size:20px;font-family:inherit}
+.paired-verdict{margin-bottom:8px;padding:14px;border-radius:16px;font-size:17px;font-weight:700}
+.paired-verdict span{font-size:13px;opacity:.8}
+.paired-verdict.ok{background:rgba(61,220,132,.12);border:1px solid var(--green)}
+.paired-verdict.no{background:rgba(255,90,90,.12);border:1px solid var(--red)}
+html[data-theme="light"] .undo-bar{background:#1f2937}
+html[data-theme="light"] .form-err{color:#b42318}
+html[data-theme="light"] .stock-cell.empty{opacity:.85}
+html[data-theme="light"] .stock-cell.empty .n{color:#64748b}
+html[data-theme="light"] .corr-done,html[data-theme="light"] .chip,html[data-theme="light"] .f-input{background:#fff}
+.photo-note{display:block;width:100%;box-sizing:border-box;flex:0 0 100%;grid-column:1/-1;align-self:stretch;margin:6px 0 8px;padding:10px 12px;border-radius:12px;font-size:14px;font-weight:700;background:rgba(80,160,255,.10);border:1px solid rgba(80,160,255,.4);color:var(--text)}
+.photo-note.new{background:rgba(61,220,132,.10);border-color:rgba(61,220,132,.5)}
+html[data-theme="light"] .photo-note{color:#1f2937}
+.job-row{display:flex;gap:8px;margin-top:8px;align-items:stretch}
+.btn-job{flex:1.5;min-height:58px;display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:18px;border:none;cursor:pointer;font-family:inherit;text-align:left;
+  background:linear-gradient(160deg,#ffb04d,#ff7a1a);color:#1b1206;box-shadow:0 6px 18px rgba(255,122,26,.3)}
+.btn-job .ji{font-size:24px;line-height:1}
+.btn-job b{display:block;font-size:17px;font-weight:800}
+.btn-job small{display:block;font-size:12px;font-weight:600;opacity:.8}
+.btn-job.wide{width:100%;min-height:64px}
+.job-pill{flex:1;border-radius:18px;min-height:58px}
+.job-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.job-card{display:flex;flex-direction:column;gap:3px;width:100%;min-height:72px;padding:12px 14px;border-radius:16px;border:1px solid var(--line2);background:var(--surface);color:var(--text);text-align:left;font-family:inherit;cursor:pointer}
+.job-card.on{border:2px solid var(--orange)}
+.job-card .jc-top{display:flex;align-items:center;gap:8px}
+.job-card .jc-top b{font-size:19px}
+.job-card .jc-n{margin-left:auto;font-weight:800;font-size:15px;color:var(--orange)}
+.job-card .jc-mid{font-weight:700;font-size:15px}
+.job-card .jc-sub{font-size:13px;color:var(--muted)}
+html[data-theme="light"] .job-card{background:#fff}
+.g-intro{font-size:15px;line-height:1.45;margin:12px 0}
+.guida{display:flex;flex-direction:column;gap:10px}
+.g-sec{border:1px solid var(--line2);border-radius:16px;background:var(--surface);padding:0 14px}
+.g-sec summary{min-height:56px;display:flex;align-items:center;gap:10px;font-size:17px;font-weight:800;cursor:pointer;list-style:none}
+.g-sec summary::-webkit-details-marker{display:none}
+.g-sec summary::after{content:"›";margin-left:auto;font-size:22px;color:var(--muted);transition:transform .2s}
+.g-sec[open] summary::after{transform:rotate(90deg)}
+.g-ico{width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:10px;background:rgba(255,122,26,.15);color:var(--orange);font-size:18px;font-weight:800}
+.g-sec p,.g-sec li{font-size:15px;line-height:1.5}
+.g-sec ul,.g-sec ol{padding-left:20px;margin:6px 0}
+.g-sec li{margin:4px 0}
+.g-sec[open]{padding-bottom:12px}
+.g-tip{background:rgba(80,160,255,.10);border-radius:12px;padding:10px 12px}
+.g-img{display:block;width:100%;max-width:300px;margin:10px auto;border-radius:14px;border:1px solid var(--line2)}
+.g-dot{display:inline-block;width:12px;height:12px;border-radius:4px;vertical-align:middle}
+.g-dot.ok{background:var(--orange)}.g-dot.lim{background:#e8c547}.g-dot.no{background:#ff6b6b}
+html[data-theme="light"] .g-sec{background:#fff}
+@media (max-height:700px){
+  .pad{grid-template-rows:repeat(4,50px);gap:7px;margin-top:8px}
+  .btn-job,.job-pill{min-height:50px}
+  .btn-job .ji{font-size:20px}
+  .disp{margin-top:8px}
+  .recent{margin-top:8px}
+  /* v1.9.9: short screens – the last-piece strip replaces the ULTIMI row so the keypad stays clear of the nav */
+  #calcInputView.has-hint .recent{display:none}
+  .last-hint{margin-bottom:6px}
+  /* v2.0.4: room for the Maschio/Femmina toggle (keys stay ≥ 44 px) */
+  .pad{grid-template-rows:repeat(4,44px);gap:4px;margin-top:6px}
+  .lav-seg{margin-bottom:0}
+  .disp{margin-top:6px;padding-top:10px;padding-bottom:8px}
+  .lav-seg button{min-height:44px}
+  .lav-seg button small{display:none}
+  .btn-job,.job-pill{min-height:46px}
+  /* v2.0.5 Adatta alla femmina on short phones */
+  .fm-top .ib{width:44px;height:44px}
+  .fm-title{font-size:17px}
+  .fm-cfg{min-height:46px;padding-top:4px;padding-bottom:4px}
+  .fm-cam{height:46px}
+  .fm-sline{min-height:44px;margin-top:4px}
+  .fm-fields{margin-top:6px}
+  .fm-field{min-height:52px;padding:4px 10px}
+  .fm-field .fv{font-size:21px}
+  .fm-res{margin-top:6px;padding:6px 10px}
+  .fm-res .fr-st{font-size:12px;flex-wrap:nowrap;white-space:nowrap;overflow:hidden}.fm-res .fr-st .pillst{font-size:12px;padding:2px 8px}
+  .fm-res .fr-h{margin-top:2px;font-size:11px}
+  .fm-res .fr-big{font-size:32px}
+  .fm-res .fr-r{font-size:15px}
+  .fm-res .fr-corr{margin-top:4px;padding:3px 8px}
+  .fm-res .fr-corr .fk{font-size:22px}
+  .fm-res .fr-hint{display:none}
+  .fm-pad{margin-top:6px}
+}
+.g-brand{font-size:13px;font-weight:800;letter-spacing:1.5px;color:var(--orange);text-transform:uppercase;margin:-4px 0 8px}
+.turno-closed{padding:14px 16px;font-weight:800;font-size:15px;color:var(--green);border:1px solid rgba(52,211,153,.4)}
+.ask-big h2{margin:4px 0 10px;font-size:20px}
+.ask-big .ask-body{margin-bottom:14px}
+.ask-big .ask-sum{font-size:18px;font-weight:700;line-height:1.5}
+.ask-big .ask-sum b{font-size:24px}
+.ask-big .ask-btns{display:flex;gap:10px}
+.ask-big .ask-btns .btn{flex:1;min-height:60px;font-size:17px}
+.undo-bar.ub-strip{margin:0;max-width:none}
+.fm-res .fr-dev{font-weight:700;font-size:14px;color:var(--muted)}
+.hc span.hc-pos,.hp span.hc-pos{display:block;font-size:11px;font-weight:700;opacity:.8}
+.turno-more{margin-top:14px}
+.turno-more>summary{list-style:none;display:flex;align-items:center;justify-content:center;min-height:52px;width:100%}
+.turno-more>summary::-webkit-details-marker{display:none}
+.turno-more[open]>summary{margin-bottom:10px}
+#measurePrefix.auto-chg{color:var(--orange) !important;animation:pfx-pulse 1s ease-out 2}
+@keyframes pfx-pulse{0%{background:rgba(255,138,31,.35)}100%{background:transparent}}
+.hp .hp-pos{display:block;font-size:10.5px;font-weight:700;opacity:.75;line-height:1.1}
+.hp .hp-k{display:block;font-size:15px;font-weight:800}
+
+/* Beta 0.2.0: pieces on the table */
+.stock-panel{margin-top:8px}
+.sp-why{font-size:13px;color:var(--muted);margin:2px 0 6px}
+.sp-g{margin-top:6px}.sp-t{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.sp-g.ok .sp-t{color:#5fd38a}.sp-g.nd .sp-t{color:var(--muted)}.sp-g.cr .sp-t{color:var(--amber,#f5b942)}
+.sp-row{display:flex;flex-wrap:wrap;gap:6px}
+.sp-chip{min-height:52px;min-width:72px;padding:6px 10px;border-radius:12px;border:1px solid var(--line2);background:var(--surface);color:var(--text);text-align:left;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px}
+.sp-chip b{font-size:24px}.sp-chip .q{font-weight:800;color:var(--orange)}.sp-chip small{width:100%;font-size:12px;color:var(--muted)}
+.sp-chip.ok{border-color:#5fd38a}.sp-chip.nd{opacity:.55;text-decoration:line-through}.sp-chip.nd small{text-decoration:none}.sp-chip.sp-cr{border-style:dashed;border-color:var(--amber,#f5b942)}
+.sp-note{font-size:12px;color:var(--amber,#f5b942);margin-top:4px}.sp-none{font-size:13px;color:var(--muted)}
+.sp-open{width:100%;min-height:48px;margin-top:8px;border-radius:12px;border:1px dashed var(--line2);background:transparent;color:var(--text);font-weight:700;font-size:15px}
+.sp-open.small{min-height:44px}
+.se-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0}
+.se-n{min-height:58px;border-radius:12px;border:1px solid var(--line2);background:var(--surface);color:var(--text);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.se-n b{font-size:20px}.se-n span{font-size:13px;color:var(--muted);font-weight:700}
+.se-n.has span{color:var(--orange)}.se-n.fit{border-color:#5fd38a}.se-n.sel{outline:3px solid var(--orange);background:rgba(255,138,31,.12)}
+.se-sel{font-size:17px;margin:6px 0}.se-q{color:var(--orange);font-size:22px}
+.se-q-keys{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.se-q-keys button{min-height:60px;border-radius:12px;border:1px solid var(--line2);background:var(--bg2);color:var(--text);font-size:24px;font-weight:800}
+.se-q-keys .fn{color:var(--orange)}
+
+/* v2.0.10: «Correzione per il pezzo» on one line (legend wraps under it if needed); chip text never wraps */
+.hr-h{flex-wrap:wrap;row-gap:2px}
+.hr-h .hr-t{white-space:nowrap;flex:0 0 auto}
+.hr-h .mono{margin-left:auto;font-size:11.5px}
+.hc{min-width:0;overflow:hidden}
+.hc .hc-l1,.hc .hc-l2{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+.hc .hc-l1{font-size:11.5px;font-weight:700;color:var(--muted)}
+.hc .hc-l2{font-size:15px}
+.hc.hc-ex .hc-l1{display:inline}
+
+/* Beta 0.3.0: Interno (femmina) */
+.fem-open-row{display:flex;gap:8px;margin-top:8px}.fem-open-row .fem-open{margin-top:0;flex:1;min-height:44px}
+.fem-open.int-open{border-color:var(--orange);color:var(--orange)}
+html[data-theme="light"] .fem-open.int-open{color:#b45309;border-color:#d97706}
+body[data-page="interno"] .undo-bar{left:76px;right:12px;max-width:none}
+.int-mode{display:flex;gap:6px;margin-top:6px}
+.int-mode .ims{flex:1;min-height:44px;white-space:nowrap;border-radius:12px;border:1.5px solid var(--line2);background:var(--surface);color:var(--text);font-weight:800;font-size:14px;font-family:inherit}
+.int-mode .ims.on{border-color:var(--teal);background:rgba(25,227,208,.10);color:var(--teal)}
+html[data-theme="light"] .int-mode .ims.on{color:#0b7d73}
+.int-field{width:100%;margin-top:6px;min-height:56px}
+.int-field .fl .nt,.int-mode .nt{text-transform:none}
+.int-res{padding:10px 12px}
+.int-res .fr-corr{margin-top:4px}
+.int-dir{margin-top:8px;padding:10px 12px;border-radius:14px;border:2px solid var(--amber,#f5b942);background:rgba(245,185,66,.10)}
+.int-dir h3{margin:0 0 6px;font-size:16px}.int-dir p{margin:0 0 8px;font-size:13px;color:var(--muted)}
+.int-dir .row{display:flex;gap:8px}.int-dir .row button{flex:1;min-height:56px;border-radius:12px;border:1.5px solid var(--line2);background:var(--surface);color:var(--text);font-weight:800;font-size:16px;font-family:inherit}
+.int-dir .later{margin-top:6px;width:100%;min-height:44px;border-radius:12px;border:1px dashed var(--line2);background:transparent;color:var(--muted);font-weight:700;font-family:inherit}
+.int-dir.set{margin-top:6px;border-width:1px;border-color:var(--line2);background:transparent;display:flex;justify-content:space-between;align-items:center;padding:2px 4px 2px 10px;font-size:13px;font-weight:700}
+.int-dir.set button{min-height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line2);background:var(--surface);color:var(--text);font-weight:700;font-family:inherit}
+.int-dir .row button small{display:block;font-size:12px;font-weight:600;color:var(--muted)}
+.int-dir .row button.on{border-color:var(--green);background:rgba(46,204,113,.12)}
+.int-dnote{margin:0 0 4px;font-size:12px;color:var(--muted);text-align:center}
+#intDirSet span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#intDirAsk{padding:6px;margin-top:4px}#intDirAsk .row button{min-height:52px;font-size:15px;line-height:1.1}
+.int-warn{margin:4px 0;padding:6px 10px;border-radius:12px;border:2px solid #ff5a5a;background:rgba(255,90,90,.12);color:#ffb3b3;font-weight:700;font-size:13px;line-height:1.25}
+html[data-theme="light"] .int-warn{color:#b71c1c}
+.undo-bar.ub-fm{overflow:hidden;padding-top:2px;padding-bottom:2px}.undo-bar.ub-fm .ub-t{font-size:14px}.undo-bar.ub-fm button{min-height:40px}
+.int-res .is-big{font-size:30px;font-weight:800;line-height:1.05;margin:4px 0}
+.int-res .is-big.stretto{color:#ff8a8a}.int-res .is-big.largo{color:var(--amber,#f5b942)}.int-res .is-big.ok{color:var(--green)}
+html[data-theme="light"] .int-res .is-big.stretto{color:#c62828}html[data-theme="light"] .int-res .is-big.largo{color:#b45309}
+.int-res .is-lines{font-size:14px;font-weight:700;line-height:1.35}
+.int-res .is-lines small{color:var(--muted);font-weight:600}
+.int-res .is-unit{font-size:12px;color:var(--muted);margin-top:4px}
+
+@media (max-height:700px){
+  .int-dir.set{margin-top:4px;font-size:12px}
+  .int-dir.set button{min-height:44px;padding:0 10px}
+  .int-mode{margin-top:4px}
+  .int-field{min-height:48px;margin-top:4px;padding:2px 10px}
+  .int-field .fv{font-size:20px}
+  .int-res{padding:6px 10px}
+  .int-res .is-big{font-size:22px;margin:0}
+  .int-res .is-lines{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .int-res .fr-corr{padding:2px 8px;font-size:13px}
+  .int-res .fr-corr small{font-size:10.5px;line-height:1.1}
+}
+
+/* Beta 0.4.0: photo choice MASCHIO / FEMMINA (interno) */
+.photo-choice h2{margin-bottom:2px}
+.pc-btn{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;min-height:104px;margin-top:10px;padding:12px 14px;border-radius:18px;border:2px solid var(--line2);background:var(--surface);color:var(--text);font-family:inherit;text-align:left;cursor:pointer}
+.pc-btn>b{font-size:22px;font-weight:800;letter-spacing:.2px}
+.pc-btn span{font-size:16px;font-weight:700}.pc-btn small{font-size:12.5px;color:var(--muted)}
+.pc-btn.pc-m>b{color:var(--orange)}.pc-btn.pc-f>b{color:var(--teal)}
+html[data-theme="light"] .pc-btn.pc-m>b{color:#b45309}html[data-theme="light"] .pc-btn.pc-f>b{color:#0b7d73}
+.pc-btn.last.pc-m{border-color:var(--orange);background:rgba(255,138,31,.10);box-shadow:0 0 0 3px rgba(255,138,31,.25)}
+.pc-btn.last.pc-f{border-color:var(--teal);background:rgba(25,227,208,.10);box-shadow:0 0 0 3px rgba(25,227,208,.25)}
+.pc-last{position:absolute;top:8px;right:10px;font-size:11px!important;font-weight:800!important;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:999px;background:var(--bg2);color:var(--muted)}
+
+/* Beta 0.4.1: Interno gauge + big advice */
+.int-count{font-size:13px;font-weight:700;color:var(--muted);margin:0 0 6px}
+.int-gauge{margin:8px 0 6px}.ig-bar{position:relative;height:22px;border-radius:11px;background:rgba(255,77,77,.35)}
+.ig-ok{position:absolute;top:0;bottom:0;background:#20c46b;border-radius:4px}
+.ig-c{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:rgba(255,255,255,.8)}
+html[data-theme="light"] .ig-c{background:#123}
+.ig-m{position:absolute;top:-7px;width:6px;height:36px;margin-left:-3px;border-radius:3px;background:var(--text);box-shadow:0 0 0 2px var(--bg)}
+.ig-lab{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:6px}
+.int-adv{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:62px;margin-top:6px;border-radius:16px;font-size:30px;font-weight:800;background:rgba(255,77,77,.14);color:#ff6b6b;border:2px solid rgba(255,77,77,.5)}
+.int-adv.ok{background:rgba(32,196,107,.14);color:#20c46b;border-color:rgba(32,196,107,.5)}
+html[data-theme="light"] .int-adv{color:#c62828}html[data-theme="light"] .int-adv.ok{color:#11804a}
+.int-adv small{font-size:12.5px;font-weight:600;color:var(--muted)}
+@media (max-height:800px){.int-count,.ig-lab{display:none}.is-lines{font-size:12px;line-height:1.25}.int-adv{min-height:50px;font-size:26px}.int-adv small{font-size:11.5px}}
+@media (max-height:700px){.int-adv{min-height:40px;font-size:22px;margin-top:2px}.int-adv small,.int-count,.ig-lab,#intCorr,.is-lines{display:none}.int-gauge{margin:4px 0 2px}.ig-bar{height:14px}.ig-m{height:24px;top:-5px}}
+
+.int-mat{margin:6px 0 2px;padding:8px 10px;border-radius:14px;background:var(--bg2);text-align:center}
+.int-mat b{display:block;font-size:19px;line-height:1.25;color:var(--text)}.int-mat.largo b{color:#ff6b6b}
+html[data-theme="light"] .int-mat.largo b{color:#c62828}
+.int-mat small{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
+@media (max-height:800px){.int-mat b{font-size:16px}.is-lines{display:none}}
+@media (max-height:700px){.int-mat{padding:4px 8px}.int-mat b{font-size:14px}.int-mat small{font-size:11px}}
+/* Beta 0.4.2 compact Interno */
+@media (max-height:800px){.int-res .is-big{font-size:24px;margin:0}.int-dir.set{margin-top:2px;padding:0 2px 0 10px}#intCorr{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.int-mat{margin:3px 0 0;padding:4px 8px}}
+.int-dir.set button{min-height:44px}
+@media (max-height:700px){.int-dnote{display:none}.int-mat small{display:none}.int-mode .ims{min-height:44px}.int-res .is-big{font-size:21px}}
+/* Beta 0.5.0 AI */
+.ai-app{padding:8px 10px;border-radius:12px;border:1.5px solid var(--teal);background:rgba(25,227,208,.08);font-size:14px;line-height:1.35;margin:6px 0}
+.ai-ans{min-height:70px;max-height:38vh;overflow:auto;padding:10px;border-radius:12px;background:var(--bg2);font-size:16px;line-height:1.4;margin:6px 0}
+#aiQ{width:100%;min-height:64px;font-size:17px;border-radius:12px;padding:10px;box-sizing:border-box;font-family:inherit}
+.ai-btns{display:flex;gap:8px;margin-top:8px}.ai-btns .btn{flex:1;min-height:56px;font-size:17px}
+.ai-err,.ai-warn{display:block;color:#ff8a8a;font-weight:700}.ai-warn{margin-top:8px;font-size:13px}
+.btn.off{opacity:.45}.ai-why{color:var(--muted);margin:0 0 6px}
+/* Beta 0.5.2 chat */
+.key-help{margin:8px 0}.kh-btns{display:flex;gap:8px}.kh-btns .btn{flex:1;min-height:56px;font-size:16px}
+.kh-steps{margin:8px 0 0;padding-left:22px;font-size:15px;line-height:1.4}.kh-steps li{margin:2px 0}
+.chat-key{padding:10px 12px;border-radius:14px;border:2px solid var(--orange);background:rgba(255,138,31,.08)}.chat-key p{margin:4px 0;font-size:14px;color:var(--muted)}
+#page-chat .chat-wrap{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);bottom:calc(84px + env(safe-area-inset-bottom,0px));max-width:480px;margin:0 auto;padding:8px 12px 6px;display:flex;flex-direction:column;gap:6px;background:var(--bg);z-index:5;box-sizing:border-box}
+#page-chat:not(.active) .chat-wrap{display:none}
+.chat-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.chat-head h2{margin:0;font-size:22px}
+.chat-head .btn{min-height:48px;padding:0 14px;font-size:15px;flex:none}
+.chat-app{margin:0;padding:4px 10px!important}.chat-app summary{min-height:36px;font-size:14px;display:flex;align-items:center;gap:6px;font-weight:800;cursor:pointer}
+.bub ul,.bub ol{margin:4px 0;padding-left:20px}.bub li{margin:2px 0}.bub code{background:rgba(255,255,255,.08);padding:0 4px;border-radius:4px}
+.ai-note{margin-top:6px;font-size:13px;color:var(--muted)}.chat-retry{display:block;width:100%;min-height:52px;margin-top:8px;font-size:17px}
+.chat-app #aiApp{max-height:18vh;overflow:auto;padding-bottom:4px}
+.chat-msgs{flex:1;min-height:80px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 2px}
+.bub{max-width:86%;padding:10px 12px;border-radius:16px;font-size:16px;line-height:1.4;white-space:pre-wrap;word-wrap:break-word}
+.bub.me{align-self:flex-end;background:rgba(255,138,31,.16);border:1px solid rgba(255,138,31,.45);border-bottom-right-radius:4px}
+.bub.ai{align-self:flex-start;background:var(--surface);border:1px solid var(--line2);border-bottom-left-radius:4px}
+.bub.err{align-self:stretch;max-width:none;border-color:#ff5a5a;color:#ff8a8a;font-weight:700}
+.bub .ai-warn{white-space:normal}.bub.wait{opacity:.7;font-style:italic}
+.chat-hello{color:var(--muted);font-size:15px;text-align:center;padding:12px}
+#chatQ{width:100%;min-height:60px;max-height:120px;font-size:17px;border-radius:14px;padding:10px 12px;box-sizing:border-box;font-family:inherit;resize:none;background:var(--surface);color:var(--text);border:1.5px solid var(--line2)}
+.chat-btns{display:flex;gap:8px}.chat-btns .btn{flex:1;min-height:56px;font-size:17px}.chat-btns #chatSend{flex:1.4}
+@media (max-height:680px){.chat-head h2{font-size:19px}#chatQ{min-height:52px}.chat-btns .btn{min-height:52px}}
+.web-install{margin:0 0 12px;padding:12px 14px}.web-install p{margin:4px 0 8px}
+</style>
+</head>
+<body>
+<div class="wrap" id="mainWrap">
+  <section class="page active" id="page-calc">
+    <div class="ctx-pills" id="ctxBar">
+      <button type="button" class="pill job-pill" id="pillJobs" style="flex:1.35" aria-label="Lavoro: cambia, nuovo lavoro, rinomina macchina"><span class="pl" id="jobsLbl">Lavoro</span><span class="pv"><span id="jobsCount" class="cond">—</span></span></button>
+      <button type="button" class="pill hidden" id="pillMach" style="flex:1.1" aria-label="Rinomina la mia macchina">
+        <span class="pl">Macchina ✎</span>
+        <span class="pv mach"><span id="machCode" class="cond">—</span></span>
+      </button>
+      <button type="button" class="pill" id="pillSerie" style="flex:1.3">
+        <span class="pl">Serie</span>
+        <span class="pv"><span id="chipTitle" class="cond">Base —</span></span>
+      </button>
+      <button type="button" class="ib" id="btnHelp" title="Guida" aria-label="Guida"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></svg></button>
+      <button type="button" class="ib hidden" id="btnVoice" title="Voce"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></button>
+      <span class="hidden" id="chipSub"></span>
+      <span class="hidden" id="ctxChev"></span>
+    </div>
+    <div class="job-row hidden" id="jobRow">
+      <button type="button" class="btn-job" id="btnNewJob"><span class="ji">📷</span><span><b>Nuovo lavoro</b><small>Foto foglio → dati lavoro</small></span></button>
+    </div>
+
+    <div id="calcInputView">
+      <div class="card empty-card hidden" id="emptyCard">
+        <h2>Benvenuto 👋</h2>
+        <p>Per iniziare serve il lavoro: macchina, base e gioco.</p>
+        <button type="button" class="btn-job wide" id="emNewJob"><span class="ji">📷</span><span><b>Nuovo lavoro</b><small>Foto del foglio → dati del lavoro (o a mano)</small></span></button>
+        <button type="button" class="btn btn-sec" id="emAddBase" style="width:100%;min-height:56px;margin-top:10px">+ Aggiungi base a mano</button>
+        <p class="meta" style="margin-top:10px">Poi scrivi le misure dei pezzi qui. Guida: tasto <b>?</b> in alto.</p>
+      </div>
+      <button type="button" class="last-hint hidden" id="lastHint"></button>
+      <div class="card disp">
+        <div class="lbl"><span>Misura maschio S</span></div>
+        <div class="status" id="liveStatus"><span class="dot"></span><span id="liveStatusTxt">inserisci misura</span></div>
+        <button type="button" class="ib cam cam-lbl" id="btnFoto" title="Leggi la misura S da foto" aria-label="Foto: leggi misura S"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><small>leggi S</small></button>
+        <div class="val cond">
+          <span class="pre" id="measurePrefix">24,<i>▾</i></span>
+          <span class="dig" id="digDisplay"></span><span class="cur" id="curBlink"></span><span class="u">mm</span>
+        </div>
+        <div class="prefix-menu" id="prefixMenu"></div>
+        <div class="fem-open-row"><button type="button" class="fem-open" id="btnFemOpen" aria-label="Adatta alla femmina">⚥ Adatta alla femmina</button><button type="button" class="fem-open int-open" id="btnIntOpen" aria-label="Interno (femmina): rettifica del foro">◎ Interno (femmina)</button></div>
+      </div>
+      <div class="recent" id="recentRow"><span class="h mono">ULTIMI</span><span class="empty" style="padding:0;font-size:13px" id="recentEmpty">nessuna ancora</span></div>
+      <div id="typoBox" class="typo-box hidden"></div>
+      <div class="pad cond" id="keypad">
+        <button type="button" class="k" data-k="7">7</button><button type="button" class="k" data-k="8">8</button><button type="button" class="k" data-k="9">9</button><button type="button" class="k fn" data-k="BS">⌫</button>
+        <button type="button" class="k" data-k="4">4</button><button type="button" class="k" data-k="5">5</button><button type="button" class="k" data-k="6">6</button><button type="button" class="k go" data-k="GO"><span>→</span>CALCOLA</button>
+        <button type="button" class="k" data-k="1">1</button><button type="button" class="k" data-k="2">2</button><button type="button" class="k" data-k="3">3</button>
+        <button type="button" class="k fn" data-k=",">,</button><button type="button" class="k" data-k="0">0</button><button type="button" class="k fn" data-k="AC">AC</button>
+      </div>
+      <p class="meta" id="fotoHint" style="margin-top:8px"></p>
+    </div>
+
+    <div id="calcResultView" class="hidden">
+      <div class="card sum">
+        <div class="lbl" style="width:100%;justify-content:center;margin-bottom:4px"><span id="resSLbl">Misura maschio S</span></div>
+        <div class="m cond" id="resS">—</div>
+        <div class="d cond"><b id="resD">—</b><span class="mono">DALLA BASE</span></div>
+        <button type="button" class="ib edit" id="btnRimisura" title="Modifica"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button>
+        <div class="scale-strip" id="scaleStrip"><div class="marker" id="scaleMarker" style="left:50%"></div></div>
+      </div>
+      <div id="driftAlert" class="drift hidden"></div>
+      <div class="card fem-target hidden" id="femTarget"></div>
+      <div class="card hero">
+        <div class="lbl"><span id="resPairLbl">Pezzo femmina (numerato)</span><span id="resGiocoRange" style="color:var(--orange);text-transform:none;letter-spacing:.5px">gioco</span></div>
+        <div id="resPhotoNote" class="photo-note new hidden"></div>
+        <div class="pair cond" id="recGrid"></div>
+        <div class="stock-panel" id="stockPanel"></div>
+        <div class="mating" id="matingBox"></div>
+        <div class="hint-row" id="hintRow"></div>
+        <div class="ruler">
+          <div class="ticks cond" id="tickRow"></div>
+          <div class="legend"><span>tocca un numero → <b>va bene?</b></span><span><b style="color:var(--orange)">■</b> ok <b style="color:var(--amber)">■</b> limite <b style="color:#ff8a8a">■</b> no</span></div>
+        </div>
+        <div id="vaBeneBox" class="typo-box hidden" style="margin-top:8px"></div>
+      </div>
+      <div class="card corr sticky-corr" id="corrCard">
+        <div class="key cond" id="corrKey">−</div><div class="x cond" id="corrX">×0</div>
+        <div class="t" id="corrTxt">correzione<small>—</small></div><div class="chev">›</div>
+      </div>
+      <div class="card st taper" id="taperCard">
+        <div class="lbl"><span>Conicità <small class="tp-q">dove è più grande il pezzo?</small></span><span class="okm" id="conOk">non misurata</span></div>
+        <div class="tp-row" id="conDavRow"><span class="tp-s">Davanti</span><div class="stp cond"><button type="button" class="b" id="conDavMinus" aria-label="Davanti meno">−</button><div class="v na" id="conDavVal" role="button">— <small>µm</small></div><button type="button" class="b" id="conDavPlus" aria-label="Davanti più">+</button></div></div>
+        <div class="tp-row" id="conFondoRow"><span class="tp-s">In fondo</span><div class="stp cond"><button type="button" class="b" id="conFondoMinus" aria-label="In fondo meno">−</button><div class="v na" id="conFondoVal" role="button">— <small>µm</small></div><button type="button" class="b" id="conFondoPlus" aria-label="In fondo più">+</button></div></div>
+      </div>
+      <div class="card formbox hidden" id="formBox"></div>
+      <details class="expl-bar" id="spiegazioneBox"><summary>Spiegazione / Controllo F</summary>
+        <div id="spiegazioneText" class="mono" style="margin-top:8px;font-size:13px"></div>
+        <label for="fInput" style="display:block;margin-top:10px;font-size:12px;color:var(--muted);font-weight:700">Controllo F: misura del pezzo di accoppiamento (mm)</label>
+        <div class="field-row" style="margin-top:4px">
+          <input id="fInput" class="f-input" inputmode="decimal" autocomplete="off" placeholder="es. 22,0050"/>
+          <button type="button" class="btn btn-primary" id="btnCheckF" style="width:100%;min-height:52px">Controlla gioco</button>
+        </div>
+        <div id="fResult" class="hidden" style="margin-top:8px"></div>
+      </details>
+      <div class="row-btns">
+        <button type="button" class="btn btn-sec" id="btnOfficina" style="flex:1">Modalità officina</button>
+        <button type="button" class="btn btn-sec" id="btnSpeak" style="flex:0 0 auto;min-width:64px" aria-label="Leggi ad alta voce">🔊</button>
+      </div>
+      <div class="row-btns"><button type="button" class="btn btn-sec" id="btnFemOpen2" style="flex:1" aria-label="Adatta alla femmina">⚥ Adatta alla femmina</button><button type="button" class="btn btn-sec" id="btnIntOpen2" style="flex:1" aria-label="Interno (femmina)">◎ Interno</button></div>
+      <div style="height:70px"></div>
+    </div>
+  </section>
+
+  <section class="page" id="page-femmina">
+    <div class="fm-top">
+      <button type="button" class="ib" id="femBack" aria-label="Torna a Calcolo">←</button>
+      <button type="button" class="pill fm-cfg" id="femCfgBtn" aria-label="Nominale e tolleranze femmina"><span class="pl"><span class="fm-title">Adatta alla femmina</span> · nom. ± tol ✎</span><span class="pv cond" id="femCfgTxt">—</span></button>
+      <button type="button" class="ib fm-cam" id="femFoto" aria-label="Foto: leggi F1A, S1A, G1A"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><small>leggi F</small></button>
+    </div>
+    <div class="fm-fields">
+      <button type="button" class="fm-field on fm-f" id="fFieldF" data-ff="F"><span class="fl">Femmina misurata F</span><span class="fv cond" id="fValF">—</span></button>
+      <button type="button" class="fm-field fm-g" id="fFieldGmin" data-ff="GMIN"><span class="fl">Gioco minimo</span><span class="fv cond" id="fValGmin">—</span></button>
+      <button type="button" class="fm-field fm-g" id="fFieldGmax" data-ff="GMAX"><span class="fl">Gioco massimo</span><span class="fv cond" id="fValGmax">—</span></button>
+    </div>
+    <button type="button" class="fm-field fm-sline" id="fFieldS" data-ff="S"><span class="fl">Maschio ora S <i>(facoltativo)</i></span><span class="fv cond" id="fValS">—</span></button>
+    <div class="card fm-res" id="femRes"></div>
+    <div class="pad cond fm-pad" id="fKeypad">
+      <button type="button" class="k" data-fk="7">7</button><button type="button" class="k" data-fk="8">8</button><button type="button" class="k" data-fk="9">9</button><button type="button" class="k fn" data-fk="BS">⌫</button>
+      <button type="button" class="k" data-fk="4">4</button><button type="button" class="k" data-fk="5">5</button><button type="button" class="k" data-fk="6">6</button><button type="button" class="k go" data-fk="SAVE" id="fSave"><span>✓</span>SALVA<small>femmina</small></button>
+      <button type="button" class="k" data-fk="1">1</button><button type="button" class="k" data-fk="2">2</button><button type="button" class="k" data-fk="3">3</button>
+      <button type="button" class="k fn" data-fk=",">,</button><button type="button" class="k" data-fk="0">0</button><button type="button" class="k fn" data-fk="AC">AC</button>
+    </div>
+  </section>
+
+  <!-- Beta 0.3.0: Interno (femmina) — internal grinding of the bore -->
+  <section class="page" id="page-interno">
+    <div class="fm-top">
+      <button type="button" class="ib" id="intBack" aria-label="Torna a Calcolo">←</button>
+      <button type="button" class="pill fm-cfg" id="intCfgBtn" aria-label="Quota del foro"><span class="pl"><span class="fm-title">Interno (femmina)</span> · quota foro ✎</span><span class="pv cond" id="intCfgTxt">—</span></button>
+      <button type="button" class="ib fm-cam" id="intFoto" aria-label="Foto: leggi F1A"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><small>leggi F</small></button>
+    </div>
+    <div id="intDir"></div>
+    <div class="int-mode" role="group" aria-label="Come scrivi il foro">
+      <button type="button" class="ims" data-im="mm">Foro in mm</button><button type="button" class="ims" data-im="rel">Numero <span class="nt">µm</span></button>
+    </div>
+    <div class="fm-field on int-field" id="intField"><span class="fl" id="intFieldLbl">Foro misurato (diametro)</span><span class="fv cond" id="intVal">—</span></div>
+    <div class="card fm-res int-res" id="intRes"></div>
+    <div class="pad cond fm-pad" id="iKeypad">
+      <button type="button" class="k" data-ik="7">7</button><button type="button" class="k" data-ik="8">8</button><button type="button" class="k" data-ik="9">9</button><button type="button" class="k fn" data-ik="BS">⌫</button>
+      <button type="button" class="k" data-ik="4">4</button><button type="button" class="k" data-ik="5">5</button><button type="button" class="k" data-ik="6">6</button><button type="button" class="k go" data-ik="SAVE" id="iSave"><span>✓</span>SALVA<small>interno</small></button>
+      <button type="button" class="k" data-ik="1">1</button><button type="button" class="k" data-ik="2">2</button><button type="button" class="k" data-ik="3">3</button>
+      <button type="button" class="k fn" data-ik="," id="iComma">,</button><button type="button" class="k" data-ik="0">0</button><button type="button" class="k fn" data-ik="AC">AC</button>
+    </div>
+  </section>
+
+  <section class="page" id="page-turno">
+    <div class="page-head">
+      <h2>Turno</h2>
+      <span class="badge-live" id="turnoBadge"><span class="dot"></span> In corso</span>
+    </div>
+    <div class="hidden" id="turnoLive"></div>
+    <div class="card turno-closed hidden" id="turnoClosed" role="status"></div>
+    <div class="card totale-card fatti-card" id="fattiCard">
+      <div class="tl">Totale turno</div>
+      <div class="tn cond" id="fattiTotale">0</div>
+      <div class="ts">Pezzi fatti</div>
+      <div class="fs" id="fattiSplit"></div>
+      <div class="meta" id="femTurno" style="margin-top:4px"></div>
+      <div class="fm" id="fattiMacchine"></div>
+    </div>
+    <div class="sec-title">Riepilogo</div>
+    <div class="summary-card" id="riepilogoBox"></div>
+    <div class="row-btns">
+      <button type="button" class="btn btn-sec" id="btnShareTxt" style="flex:1">Condividi testo</button>
+      <button type="button" class="btn btn-sec" id="btnShareImg" style="flex:1">Condividi immagine</button>
+    </div>
+    <div class="row-btns"><button type="button" class="btn btn-orange" id="btnChiudiTurno" style="flex:1">Chiudi turno</button></div>
+    <label style="display:block;margin-top:10px;font-size:12px;color:var(--muted);font-weight:700">Nota turno</label>
+    <textarea id="turnoNote" class="neu"></textarea>
+    <details class="turno-more" id="turnoMore">
+      <summary class="btn btn-sec">Altro ▾ · pezzi portati via e pezzi sul tavolo</summary>
+    <div class="card totale-card" id="pezziTotaleCard">
+      <div class="tl">Totale turno</div>
+      <div class="tn cond" id="pezziTotale">0</div>
+      <div class="ts">Pezzi portati via</div>
+    </div>
+    <div id="pezziList"></div>
+    <div class="card" style="padding:12px;margin-top:12px">
+      <div class="input-preview cond"><span class="pezzi-ph" id="pezziPh">Quanti pezzi hanno portato via?</span><span class="dig" id="pezziDig"></span><span class="cur" style="height:36px"></span></div>
+      <div class="pad cond" id="pezziPad" style="margin-top:8px;grid-template-rows:repeat(4,58px)">
+        <button type="button" class="k" data-pk="7">7</button><button type="button" class="k" data-pk="8">8</button><button type="button" class="k" data-pk="9">9</button><button type="button" class="k fn" data-pk="BS">⌫</button>
+        <button type="button" class="k" data-pk="4">4</button><button type="button" class="k" data-pk="5">5</button><button type="button" class="k" data-pk="6">6</button><button type="button" class="k go" data-pk="GO" style="grid-row:span 3"><span>✓</span>OK</button>
+        <button type="button" class="k" data-pk="1">1</button><button type="button" class="k" data-pk="2">2</button><button type="button" class="k" data-pk="3">3</button>
+        <button type="button" class="k" data-pk="0" style="grid-column:span 2">0</button><button type="button" class="k fn" data-pk="AC">AC</button>
+      </div>
+      <div class="row-btns"><button type="button" class="btn btn-sec" id="btnPezziAzzera" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px">↻ Azzera conteggio portati via</button></div>
+    </div>
+    <div class="sec-title">Pezzi sul tavolo</div>
+    <div id="stockBox"></div>
+    </details>
+  </section>
+
+  <section class="page" id="page-storico">
+    <div class="page-head"><h2>Storico</h2></div>
+    <div class="sec-title" style="margin-top:0">Andamento macchina</div>
+    <div id="andamentoBox"></div>
+    <div class="sec-title">Misure salvate</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px"><select id="filterHistSeries" class="neu" style="flex:1"></select>
+      <button type="button" class="btn btn-sec" id="btnCsvStorico" style="min-height:48px">CSV</button></div>
+    <div id="histList"></div>
+    <div class="sec-title">Femmine salvate</div>
+    <div id="femList"></div>
+    <div class="sec-title">Interni salvati (foro)</div>
+    <div id="intList"></div>
+    <div class="sec-title">Turni archiviati</div>
+    <div id="archivioList"></div>
+  </section>
+
+  <section class="page" id="page-setup">
+    <div class="page-head"><h2>Setup</h2></div>
+    <div class="sec-title" style="margin-top:0">Preferenze</div>
+    <div class="setup-group">
+      <button type="button" class="setup-row" id="btnTheme">
+        <span class="row-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
+        <span class="row-txt"><b>Tema</b><span id="themeLabel">Scuro</span></span>
+        <span class="chev">›</span>
+      </button>
+      <button type="button" class="setup-row" id="btnVoiceAuto" style="cursor:pointer">
+        <span class="row-ico"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></span>
+        <span class="row-txt"><b>Voce automatica</b><span id="voiceLabel">Off</span></span>
+        <span class="toggle" id="voiceToggle"><i></i></span>
+      </button>
+      <button type="button" class="setup-row" id="btnCropStep" style="cursor:pointer">
+        <span class="row-ico"><svg viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg></span>
+        <span class="row-txt"><b>Ritaglio dopo la foto</b><span id="cropLabel">On · scegli le righe da leggere</span></span>
+        <span class="toggle on" id="cropToggle"><i></i></span>
+      </button>
+      <button type="button" class="setup-row" id="btnAssist">
+        <span class="row-ico"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/></svg></span>
+        <span class="row-txt"><b>Chat con l'AI</b><span>Domande sulla rettifica (scritte o a voce) · anche dal tasto 💬 Chat in basso</span></span><span class="chev">›</span>
+      </button>
+      <button type="button" class="setup-row" id="btnAiSet">
+        <span class="row-ico"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01"/></svg></span>
+        <span class="row-txt"><b>Intelligenza artificiale</b><span id="aiLabel">—</span></span><span class="chev">›</span>
+      </button>
+      <button type="button" class="setup-row" id="btnGuida">
+        <span class="row-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></svg></span>
+        <span class="row-txt"><b>Guida</b><span>Manuale per nuovi operatori</span></span>
+        <span class="chev">›</span>
+      </button>
+      <button type="button" class="setup-row" id="btnAllenamento">
+        <span class="row-ico"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/></svg></span>
+        <span class="row-txt"><b>Allenamento</b><span>Impara i calcoli</span></span>
+        <span class="chev">›</span>
+      </button>
+    </div>
+
+    <div class="sec-title hidden">Contesto di lavoro</div>
+    <div class="card ctx-panel hidden" id="ctxPanel">
+      <select id="selMachine" class="hidden"></select>
+      <label>Serie</label>
+      <select id="selSeries"></select>
+      <div class="meta" id="seriesInfo" style="margin:8px 0"></div>
+      <button type="button" class="btn btn-primary" id="btnUseContext" style="width:100%;margin-top:4px">✓ Usa questo contesto</button>
+    </div>
+
+    <div class="setup-group">
+      <button type="button" class="setup-row" id="btnGoMachines">
+        <span class="row-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M7 18v2M17 18v2"/></svg></span>
+        <span class="row-txt"><b>Macchina: <span id="machLabel">—</span></b><span>Rinomina · taratura manopola</span></span>
+        <span class="chev">›</span>
+      </button>
+      <button type="button" class="setup-row" id="btnGoSeries">
+        <span class="row-ico"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>
+        <span class="row-txt"><b>Serie / quote</b><span>Basi, giochi, lotti</span></span>
+        <span class="chev">›</span>
+      </button>
+      <button type="button" class="setup-row" id="btnExport">
+        <span class="row-ico"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 19h16"/></svg></span>
+        <span class="row-txt"><b>Esporta</b><span>Backup JSON</span></span>
+        <span class="chev">›</span>
+      </button>
+      <button type="button" class="setup-row" id="btnCsv">
+        <span class="row-ico"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
+        <span class="row-txt"><b>Esporta misure (CSV)</b><span>Per Excel / capoturno</span></span>
+        <span class="chev">›</span>
+      </button>
+      <button type="button" class="setup-row" id="btnImport">
+        <span class="row-ico"><svg viewBox="0 0 24 24"><path d="M12 21V9M8 13l4-4 4 4M4 5h16"/></svg></span>
+        <span class="row-txt"><b>Importa</b><span>Ripristina da file</span></span>
+        <span class="chev">›</span>
+      </button>
+    </div>
+    <input type="file" id="importFile" accept="application/json,.json,text/plain" class="hidden"/>
+    <button type="button" class="btn btn-danger" id="btnReset" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗑 Azzera tutto</button>
+    <p class="ver">Rettifica Beta v0.5.2 · offline · µm</p>
+  </section>
+
+  <section class="page" id="page-guida">
+    <div class="page-head"><h2>Guida</h2></div>
+    <div class="g-brand">Rettifica Beta</div>
+    <button type="button" class="btn btn-sec" id="btnBackGuida" style="min-height:52px">← Indietro</button>
+    <p class="g-intro">Manuale veloce di <b>Rettifica Beta</b> per chi inizia. Tocca un titolo per aprirlo. Tutto funziona <b>senza internet</b>; le misure sono sempre in <b>µm</b> (1 µm = 0,001 mm).</p>
+    <div class="guida">
+      <details class="g-sec" open><summary><span class="g-ico">🎯</span>Cosa fa l'app</summary>
+        <p>Misuri il pezzo <b>S</b> (o fai una foto del foglio di misura) e l'app ti dice <b>quale pezzo di accoppiamento</b> (il numero) usare per avere il <b>gioco giusto</b>.</p>
+        <ul><li>Ti dice anche se correggere la macchina e di quante <b>pressioni</b>.</li>
+        <li>Ti fa segnare la <b>conicità</b> (davanti / in fondo) e ti dice subito da che parte girare la manopola. L'<b>ovalità</b> si controlla dopo (massimo 2–3 µm).</li>
+        <li>Conta i pezzi del turno e salva lo storico.</li></ul>
+      </details>
+      <details class="g-sec"><summary><span class="g-ico">①</span>Primo avvio: macchina e Nuovo lavoro</summary>
+        <p class="g-tip">💡 All'inizio l'app è <b>vuota</b>: in Calcolo vedi <b>Benvenuto</b> con <b>📷 Nuovo lavoro</b> e <b>+ Aggiungi base a mano</b>. Appena c'è una base compare la tastiera. <b>Setup → Azzera tutto</b> (con conferma) cancella tutti i dati e ti riporta qui; le preferenze (tema, voce) restano.</p>
+        <ol><li>In alto a sinistra tocca il pulsante <b>Lavoro ▾</b> (mostra il nome della macchina) → <b>✎ Macchina … rinomina / taratura</b> e scrivi il nome della tua macchina (es. <b>S33 O060</b>). Poi <b>✓ Salva</b>.</li>
+        <li>Tocca <b>Lavoro ▾</b> → bottone arancione <b>📷 Nuovo lavoro</b>. Controlla il nome della macchina e tocca <b>Scatta foto del foglio</b>.</li>
+        <li>Fotografa lo schermo «Elenco caratteristiche» (dritto, tutto il testo dentro, senza riflessi).</li>
+        <li>Si apre <b>Nuovo lavoro · dati dal foglio</b>: macchina, base, tolleranza, gioco (dalla riga G), codice e lotto. Correggi se serve: se un campo non è stato letto è vuoto e lo scrivi tu (oppure lo lasci vuoto). Qui <b>non si calcola niente</b>.</li>
+        <li>Tocca <b>✓ Salva lavoro</b>: arrivi in <b>Calcolo</b>, pronto a scrivere le misure dei pezzi.</li></ol>
+        <img class="g-img" src="guide/g-newjob.jpg" alt="Nuovo lavoro" loading="lazy"/>
+        <p class="g-tip">💡 Se la base della foto è nuova (es. 18,000), l'app <b>crea da sola la serie</b> con base, tolleranza e gioco del foglio.</p>
+        <p class="g-tip">💡 Senza foto: <b>Nuovo lavoro → Senza foto: scrivo a mano</b> e scegli la serie.</p>
+        <p class="g-tip">💡 Il bottone <b>📷 leggi S</b> sulla misura invece legge S dalla foto e calcola il pezzo.</p>
+        <p class="g-tip">💡 In alto in Calcolo ci sono solo 3 pulsanti: <b>Lavoro ▾</b> (lavori di oggi, nuovo lavoro, macchina), <b>Serie ▾</b> e <b>?</b> (Guida). La voce si accende in Setup; il 🔊 nel risultato ripete il pezzo e la correzione.</p>
+        <p><b>Eliminare un lavoro</b>: in <b>Lavori di oggi</b> tocca il cestino 🗑 accanto al lavoro. I pezzi salvati <b>restano</b> nello Storico e nei conteggi del Turno; il bottone rosso <b>Elimina anche i pezzi</b> li cancella. Se elimini il lavoro in corso, l'app passa a un altro lavoro. La taratura della manopola (k) resta, a meno che spunti <b>Elimina anche la taratura</b>. Hai <b>8 secondi</b> per <b>↶ Annulla</b>.</p>
+        <p><b>Eliminare una serie (base)</b>: Setup → <b>Serie</b>, tocca il cestino 🗑 della serie (o <b>Elimina serie</b> in Modifica quote). Le misure salvate <b>restano nello Storico</b> (con «serie eliminata»). Se era la serie in uso l'app passa a un'altra serie; se non ne restano ti propone <b>Nuovo lavoro</b>. Hai <b>8 secondi</b> per <b>↶ Annulla</b>.</p>
+        <p><b>Togliere una macchina dall'elenco</b>: in Nuovo lavoro (o Lavoro ▾ → ✎ Macchina) tocca il cestino accanto al nome. Lavori e pezzi restano.</p>
+      </details>
+      <details class="g-sec"><summary><span class="g-ico">📋</span>Lavori di oggi</summary>
+        <p>Ogni lavoro ricorda <b>macchina</b>, <b>serie</b> (base e gioco), <b>codice</b>, <b>lotto</b> e la <b>taratura della manopola</b>. Tocca <b>Lavoro ▾</b> in alto per vedere i lavori del giorno, quanti pezzi hai fatto e l'ultima misura.</p>
+        <p>Un tocco su un lavoro e torni a lavorarci. I giorni precedenti restano in fondo alla lista (<b>Giorni precedenti</b>): niente viene cancellato.</p>
+        <img class="g-img" src="guide/g-lavori.jpg" alt="Lavori di oggi" loading="lazy"/>
+      </details>
+      <details class="g-sec"><summary><span class="g-ico">🖥</span>Leggere lo schermo di misura (F / S / G)</summary>
+        <ul><li><b>S1A</b> = il pezzo che stai rettificando (es. <b>17,9991</b>). <i>(18 ± 0,1)</i> vuol dire base 18 con tolleranza ±0,1 mm.</li>
+        <li><b>F1A</b> = il pezzo di accoppiamento (controparte).</li>
+        <li><b>G1A</b> = il gioco tra i due, già accoppiati. <i>(−0,008 / −0,011)</i> vuol dire gioco da <b>8 a 11 µm</b>. Il valore (es. −0,0099) è il gioco vero: <b>9,9 µm</b>.</li>
+        <li><b>A, B, C</b> = tre misure dello stesso pezzo. Se S cambia molto tra A, B e C, controlla la forma.</li></ul>
+        <p class="g-tip">💡 Se il pezzo è già accoppiato, l'app ti dice subito <b>BUONO</b> o <b>FUORI GIOCO</b> dalla riga G.</p>
+        <p>Il numero piccolo accanto al valore (es. <i>0,0098</i> sotto «mm») è lo <b>scostamento</b> dalla base: l'app lo usa solo per controllo, non come misura.</p>
+      </details>
+      <details class="g-sec" id="gFoto"><summary><span class="g-ico">📷</span>Foto precisa e ritaglio</summary>
+        <p><b>Scatta foto o Dalla galleria</b>: tocchi 📷 e scegli. <b>🖼 Dalla galleria</b> legge una foto già fatta (anche mandata da un collega): stesso ritaglio, stessa lettura.</p>
+        <ol><li>Avvicinati e fotografa <b>solo le prime tre righe</b>: <b>F1A, S1A, G1A</b> con le scritte tipo <i>(18 ± 0,1)</i> e i numeri grandi a destra.</li>
+        <li>Telefono <b>dritto</b> davanti allo schermo, senza riflessi. Barre verdi/rosse e colonna «Buono» non servono.</li>
+        <li>Dopo lo scatto si apre <b>Scegli cosa leggere</b>: trascina i 4 pallini sulle tre righe (le strisce F1A · S1A · G1A ti aiutano) e tocca <b>Leggi riquadro</b>.</li>
+        <li>Hai fretta? Tocca subito <b>Leggi tutta la foto</b>: va bene anche così.</li>
+        <li>Se un numero è sbagliato: nella conferma tocca <b>✂ Ritaglia di nuovo</b> (stessa foto) oppure correggilo a mano. I campi <b>gialli</b> sono da controllare.</li></ol>
+        <p class="g-tip">💡 Se la riga G è tagliata, l'app calcola G = S − F e te lo scrive. Il ritaglio si spegne in <b>Setup → Ritaglio dopo la foto</b>.</p>
+      </details>
+      <details class="g-sec"><summary><span class="g-ico">🔩</span>Accoppiamento e gioco</summary>
+        <p>Scrivi solo le ultime cifre di S (es. <b>590</b> per 24,590) e tocca <b>CALCOLA</b>. L'app mette da sola il numero intero giusto.</p>
+        <p><b>Intero fisso (es. 21, invece di 22,)</b>: tocca il numero intero grande (<b>22, ▾</b>) e scegli <b>21,</b>. Da quel momento resta <b>21,</b> per tutti i pezzi di quella serie / lavoro: anche dopo Salva, Nuova misura, Annulla e se chiudi l'app. Sotto la misura vedi «intero 21, fisso». Per tornare a 22, sceglilo di nuovo dallo stesso menu.</p>
+        <p>Se le cifre non tornano con l'intero scelto (es. scegli 21, e scrivi 005), l'app non cambia l'intero da sola: ti avvisa e propone la misura giusta. <b>Correggi</b> vale solo per quella misura.</p>
+        <p>Esempio: base <b>24,600</b>, S = <b>24,590</b> → <b>−10 µm</b>. Con gioco 10–13 µm: pezzo <b>1</b> = gioco 11 µm, pezzo <b>2</b> = gioco 12 µm. In grande vedi i pezzi migliori.</p>
+        <ul><li><span class="g-dot ok"></span> arancione = va bene · <span class="g-dot lim"></span> giallo = al limite · <span class="g-dot no"></span> rosso = fuori gioco.</li>
+        <li>Tocca un numero per sceglierne un altro: l'app ti chiede <b>Va bene?</b>.</li>
+        <li>Un pezzo <b>rosso</b> si salva solo dopo la conferma rossa: viene salvato come <b>scarto</b>.</li>
+        <li>Tocca <b>✓ Salva pezzo N</b>: l'app salva e torna <b>subito alla tastiera</b>, pronta per il pezzo dopo.</li>
+        <li>In alto compare <b>«Salvato pezzo 7 · gioco 11 µm»</b> con <b>↶ Annulla</b> per <b>8 secondi</b>: riporta il risultato com'era.</li>
+        <li><b>Nuova misura</b> = salti il pezzo <b>senza salvare</b>.</li></ul>
+        <img class="g-img" src="guide/g-result.jpg" alt="Risultato" loading="lazy"/>
+      </details>
+      <details class="g-sec" id="gRaggio"><summary><span class="g-ico">⌀</span>Diametro o raggio? (Interno)</summary>
+        <p>Tutte le misure dell'app sono sul <b>diametro</b>. Il materiale tolto <b>per lato</b> (raggio) è la metà: 6 µm sul Ø = 3 µm per lato.</p>
+        <p><b>Esterno:</b> da togliere = misura − quota. <b>Interno (foro):</b> da togliere = quota − misura.</p>
+        <p>Un esterno già troppo piccolo o un foro già troppo largo <b>non si recuperano</b>: correggi la macchina per i pezzi dopo.</p>
+        <p>Il segno di + / − dipende da macchina e campo: <b>non copiare quello dell'esterno</b>. Sull'interno l'app parte da «+ stringe il foro» (Lizzini, Studer): <b>controlla sempre sul primo pezzo</b>. La conicità si misura in due punti, A e B.</p>
+      </details>
+      <details class="g-sec" id="gLavoro"><summary><span class="g-ico">⚥</span>Adatta alla femmina (femmina maggiorata o fuori quota)</summary>
+        <p><b>Calcolo</b> è per il <b>maschio</b>: scrivi S e hai il pezzo femmina numerato e la <b>misura della femmina accoppiata</b> (compatta, con Copia).</p>
+        <p>Se la <b>femmina è già fatta</b> ed è maggiorata (o fuori quota), tocca il piccolo bottone <b>⚥ Adatta alla femmina</b> sulla misura (o lo stesso bottone in fondo al risultato). Si apre una pagina a parte, con la sua tastiera grande:</p>
+        <ol><li><b>Femmina nominale · tolleranze · gioco ✎</b>: nominale, tolleranza − e +, gioco min/max. Restano salvati per <b>questo lavoro</b>.</li>
+        <li><b>Femmina misurata F</b>: scrivi solo le cifre dopo la virgola (es. <b>122</b> = 20,122) oppure la misura intera con la virgola.</li>
+        <li>Vedi subito se la femmina è <b>in tolleranza</b> o <b>maggiorata +122 µm</b> / <b>minorata</b> (e di quanto è fuori), e in grande la <b>Misura da fare (maschio)</b>: centro e da F − gioco max a F − gioco min.</li>
+        <li>Facoltativo: tocca <b>Maschio ora S</b> e scrivi la misura del pezzo sulla macchina (se oggi hai salvato un maschio in Calcolo è già scritta): l'app ti dice quanto manca al centro e le <b>pressioni</b> (es. <b>+ ×2</b> = più piccolo).</li>
+        <li><b>✓ SALVA femmina</b>: la salva (Storico → <b>Femmine salvate</b>, CSV, riga nel Turno). <b>↶ Annulla</b> per 8 s. Torna a Calcolo con <b>←</b>.</li></ol>
+        <p class="g-tip">Esempio: nominale 20 ±0,1, gioco 8–11 µm, femmina <b>20,122</b> → <b>maggiorata +122 µm</b> (fuori di 22 µm) → maschio da fare <b>20,1110–20,1140</b>, centro <b>20,1125</b>.</p>
+      </details>
+      <details class="g-sec" id="gInterno"><summary><span class="g-ico">◎</span>Interno (femmina): rettifica del foro</summary>
+        <p>Quando rettifichi <b>il foro della femmina</b> (interno), tocca <b>◎ Interno (femmina)</b> sotto la misura. Pagina a parte, tastiera grande.</p>
+        <ol><li><b>Prima volta: verso del tasto.</b> Su interno il + può andare al contrario rispetto all'esterno. L'app chiede: <b>«Su interno il + fa il foro: più grande / più piccolo»</b>, per questa macchina. Finché non lo scegli, l'app scrive solo le parole (es. <b>allarga di 3 µm</b>) e <b>nessun tasto + o −</b>.</li>
+        <li><b>Quota foro ✎</b>: o <b>nominale ± tolleranza</b>, oppure <b>dal maschio</b>: misura del maschio + gioco min/max (foro = maschio + gioco).</li>
+        <li><b>Foro misurato</b>: «Misura in mm» (es. 0215 = 20,0215, o intera con la virgola) oppure «Numero» come i pezzi: µm dalla base (es. 17, o −3 con il tasto ±).</li>
+        <li>Vedi subito <b>STRETTO</b> (troppo piccolo), <b>LARGO</b> (troppo grande) o <b>✓ in quota</b>, di quanti µm dal centro e dai limiti, e la correzione. <b>1 tocco = 1 µm sul diametro.</b></li>
+        <li><b>✓ SALVA interno</b>: Storico → <b>Interni salvati</b>, riga nel Turno, CSV. <b>↶ Annulla</b> per 8 s.</li></ol>
+        <p><b>Foto da Calcolo:</b> dopo ogni foto (📷 leggi S, fotocamera o galleria) l'app chiede <b>Lavoro il MASCHIO</b> (usa S1A) o <b>Lavoro la FEMMINA (interno)</b> (usa F1A come foro e S1A + gioco come quota). L'ultima scelta del lavoro è evidenziata: basta un tocco.</p>
+        <p class="g-tip">Esempio: maschio 20,0120, gioco 8–11 → foro da <b>20,0200 a 20,0230</b>, centro 20,0215. Foro misurato 20,0170 → <b>STRETTO</b> di 3 µm dal limite, <b>allarga di 4,5 µm</b>.</p>
+      </details>
+      <details class="g-sec"><summary><span class="g-ico">⭕</span>Ovalità e conicità (max 2–3 µm)</summary>
+        <ul><li><b>Conicità</b>: differenza tra <b>davanti</b> e <b>in fondo</b>. Si corregge alla macchina con la manopola.</li>
+        <li><b>Ovalità</b>: misura in più punti girando il pezzo (differenza tra il più grande e il più piccolo). <b>Si controlla dopo</b>, non alla macchina: nella schermata Calcolo non si inserisce più.</li>
+        <li>Fino a <b>2 µm</b> va bene, <b>3 µm</b> è al limite, oltre è <b>fuori</b> (il pezzo viene salvato come <b>scarto</b>).</li></ul>
+        <p>Nel riquadro <b>Conicità</b> ci sono due righe: <b>Davanti</b> e <b>In fondo</b>. Premi <b>+</b> sul lato dove il pezzo è <b>più grande</b>, una volta per ogni µm. Solo un lato può avere un valore: premendo + su un lato l'altro torna a 0. Se è uguale (0) tocca il numero.</p>
+        <p>Finché non la tocchi, l'app scrive <b>non misurata</b>. Ad ogni pezzo nuovo riparte da <b>non misurata</b>: misurala sempre.</p>
+        <p>Appena segni un lato l'app ti dice subito da che parte girare la manopola (Studer: <b>In fondo più grande → verso di te</b>, <b>Davanti più grande → dalla parte opposta</b>) e, se la manopola è tarata, <b>di quante tacche</b>.</p>
+        <p>Le misure di ovalità salvate con le versioni vecchie restano nello Storico e nel CSV.</p>
+        <p><b>Taratura manopola</b> (una volta per macchina): Macchina ✎ → <b>Manopola conicità</b>. Misura la conicità (T0), gira la manopola di N tacche <b>sempre dallo stesso lato</b>, rettifica e rimisura (T1). L'app calcola <b>k = |T1 − T0| ÷ N</b> µm per tacca.</p>
+        <p class="g-tip">💡 La manopola ha gioco: se superi, torna indietro oltre e riavvicinati dallo stesso lato.</p>
+      </details>
+      <details class="g-sec"><summary><span class="g-ico">±</span>Correzione: le pressioni</summary>
+        <p>La scheda correzione ti dice cosa fare sulla macchina per il pezzo dopo:</p>
+        <ul><li><b>✓ Nessuna correzione</b>: il pezzo è già centrato nel gioco.</li>
+        <li><b>+ ×2</b> / <b>− ×1</b>: premi il tasto quel numero di volte. Su Studer <b>+ fa il pezzo più piccolo</b>, <b>− più grande</b>.</li>
+        <li>La correzione si legge così: <b>prima dove è la misura</b>, poi cosa fare. Es. <b>«1,1 µm sotto il centro → fai più grande: − ×1»</b> = il pezzo è 1,1 µm più piccolo del centro, premi − una volta. «sopra il centro» = pezzo più grande → +.</li>
+        <li>Tocca la scheda per vedere un altro numero di pezzo.</li>
+        <li><b>Controparte F · accoppiato</b> (riquadro azzurro sotto il pezzo): la misura che deve avere il pezzo di accoppiamento per stare nel gioco, <b>da S + gioco min a S + gioco max</b>, es. S 18,0018 e gioco 8–11 → <b>da 18,0098 a 18,0128 mm</b>, <b>centro ideale 18,0113</b>. Usa lo stesso gioco del calcolo (foto o serie). Utile sulle macchine senza pezzi numerati (es. Lizzini). Tocca <b>Copia</b> per copiarla. La trovi anche in Modalità officina e nella striscia ULTIMO.</li>
+        <li><b>Riga «Correzione per il pezzo»</b> (subito sotto il pezzo consigliato): mostra sempre il pezzo e i vicini, es. <b>16 + ×1 · 17 ✓ · 18 − ×1</b>. Vuol dire: per arrivare al 18 premi − una volta, per il 16 premi + una volta (1 pressione = 1 µm).</li>
+        <li>Tocca un numero della riga e la scheda correzione mira a quel pezzo. <b>Altro pezzo…</b> apre tutti i pezzi vicini (es. <b>14 → + ×3</b>).</li>
+        <li>Dopo <b>Salva</b>, sopra la misura resta la striscia <b>ULTIMO</b> con le correzioni dell'ultimo pezzo: la vedi mentre misuri il prossimo. Toccala per un altro pezzo. Sugli schermi piccoli prende il posto della riga ULTIMI.</li>
+        <li>Quando hai corretto davvero, tocca <b>Segna come fatta</b>: conta nel riepilogo e l'andamento riparte.</li></ul>
+        <p class="g-tip">💡 L'avviso andamento compare solo dopo almeno 5 pezzi dello stesso turno e serie.</p>
+      </details>
+      <details class="g-sec"><summary><span class="g-ico">⏱</span>Turno, pezzi fatti e portati via</summary>
+        <ul><li><b>Pezzi fatti</b> (in alto): il totale dei pezzi salvati in questo turno. Sale da solo a ogni <b>Salva</b> e scende se tocchi <b>↶ Annulla</b>.</li>
+        <li>Sotto vedi i pezzi <b>per macchina</b> (es. <b>S33 O060 · 40</b>, <b>O061 · 25</b>) con buoni e scarti. Il nome è quello del lavoro o della tua macchina.</li>
+        <li><b>Pezzi portati via</b>: scrivi quanti pezzi hai consegnato e tocca <b>OK</b>.</li>
+        <li><b>Pezzi sul tavolo</b>: conta i pezzi di accoppiamento con + e −; quando salvi un pezzo, l'app lo toglie da solo.</li>
+        <li><b>Riepilogo</b>: pezzi fatti (anche per macchina), buoni, scarti, correzioni, portati via. Lo puoi condividere come testo o immagine.</li>
+        <li>A fine turno tocca <b>Chiudi turno</b>: il turno va nell'archivio (con i pezzi per macchina) e i contatori ripartono da 0.</li></ul>
+      </details>
+      <details class="g-sec"><summary><span class="g-ico">🏭</span>Modalità officina</summary>
+        <p>Nel risultato tocca <b>Modalità officina</b>: numero del pezzo enorme, verde/giallo/rosso, leggibile da lontano. Tocca lo schermo per chiudere.</p>
+      </details>
+      <details class="g-sec"><summary><span class="g-ico">📈</span>Storico</summary>
+        <ul><li>Tutte le misure salvate, 50 alla volta (<b>Mostra altre</b>).</li>
+        <li>Tocca <b>Modifica</b> su una riga per correggerla.</li>
+        <li><b>Andamento</b>: come si sposta la misura nel turno.</li>
+        <li><b>CSV</b> per Excel o per il capoturno. Backup completo: Setup → <b>Esporta</b> / <b>Importa</b>.</li></ul>
+      </details>
+      <details class="g-sec"><summary><span class="g-ico">❓</span>Domande frequenti</summary>
+        <p><b>La foto ha letto un numero sbagliato.</b><br/>Tocca <b>✂ Ritaglia di nuovo</b> e stringi il riquadro sulle tre righe A, oppure correggilo a mano prima di toccare Conferma.</p>
+        <p><b>«Misura impossibile».</b><br/>La misura è troppo lontana dalla base: hai sbagliato serie o cifre. Tocca <b>Riscrivi</b>.</p>
+        <p><b>Ho salvato per sbaglio.</b><br/>Tocca <b>↶ Annulla</b> in alto entro 8 secondi: torni al risultato di prima. Dopo, tocca <b>Modifica</b> sulla riga nello Storico.</p>
+        <p><b>Ho cambiato macchina.</b><br/><b>Nuovo lavoro</b> con il nome della nuova macchina. La taratura della manopola resta legata al nome.</p>
+        <p><b>Il gioco del foglio è diverso da quello della serie.</b><br/>Vince il foglio: l'app aggiorna la serie e te lo scrive.</p>
+        <p><b>Serve internet?</b><br/>No. Tutto resta sul telefono. Fai ogni tanto un backup (Setup → Esporta).</p>
+        <p><b>Guanti?</b><br/>I tasti sono grandi apposta. Ogni bottone foto (📷 Nuovo lavoro, 📷 leggi S, 📷 in Adatta alla femmina) chiede: <b>📷 Scatta foto</b> oppure <b>🖼 Dalla galleria</b> (una foto già fatta). Poi stesso ritaglio e stessa lettura.</p>
+      </details>
+    </div>
+    <p class="ver">Rettifica Beta v0.5.2</p>
+  </section>
+  <section class="page" id="page-macchine">
+    <button type="button" class="btn btn-sec" id="btnBackSetup1">← Setup</button>
+    <div class="sec-title">Macchine</div>
+    <div id="machineList"></div>
+    <button type="button" class="btn btn-primary" id="btnAddMachine" style="width:100%">+ Macchina</button>
+  </section>
+  <section class="page" id="page-serie">
+    <button type="button" class="btn btn-sec" id="btnBackSetup2">← Setup</button>
+    <div class="sec-title">Serie / quote</div>
+    <select id="filterMachineSerie" class="neu" style="margin-bottom:8px"></select>
+    <div id="seriesList"></div>
+    <button type="button" class="btn btn-primary" id="btnAddSeries" style="width:100%">+ Serie</button>
+  </section>
+  <section class="page" id="page-train">
+    <button type="button" class="btn btn-sec" id="btnBackTrain">← Setup</button>
+    <div class="sec-title">Allenamento</div>
+    <div id="trainStats" class="summary-card"></div>
+    <div id="trainCard" class="train-card"></div>
+    <details class="expl-bar" style="margin-top:12px"><summary>Mini glossario</summary>
+      <div style="margin-top:8px;font-size:14px;line-height:1.45">
+        <b>Base</b>: diametro di riferimento della serie.<br/>
+        <b>S</b>: pezzo che stai rettificando (misura attuale).<br/>
+        <b>F</b>: pezzo di accoppiamento (controparte).<br/>
+        <b>Gioco</b>: G = S − F in µm (tolleranza di accoppiamento).<br/>
+        <b>Ovalità</b>: differenza max−min su una sezione (si controlla dopo, non alla macchina).<br/>
+        <b>Conicità</b>: differenza tra due sezioni lungo l’asse.<br/>
+        <b>Pressioni</b>: impulsi +/− sulla macchina per correggere S.
+      </div>
+    </details>
+  </section>
+</div>
+
+<div class="undo-bar hidden" id="undoBar"></div>
+<div class="actbar hidden" id="actBar">
+  <button type="button" class="save cond" id="btnSalva">✓ Salva pezzo</button>
+  <button type="button" class="new cond" id="btnNuova">Nuova misura</button>
+</div>
+
+<!-- Beta 0.5.2: Chat with the AI (own tab: never covers the Calcolo keypad) -->
+<section class="page" id="page-chat"><div class="chat-wrap" id="chatWrap">
+  <div class="chat-head"><div><h2>💬 Chat</h2><span class="meta" id="chatProv">—</span></div><button type="button" class="btn btn-sec" id="chatNew">＋ Nuova chat</button></div>
+  <details class="ai-app chat-app" id="chatApp"><summary>📐 Calcolo dell'app <span class="meta">(tocca per vedere)</span></summary><div id="aiApp"></div></details>
+  <div class="chat-msgs" id="chatMsgs" aria-live="polite"></div>
+  <textarea id="chatQ" rows="2" placeholder="Scrivi la domanda…" aria-label="Domanda per l'AI"></textarea>
+  <div class="chat-btns"><button type="button" class="btn btn-sec" id="chatMic">🎤 Parla</button><button type="button" class="btn btn-teal" id="chatSend">➤ Invia</button></div>
+</div></section>
+
+<nav class="nav" id="nav">
+  <button type="button" class="nv on" data-page="calc"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Calcolo</button>
+  <button type="button" class="nv" data-page="turno"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 12h6M12 9v6"/></svg>Turno</button>
+  <button type="button" class="nv" data-page="storico"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/></svg>Storico</button>
+  <button type="button" class="nv nv-chat" data-page="chat" aria-label="Chat con l'AI"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></svg>Chat</button>
+  <button type="button" class="nv" data-page="setup"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Setup</button>
+</nav>
+
+<div id="officinaView" class="officina hidden ok"></div>
+<div id="toast" class="toast"></div>
+<div id="modalRoot"></div>
+<div id="cropRoot"></div>
+<canvas id="shareCanvas" width="720" height="960" class="hidden"></canvas>
+
+<script src="calc.js"></script>
+<script src="ocr-parse.js"></script>
+<script>window.RETTIFICA_WEB=true;</script>
+<script src="ai.js"></script>
+<script src="app.js"></script>
+<script src="web.js"></script>
+</body></html>
