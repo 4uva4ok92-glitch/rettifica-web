@@ -1,4 +1,4 @@
-/* Rettifica Beta v0.5.2 (base: Rettifica OmT v2.0.8) */
+/* Rettifica Beta v0.6.0 (base: Rettifica OmT v2.0.8) */
 (function () {
   const STORAGE_KEY = 'rweb_v1';
   const PREFS_KEY = 'rweb_v1_prefs';
@@ -6,7 +6,7 @@
   const CLEAN_KEY = 'rweb_clean_206';       // v2.0.6 one-time clean start done
   const BACKUP_KEY = 'rweb_backup_pre206';
   const BACKUPS_KEY = 'rweb_backups';           // Beta 0.1.0: last 5 automatic backups (before migration / import / wipe)
-  const APP_VERSION = '0.5.2';
+  const APP_VERSION = '0.6.0';
   /** Beta 0.1.0: automatic local backup; also kept as the «hidden restore» backup (Setup). */
   function autoBackup(why, rawData, rawPrefs) {
     try {
@@ -239,8 +239,9 @@
       const nav = $('nav'); if (!nav) return;
       const limit = nav.getBoundingClientRect().top - 8;
       [['keypad', 'calcInputView'], ['fKeypad', 'page-femmina'], ['iKeypad', 'page-interno']].forEach(([id, host]) => {
-        const pad = $(id), h = $(host); if (!pad || !h || !h.offsetParent || h.classList.contains('hidden')) return;
-        pad.style.gridTemplateRows = ''; pad.style.gap = '';
+        const pad = $(id), h = $(host); if (!pad) return;
+        pad.style.gridTemplateRows = ''; pad.style.gap = ''; // stale sizes from another screen size never stay
+        if (!h || !h.offsetParent || h.classList.contains('hidden')) return;
         const gap = innerHeight < 700 ? 5 : 8;
         const top = pad.getBoundingClientRect().top;
         const row = Math.max(44, Math.min(64, Math.floor((limit - top - 3 * gap) / 4)));
@@ -560,15 +561,27 @@
     $('prefixMenu').innerHTML = '<div class="pm-h">Intero · resta fisso</div>' + [bi - 1, bi, bi + 1].map((p) =>
       `<button type="button" data-pref="${p}" class="${p === cur ? 'on' : ''}">${p},</button>`).join('');
   }
+  /** Beta 0.6.0: big live preview of the measure the app will use, with machine, job, base and gioco nearby. */
+  function renderLivePrev(series, p) {
+    const el = $('livePreview'), cx = $('liveCtx'); if (!el) return;
+    const m = myMachine(), j = jobsOn ? activeJob() : null;
+    el.innerHTML = 'Misura interpretata: <b class="cond">' + (p && p.value != null ? esc(fmtMm4(p.value)) + ' mm' : '—') + '</b>';
+    $('livePrev').classList.toggle('bad', !!(measureDigits && !(p && p.value != null)));
+    const dl = $('dispLbl'); if (dl) dl.textContent = innerHeight <= 700 && series ? 'Maschio S · gioco ' + series.giocoMin + '–' + series.giocoMax + ' µm' : 'Misura maschio S'; // short screens: gioco next to the measure, machine/base in the pills above
+    cx.textContent = [m && m.name ? 'Macchina ' + m.name : null, j ? 'Lavoro ' + (j.name || j.machineName || '') : null,
+      series ? 'Base ' + fmtMm3(series.base) + ' mm' : 'nessuna base', series ? 'gioco ' + series.giocoMin + '–' + series.giocoMax + ' µm' : null].filter(Boolean).join(' · ');
+  }
   function refreshDisplay() {
     const { series } = currentContext(); $('digDisplay').textContent = measureDigits;
     const st = $('liveStatus'), txt = $('liveStatusTxt');
     updatePrefix();
     if (!series || !measureDigits) {
+      renderLivePrev(series, null);
       st.classList.remove('bad'); const sp = stickyPrefix(); fitPads();
       txt.textContent = 'inserisci misura' + (sp != null && sp !== Math.floor(series.base) ? ' · intero ' + sp + ', fisso' : ''); return;
     }
     const p = interpretMeasure(measureDigits, series.base, seriesTol(series), effPrefix());
+    renderLivePrev(series, p);
     if (!p || p.value == null) { st.classList.add('bad'); txt.textContent = 'misura non valida'; return; }
     const d = round1((p.value - series.base) * 1000);
     const ok = Math.abs(d) <= seriesTol(series) * 1000 + 1e-6;
@@ -643,7 +656,8 @@
   function runCalc(S, display, opts) {
     const { machine, series } = currentContext();
     if (!series) { toast('Scegli la serie'); return; }
-    const gOv = opts && opts.gioco && opts.gioco.min != null && opts.gioco.max != null ? opts.gioco : null;
+    const aj0 = jobsOn ? activeJob() : null, jOv = aj0 && aj0.giocoOv && aj0.giocoOv.seriesId === series.id ? { min: aj0.giocoOv.min, max: aj0.giocoOv.max, src: 'lavoro' } : null;
+    const gOv = opts && opts.gioco && opts.gioco.min != null && opts.gioco.max != null ? opts.gioco : jOv;
     const gMin = gOv ? gOv.min : series.giocoMin, gMax = gOv ? gOv.max : series.giocoMax;
     const mode = lavoroMode();
     const acc = calcAccoppiamento(S, series.base, gMin, gMax, mode);
@@ -678,13 +692,21 @@
     if (lastCalc.acc.recommended[0] != null) return lastCalc.acc.recommended[0];
     return Math.round(lastCalc.acc.ideal);
   }
+  // ── Beta 0.6.0: per-machine calibration (µm per tocco, diametro/raggio, verso del +, stato). Default = identical to before. ──
+  function taperOpts(m) { const L = limOf(); return { invert: calOf(m).taper === 'invertito', okUm: L.conOk, maxUm: L.conMax }; }
+  function calOf(m) { return machineCal(m || myMachine()); }
+  function calT(o, diffKey, m) { // tocchi from the µm change (configuration only)
+    if (!o || o.none) return o; const d = o[diffKey || 'diffUm']; if (d == null) return o;
+    o.presses = tocchiFor(d, calOf(m)); return o;
+  }
+  function calHint(h, m) { if (!h || h.none) return h; calT(h, 'diffUm', m); const w = corrWords(h.diffUm, h.presses, h.key, h.none); h.words = w; h.text = w.short; h.full = w.text; return h; }
   function updateCorr() {
     if (!lastCalc) return;
     const series = seriesById(lastCalc.seriesId), machine = machineById(lastCalc.machineId) || myMachine();
     if (!series) return;
     const want = lastCalc.wantPezzo != null ? lastCalc.wantPezzo : defaultWant();
     const gc = calcGioco(lastCalc, series);
-    lastCalc.corr = calcCorrezioneCard(lastCalc.S, series.base, gc.min, gc.max, want, (machine && machine.rule) || 'studer', lastCalc.mode);
+    lastCalc.corr = calT(calcCorrezioneCard(lastCalc.S, series.base, gc.min, gc.max, want, (machine && machine.rule) || 'studer', lastCalc.mode), 'diffUm', machine);
     lastCalc.corrWant = want;
     if (lastCalc.corr.none) lastCalc.corrDone = false;
   }
@@ -716,7 +738,7 @@
     lastCalc.con = t.con; lastCalc.conEnd = t.conEnd;
   }
   function renderTaper() {
-    const s = taperSides(), st = formStatus(lastCalc.con);
+    const s = taperSides(), st = conStatus(lastCalc);
     for (const [k, id] of [['dav', 'conDav'], ['fondo', 'conFondo']]) {
       const v = s[k], el = $(id + 'Val'); if (!el) continue;
       el.innerHTML = (v == null ? '—' : fmtUm(v)) + ' <small>µm</small>';
@@ -733,7 +755,7 @@
     const box = $('formBox'); if (!box || !lastCalc) return;
     const machine = machineById(lastCalc.machineId) || myMachine();
     const k = knobK(machine);
-    const th = taperHint(lastCalc.con, lastCalc.conEnd, { studer: isStuder(machine), k, always: true });
+    const th = taperHint(lastCalc.con, lastCalc.conEnd, Object.assign({ studer: isStuder(machine), k, always: true }, taperOpts(machine)));
     const OVAL_REM = '<div class="rem">Ovalità: si controlla dopo, non alla macchina. Ovalità e conicità devono restare entro circa 2–3 µm.</div>';
     if (lastCalc.con == null) {
       box.classList.remove('hidden');
@@ -775,6 +797,26 @@
   }
   function fmtForm(v) { return v == null ? '—' : esc(fmtUm(v)); }
 
+  function limOf(series) { return jobLimits(series || seriesById(lastCalc && lastCalc.seriesId)); }
+  function conStatus(lc, series) { const L = limOf(series); return formStatus(lc.con, L.conOk, L.conMax); }
+  function renderQual() {
+    const box = $('qualBox'); if (!box || !lastCalc) return;
+    const series = seriesById(lastCalc.seriesId); if (!series) return;
+    const acc = lastCalc.acc, sel = lastCalc.selected, gc = calcGioco(lastCalc, series);
+    const lines = qualityLines({ S: lastCalc.S, base: series.base, tolMm: seriesTol(series), gioco: sel != null ? giocoOf(sel, acc) : null, giocoMin: gc.min, giocoMax: gc.max, con: lastCalc.con, oval: lastCalc.oval, lim: limOf(series) });
+    const pst = pieceStatus(sel, acc); lines[0].st = sel == null ? 'no' : pst; lines[0].word = { ok: 'conforme', lim: 'al limite', no: 'fuori' }[lines[0].st];
+    box.innerHTML = '<div class="lbl"><span>Esito per voce</span><span class="meta">limiti del lavoro</span></div>' + lines.map((l) =>
+      `<div class="ql ${l.st}" data-q="${l.k}"><span class="ql-l">${esc(l.label)}</span><span class="ql-w">${l.st === 'ok' ? '✓ ' : l.st === 'no' ? '✗ ' : l.st === 'lim' ? '! ' : ''}${esc(l.word)}</span><small class="ql-v">${esc(l.val)}</small>${l.k === 'oval' && !lastCalc.savedId ? '<button type="button" class="ql-btn" id="ovalSet">' + (lastCalc.oval == null ? 'Segna' : 'Cambia') + '</button>' : ''}</div>`).join('');
+    if ($('ovalSet')) $('ovalSet').onclick = () => askOval();
+  }
+  async function askOval() {
+    if (!lastCalc) return;
+    const v = await askBig({ title: 'Ovalità (µm)', withVals: true, html: '<label for="ovalIn">Ovalità misurata in µm (es. 1,5) · vuoto = non registrata</label><input id="ovalIn" class="big-input" inputmode="decimal" value="' + (lastCalc.oval != null ? esc(fmtUm(lastCalc.oval)) : '') + '"/>', ok: 'Salva ovalità' });
+    if (!v || !lastCalc) return;
+    const raw = String(v.ovalIn || '').trim().replace(',', '.');
+    if (!raw) lastCalc.oval = null; else { const n = Number(raw); if (!Number.isFinite(n) || n < 0 || n > 100) { toast('Ovalità non valida (µm)', 'warn'); return; } lastCalc.oval = round1(n); }
+    renderResult();
+  }
   function renderResult() {
     if (!lastCalc) return;
     const series = seriesById(lastCalc.seriesId); if (!series) return;
@@ -793,7 +835,7 @@
       mk.style.left = pct + '%';
     }
     const gcR = calcGioco(lastCalc, series);
-    $('resGiocoRange').textContent = 'gioco ' + gcR.min + '–' + gcR.max + ' µm' + (gcR.src === 'foto' ? ' (dalla foto)' : '');
+    $('resGiocoRange').textContent = 'gioco ' + gcR.min + '–' + gcR.max + ' µm' + (gcR.src === 'foto' ? ' (dalla foto)' : gcR.src === 'lavoro' ? ' (solo questo lavoro)' : '');
     const pn = $('resPhotoNote'); if (pn) { pn.textContent = lastCalc.photoNote || ''; pn.classList.toggle('hidden', !lastCalc.photoNote); }
     const rec = lastCalc.stockRec.recommended.length ? lastCalc.stockRec.recommended : acc.recommended;
     $('recGrid').innerHTML = rec.map((n) => {
@@ -811,16 +853,24 @@
     renderTaper();
     renderFormBox();
     const corr = lastCalc.corr || { none: true, presses: 0, diffUm: 0, key: '' };
+    const cal = calOf(machineById(lastCalc.machineId) || myMachine()), unver = cal.stato !== 'verificata';
+    const selN = lastCalc.selected, selSt = pieceStatus(selN, acc);
+    const nowTxt = selN == null ? 'nessun pezzo valido: non accoppiare' : 'accoppia con il pezzo ' + selN + ' (gioco ' + fmtUm(giocoOf(selN, acc)) + ' µm' + (selSt === 'no' ? ', FUORI' : '') + ')';
+    $('corrNow').innerHTML = '<b>Sul pezzo attuale</b> · ' + esc(nowTxt);
     if (corr.none) {
       $('corrKey').textContent = '✓'; $('corrX').textContent = '';
-      $('corrTxt').innerHTML = 'Nessuna correzione<small>pezzo ' + esc(String(lastCalc.corrWant)) + ' centrato nel gioco · tocca per un altro pezzo</small>';
+      $('corrTxt').innerHTML = '<span class="cw-next">Per il prossimo pezzo</span>Nessuna correzione<small>pezzo ' + esc(String(lastCalc.corrWant)) + ' centrato nel gioco · tocca per un altro pezzo</small>';
     } else {
       $('corrKey').textContent = corr.key || '±'; $('corrX').textContent = corr.key ? '×' + corr.presses : corr.presses + ' µm';
       const w = corrWords(corr.diffUm, corr.presses, corr.key, corr.none);
-      $('corrTxt').innerHTML = '<span class="cw-pos">Pezzo ' + esc(String(lastCalc.corrWant)) + ': misura ' + esc(w.pos) + '</span>' +
-        '<small class="cw-act">→ ' + esc(w.act) + ': ' + esc(w.keys) + ' · centro gioco ' + fmtUm(corr.centro) + ' µm</small>' +
+      $('corrTxt').innerHTML = '<span class="cw-next">Per il prossimo pezzo</span><span class="cw-pos">Pezzo ' + esc(String(lastCalc.corrWant)) + ': misura ' + esc(w.pos) + '</span>' +
+        '<small class="cw-words">' + esc(corrWordsDiam(corr.diffUm)) + (cal.scala === 'raggio' ? ' (sul raggio: ' + fmtUm(Math.abs(corr.diffUm) / 2) + ' µm)' : '') + '</small>' +
+        '<small class="cw-act">→ ' + esc(w.act) + ': ' + esc(w.keys) + ' (' + esc(fmtTocchi(corr.presses)) + (cal.umPerTocco !== 1 || cal.scala === 'raggio' ? ' · 1 tocco = ' + fmtUm(cal.umPerTocco) + ' µm sul ' + cal.scala : '') + ') · centro gioco ' + fmtUm(corr.centro) + ' µm</small>' +
+        (unver ? '<small class="cw-warn" id="corrUnver">⚠ Taratura macchina da verificare: controlla il verso del + sul primo pezzo (Macchina ✎ → Taratura)</small>' : '') +
         `<button type="button" class="corr-done ${lastCalc.corrDone ? 'on' : ''}" id="corrDone">${lastCalc.corrDone ? '✓ Correzione fatta' : 'Segna come fatta'}</button>`;
     }
+    $('corrCard').classList.toggle('unver', unver && !corr.none);
+    renderQual();
     $('corrCard').classList.toggle('none', !!corr.none);
     $('spiegazioneText').textContent = spiegazione(lastCalc.S, series.base, gcR.min, gcR.max, acc.recommended, lastCalc.mode).text;
     const st = pieceStatus(sel, acc);
@@ -842,7 +892,7 @@
     const machine = machineById(lastCalc.machineId) || myMachine(); const gc = calcGioco(lastCalc, series);
     const chip = (x, cls2, extra) => `<button type="button" class="sp-chip ${cls2}" data-pick="${x.n}"><b>${x.n}</b>${x.qty != null ? `<span class="q">×${x.qty}</span>` : ''}<small>gioco ${fmtUm(x.gioco)} µm${extra || ''}</small></button>`;
     const corrRows = cls.dispCorr.map((x) => {
-      const c = calcCorrezioneCard(lastCalc.S, series.base, gc.min, gc.max, x.n, (machine && machine.rule) || 'studer', lastCalc.mode);
+      const c = calT(calcCorrezioneCard(lastCalc.S, series.base, gc.min, gc.max, x.n, (machine && machine.rule) || 'studer', lastCalc.mode), 'diffUm', machine);
       const w = c.none ? 'nessuna correzione' : (c.key ? c.key + ' ×' + c.presses : c.presses + ' µm ' + c.action);
       return `<button type="button" class="sp-chip sp-cr" data-want="${x.n}"><b>${x.n}</b><span class="q">×${x.qty}</span><small>ora gioco ${fmtUm(x.gioco)} µm · correggi ${esc(w)}</small></button>`;
     }).join('');
@@ -922,7 +972,7 @@
     if (!lastCalc || lastCalc.mode !== 'femmina') { el.classList.add('hidden'); el.innerHTML = ''; return; }
     const series = seriesById(lastCalc.seriesId); if (!series) return;
     const gc = calcGioco(lastCalc, series), machine = machineById(lastCalc.machineId) || myMachine();
-    const ft = femminaTarget(lastCalc.S, gc.min, gc.max, lastCalc.maschioS, (machine && machine.rule) || 'studer');
+    const ft = calT(femminaTarget(lastCalc.S, gc.min, gc.max, lastCalc.maschioS, (machine && machine.rule) || 'studer'), 'diffUm', machine);
     lastCalc.femTarget = ft;
     const copy = matingRangeText(matingRange(lastCalc.S, gc.min, gc.max, 'femmina'));
     let corr = '';
@@ -1131,6 +1181,7 @@
   const INT_RULE_DEFAULT = 'plus_smaller';
   function intRule() {
     const m = myMachine(); if (!m) return INT_RULE_DEFAULT;
+    if (m.cal && m.cal.bore) return m.cal.bore === 'allarga' ? 'plus_bigger' : 'plus_smaller';
     if (m.internoRule === 'plus_bigger' || m.internoRule === 'plus_smaller') return m.internoRule;
     if (m.internoRule === 'none') return null;
     return INT_RULE_DEFAULT;
@@ -1144,7 +1195,7 @@
     const I = String(Math.floor(ref)); if (b.length > 4 && b.startsWith(I)) return Number(I + '.' + b.slice(I.length));
     return Number(I + '.' + b);
   }
-  function intNow() { const c = intCfg(), tgt = internoTarget(c), bore = intBoreValue(), rule = intRule(); return { c, tgt, bore, rule, r: calcInterno(bore, tgt, rule) }; }
+  function intNow() { const c = intCfg(), tgt = internoTarget(c), bore = intBoreValue(), rule = intRule(); return { c, tgt, bore, rule, r: calT(calcInterno(bore, tgt, rule), 'needUm') }; }
   // Beta 0.4.2: compact, one line (keypad always visible); the choice opens only on «Cambia»
   function renderIntDir() {
     const m = myMachine(), rule = intRule(), el = $('intDir'); if (!el) return;
@@ -1319,7 +1370,9 @@
     const series = calc && seriesById(calc.seriesId); if (!series || center == null) return null;
     const machine = machineById(calc.machineId) || myMachine();
     const gc = calcGioco(calc, series);
-    return neighbourHints(calc.S, series.base, gc.min, gc.max, center, (machine && machine.rule) || 'studer', extra, calc.mode);
+    const nh = neighbourHints(calc.S, series.base, gc.min, gc.max, center, (machine && machine.rule) || 'studer', extra, calc.mode);
+    if (nh) ['center', 'up', 'down', 'extra'].forEach((k) => calHint(nh[k], machine));
+    return nh;
   }
   function hintChip(h, cls) {
     const txt = h.none ? '✓ nessuna correzione' : h.text;
@@ -1432,7 +1485,7 @@
         <h2>${esc(o.title)}</h2>${o.html ? `<div class="ask-body">${o.html}</div>` : ''}
         <div class="ask-btns"><button type="button" class="btn btn-sec" id="askNo">${esc(o.cancel || 'Annulla')}</button>
         <button type="button" class="btn ${o.danger ? 'btn-danger' : 'btn-orange'}" id="askYes">${esc(o.ok || 'Conferma')}</button></div></div></div>`;
-      const done = (v) => { root.innerHTML = ''; resolve(v); };
+      const done = (v) => { const vals = {}; root.querySelectorAll('input').forEach((i) => { vals[i.id] = i.value; }); root.innerHTML = ''; resolve(v && o.withVals ? vals : v); };
       $('askYes').addEventListener('click', () => { haptic(15); done(true); });
       $('askNo').addEventListener('click', () => done(false));
       $('modalBg').addEventListener('click', (e) => { if (e.target.id === 'modalBg') done(false); });
@@ -1462,10 +1515,12 @@
     if (st === 'no' && !confirmedNo) { askSaveNo(); return; }
     saveLock = true; setTimeout(() => { saveLock = false; }, 700);
     const gioco = giocoOf(n, acc);
-    const status = (st === 'no' || formStatus(lastCalc.con) === 'no') ? 'scarto' : 'buono'; // v2.0.1: taper only (ovalità checked later)
+    const L0 = limOf(series);
+    const status = (st === 'no' || formStatus(lastCalc.con, L0.conOk, L0.conMax) === 'no' || formStatus(lastCalc.oval, L0.ovalOk, L0.ovalMax) === 'no') ? 'scarto' : 'buono'; // Beta 0.6.0: job limits
     const id = uid(), ts = new Date().toISOString();
     series.history = series.history || [];
-    series.history.push({ id, ts, S: lastCalc.S, chosen: n, gioco,
+    series.history.push({ id, ts, S: lastCalc.S, chosen: n, gioco, oval: lastCalc.oval != null ? lastCalc.oval : null,
+      snap: historySnap(series, lastCalc.giocoMin, lastCalc.giocoMax, calOf(machineById(lastCalc.machineId) || myMachine())),
       con: lastCalc.con, conEnd: lastCalc.con > 0 ? (lastCalc.conEnd || null) : null, status, lavoro: lastCalc.mode || 'maschio', machineId: lastCalc.machineId, machineName: (myMachine() || {}).name || '', jobId: prefs.jobId || null });
     if (series.history.length > HIST_MAX) series.history = series.history.slice(-HIST_MAX);
     const stockTaken = stockTake(series.stock, n); // Beta 0.2.0: only on Salva; Annulla gives it back (undoSave)
@@ -1591,7 +1646,7 @@
       const before = lastCalc.conEnd;
       applyTaper(taperStep(taperSides(), side, d)); renderResult();
       if (prefs.voiceAuto && lastCalc.conEnd && lastCalc.conEnd !== before) {
-        const mm = myMachine(); const th = taperHint(lastCalc.con, lastCalc.conEnd, { studer: isStuder(mm), k: knobK(mm), always: true });
+        const mm = myMachine(); const th = taperHint(lastCalc.con, lastCalc.conEnd, Object.assign({ studer: isStuder(mm), k: knobK(mm), always: true }, taperOpts(mm)));
         if (th.turn) speakIt(th.hint.replace('→', ','));
       }
     };
@@ -1612,7 +1667,7 @@
   $('btnOfficina').addEventListener('click', () => {
     if (!lastCalc) return;
     const v = $('officinaView'), pst = pieceStatus(lastCalc.selected, lastCalc.acc);
-    const conSt = formStatus(lastCalc.con);
+    const conSt = conStatus(lastCalc);
     const st = worstStatus(pst, conSt);
     v.className = 'officina ' + (st === 'ok' || st === 'na' ? 'ok' : st === 'lim' ? 'lim' : 'no');
     const sel = lastCalc.selected;
@@ -1620,7 +1675,7 @@
     const forma = [];
     if (conSt === 'lim' || conSt === 'no') {
       const mm = myMachine();
-      const th = taperHint(lastCalc.con, lastCalc.conEnd, { studer: isStuder(mm), k: knobK(mm), always: true });
+      const th = taperHint(lastCalc.con, lastCalc.conEnd, Object.assign({ studer: isStuder(mm), k: knobK(mm), always: true }, taperOpts(mm)));
       const verso = th.turn ? (th.turn === 'verso' ? 'verso\u00a0di\u00a0te' : "dall'altra\u00a0parte") : '';
       let line = 'Conicità ' + fmtUm(lastCalc.con) + ' µm' + (lastCalc.conEnd ? ' (più grande ' + TAPER_SIDE_LBL[lastCalc.conEnd] + ')' : '');
       if (th.tacche != null && th.tacche > 0) line += ' · gira ~' + th.taccheText + (verso ? ' ' + verso : '');
@@ -1688,12 +1743,19 @@
       ${machineChipsHtml(recent)}
       <button type="button" class="knob-row ${k == null ? 'unk' : ''}" id="mdCalib"><span class="ci">⟲</span><span class="kr-t">Manopola conicità<small>${k == null ? 'Non tarata · tocca per la taratura' : esc(fmtK(k)) + ' µm per tacca'}</small></span><span class="chev">›</span></button>
       ${series ? `<button type="button" class="knob-row" id="mdQuote"><span class="ci">✎</span><span class="kr-t">Quote serie in uso<small>Base ${esc(fmtMm3(series.base))} · gioco ${series.giocoMin}–${series.giocoMax} µm · tol ±${esc(fmtMm3(seriesTol(series)))}</small></span><span class="chev">›</span></button>` : ''}
-      <details class="adv"><summary>Altro</summary>
-        <label for="mdRule">Cosa fa il tasto + sulla macchina</label><select id="mdRule">
-          <option value="studer" ${isStuder(m) ? 'selected' : ''}>+ fa il pezzo più piccolo (Studer)</option>
-          <option value="plus_bigger" ${m.rule === 'plus_bigger' ? 'selected' : ''}>+ fa il pezzo più grande</option>
-          <option value="generic" ${m.rule === 'generic' ? 'selected' : ''}>Non so / solo µm</option></select>
-      </details>
+      ${(() => { const c = machineCal(m); const sel = (a, b) => (a === b ? 'selected' : '');
+        return `<div class="cal-box ${c.stato === 'verificata' ? 'ok' : 'unver'}" id="mdCal"><div class="cal-h">Taratura macchina <span class="cal-st" id="mdCalSt">${c.stato === 'verificata' ? '✓ verificata' : '⚠ da verificare'}</span></div>
+        <label for="mdRule">Tasto + sul diametro esterno (maschio)</label><select id="mdRule">
+          <option value="studer" ${sel(c.outer, 'stringe')}>+ stringe (diametro più piccolo) · − allarga</option>
+          <option value="plus_bigger" ${sel(c.outer, 'allarga')}>+ allarga (diametro più grande) · − stringe</option></select>
+        <label for="mdBore">Tasto + sul foro (interno)</label><select id="mdBore">
+          <option value="stringe" ${sel(c.bore, 'stringe')}>+ stringe il foro · − allarga</option>
+          <option value="allarga" ${sel(c.bore, 'allarga')}>+ allarga il foro · − stringe</option></select>
+        <div class="field-row"><div><label for="mdUm">µm per tocco</label><input id="mdUm" inputmode="decimal" value="${esc(fmtUm(c.umPerTocco))}"/></div>
+        <div><label for="mdScala">Il tocco vale sul</label><select id="mdScala"><option value="diametro" ${sel(c.scala, 'diametro')}>diametro</option><option value="raggio" ${sel(c.scala, 'raggio')}>raggio (per lato)</option></select></div></div>
+        <label for="mdTaper">Manopola conicità</label><select id="mdTaper"><option value="normale" ${sel(c.taper, 'normale')}>verso normale (come in Guida)</option><option value="invertito" ${sel(c.taper, 'invertito')}>verso invertito</option></select>
+        <label for="mdStato">Stato</label><select id="mdStato"><option value="da_verificare" ${sel(c.stato, 'da_verificare')}>da verificare</option><option value="verificata" ${sel(c.stato, 'verificata')}>verificata sul primo pezzo</option></select>
+        <p class="meta">Finché è «da verificare» l'app scrive la correzione anche a parole (diametro da ridurre / aumentare) con un avviso.</p></div>`; })()}
       <div id="mdErr" class="form-err hidden"></div>
       <div class="actions" style="display:flex;gap:8px;margin-top:12px"><button type="button" class="btn btn-sec" id="mdCancel" style="flex:1">Annulla</button>
       <button type="button" class="btn btn-primary" id="mdSave" style="flex:1.4">✓ Salva</button></div></div></div>`;
@@ -1703,7 +1765,11 @@
       const name = inp.value.replace(/\s+/g, ' ').trim();
       if (!name) { $('mdErr').textContent = 'Scrivi il nome della macchina'; $('mdErr').classList.remove('hidden'); return false; }
       const old = m.name;
-      m.name = name; m.rule = $('mdRule').value;
+      m.name = name;
+      const umv = Number(String($('mdUm').value).replace(',', '.'));
+      if (!(umv > 0 && umv <= 50)) { $('mdErr').textContent = 'µm per tocco non valido (es. 1)'; $('mdErr').classList.remove('hidden'); return false; }
+      m.cal = { outer: $('mdRule').value === 'plus_bigger' ? 'allarga' : 'stringe', bore: $('mdBore').value, umPerTocco: umv, scala: $('mdScala').value, taper: $('mdTaper').value, stato: $('mdStato').value };
+      const rr = calRules(machineCal(m)); m.rule = rr.rule; m.internoRule = rr.internoRule;
       if (old !== name) { const kn = knobForMachineName(state, name); if (kn) m.knob = kn; } // v1.9.6: knob k follows the machine name
       if (old !== name) { prefs.recentMachineNames = [old].concat((prefs.recentMachineNames || []).filter((n) => n !== old && n !== name)).slice(0, 5); savePrefs(prefs); }
       saveData(state); updateChip();
@@ -1945,6 +2011,10 @@
       <div><label>Tol ± mm</label><input id="sTol" inputmode="decimal" placeholder="0,1" value="${s.tolleranza != null ? esc(String(s.tolleranza).replace('.', ',')) : ''}"/></div></div>
       <div class="field-row"><div><label>Gioco min µm</label><input id="sGmin" inputmode="numeric" value="${s.giocoMin}"/></div>
       <div><label>Gioco max µm</label><input id="sGmax" inputmode="numeric" value="${s.giocoMax}"/></div></div>
+      ${(() => { const L = jobLimits(s); return `<div class="lim-h">Tolleranze di forma del lavoro (µm)</div>
+      <div class="field-row"><div><label>Conicità ok ≤ µm</label><input id="sConOk" inputmode="decimal" value="${esc(fmtUm(L.conOk))}"/></div><div><label>Conicità max µm</label><input id="sConMax" inputmode="decimal" value="${esc(fmtUm(L.conMax))}"/></div></div>
+      <div class="field-row"><div><label>Ovalità ok ≤ µm</label><input id="sOvOk" inputmode="decimal" value="${esc(fmtUm(L.ovalOk))}"/></div><div><label>Ovalità max µm</label><input id="sOvMax" inputmode="decimal" value="${esc(fmtUm(L.ovalMax))}"/></div></div>`; })()}
+      ${id ? '<p class="meta" id="sHistNote">Le misure già salvate tengono le quote di quando sono state fatte: modificare qui non le ricalcola.</p>' : ''}
       <label>Lotto / codice</label><input id="sLotto" value="${esc(s.lotto || '')}"/>
       <label>Note</label><textarea id="sNotes">${esc(s.notes || '')}</textarea>
       <div id="sErr" class="form-err hidden"></div>
@@ -1956,8 +2026,11 @@
     $('sSave').onclick = () => {
       const v = validateSeriesInput({ base: $('sBase').value, tol: $('sTol').value, gmin: $('sGmin').value, gmax: $('sGmax').value });
       if (!v.ok) { const er = $('sErr'); er.textContent = v.error; er.classList.remove('hidden'); haptic(60); return; }
+      const nv = (id2) => { const x = Number(String($(id2).value).replace(',', '.')); return Number.isFinite(x) && x >= 0 && x <= 50 ? x : null; };
+      const lim = { conOk: nv('sConOk'), conMax: nv('sConMax'), ovalOk: nv('sOvOk'), ovalMax: nv('sOvMax') };
+      if (Object.values(lim).some((x) => x == null) || lim.conMax < lim.conOk || lim.ovalMax < lim.ovalOk) { const er = $('sErr'); er.textContent = 'Tolleranze di forma non valide: numeri in µm, max ≥ ok (es. 2 e 3)'; er.classList.remove('hidden'); haptic(60); return; }
       const mid = myMachine() ? myMachine().id : null;
-      const payload = Object.assign({ machineId: mid, name: 'Base ' + fmtMm3(v.value.base), lotto: $('sLotto').value.trim(), notes: $('sNotes').value }, v.value);
+      const payload = Object.assign({ lim, machineId: mid, name: 'Base ' + fmtMm3(v.value.base), lotto: $('sLotto').value.trim(), notes: $('sNotes').value }, v.value);
       let sid = id;
       if (id) Object.assign(seriesById(id), payload);
       else { sid = uid(); state.series.push(Object.assign({ id: sid, history: [], stock: {} }, payload)); }
@@ -2231,7 +2304,8 @@
     const s = seriesAny(sid), h = s && (s.history || []).find((x) => x.id === hid); if (!h) return;
     $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal"><h2>Modifica misura</h2>
       <label>S mm</label><input id="hS" inputmode="decimal" value="${esc(fmtMmS(h.S))}"/><label>Pezzo</label><input id="hChosen" inputmode="numeric" value="${h.chosen}"/>
-      <div class="meta" style="margin-top:6px">Il gioco si ricalcola da S e pezzo (gioco ${s.giocoMin}–${s.giocoMax} µm).</div>
+      <div class="meta" style="margin-top:6px" id="hSnapNote">Il gioco si ricalcola da S e pezzo con le quote salvate con la misura: base ${esc(fmtMm3((h.snap || s).base))} mm · gioco ${(h.snap || s).giocoMin}–${(h.snap || s).giocoMax} µm. Il valore precedente resta nello storico della misura.</div>
+      ${(h.edits || []).length ? `<div class="meta" id="hEdits">Modificata ${h.edits.length} volta/e · prima: S ${esc(fmtMmS(h.edits[h.edits.length - 1].S))} mm → pezzo ${h.edits[h.edits.length - 1].chosen}</div>` : ''}
       <div id="hErr" class="form-err hidden"></div>
       <div class="actions" style="margin-top:10px"><button type="button" class="btn btn-sec" id="hCancel" style="flex:1">Annulla</button>
       <button type="button" class="btn btn-teal" id="hSave" style="flex:1">Salva</button></div></div></div>`;
@@ -2240,11 +2314,11 @@
       const sv = parseMmNumber($('hS').value), chosen = parseGiocoInt($('hChosen').value);
       const err = (t) => { $('hErr').textContent = t; $('hErr').classList.remove('hidden'); };
       if (sv == null) return err('S non valido (es. 21,9966)');
-      if (Math.abs(sv - s.base) > hardLimitMm(s.tolleranza)) return err('S troppo lontano dalla base ' + fmtMm3(s.base));
+      const sb = h.snap || s;
+      if (Math.abs(sv - sb.base) > hardLimitMm(sb.tolMm != null ? sb.tolMm : s.tolleranza)) return err('S troppo lontano dalla base ' + fmtMm3(sb.base));
       if (chosen == null) return err('Pezzo non valido');
-      h.S = round4(sv); h.chosen = chosen;
-      const acc = calcAccoppiamento(h.S, s.base, s.giocoMin, s.giocoMax, h.lavoro); h.gioco = giocoOf(chosen, acc);
-      if (!acc.valid.includes(chosen)) h.status = 'scarto'; else if (h.status === 'scarto' && formStatus(h.oval) !== 'no' && formStatus(h.con) !== 'no') h.status = 'buono';
+      if (round4(sv) === h.S && chosen === h.chosen) { $('modalRoot').innerHTML = ''; return; }
+      editHistoryRecord(h, s, sv, chosen, new Date().toISOString());
       saveData(state); $('modalRoot').innerHTML = ''; renderStorico(); renderAndamento();
     };
   }
@@ -2610,10 +2684,24 @@
     const gMax0 = plan.gmax != null ? plan.gmax : (ser0 ? ser0.giocoMax : '');
     // idea 7: paired photo → verdict straight from the G row
     let pairedBox = '';
-    if (paired && gUm != null && fromPhoto && !useF) {
-      const gap = Math.abs(gUm), ok = gap >= parsed.giocoMin - 0.05 && gap <= parsed.giocoMax + 0.05;
-      pairedBox = `<div class="paired-verdict ${ok ? 'ok' : 'no'}">Pezzo già accoppiato · gioco ${esc(fmtUm(gap))} µm → <b>${ok ? 'BUONO' : 'FUORI GIOCO'}</b> <span>(${parsed.giocoMin}–${parsed.giocoMax} µm)</span></div>`;
+    const gi = interpretG(G, paired ? F : null, paired ? S : null); // Beta 0.6.0: G with its own sign, gioco = F − S, never flipped silently
+    if (paired && gUm != null && fromPhoto && !useF && gi.giocoUm != null) {
+      const gap = gi.giocoUm, ok = !gi.interferenza && gap >= parsed.giocoMin - 0.05 && gap <= parsed.giocoMax + 0.05;
+      pairedBox = `<div class="paired-verdict ${ok ? 'ok' : 'no'}">Pezzo già accoppiato · gioco di accoppiamento ${esc((gap > 0 ? '+' : gap < 0 ? '−' : '') + fmtUm(Math.abs(gap)))} µm → <b>${gi.interferenza ? 'INTERFERENZA' : ok ? 'GIOCO CONFORME' : 'FUORI GIOCO'}</b> <span>(${parsed.giocoMin}–${parsed.giocoMax} µm)</span><small class="pv-g">${esc(gi.note)}</small></div>`;
     }
+    const needCheck = !!(parsed._ai || ['S1A', 'F1A', 'G1A'].some((k) => parsed.rows && parsed.rows[k] && parsed.rows[k].value != null && parsed.rows[k].confidence < 0.8));
+    const sg = (x) => (x > 0 ? '+' : x < 0 ? '−' : '') + fmtUm(Math.abs(x));
+    const mNow = myMachine(), jNow = pendingJob ? { machineName: pendingJob.machineName } : (jobsOn ? activeJob() : null);
+    const tolPh = parsed.tolleranza != null ? parsed.tolleranza : null;
+    const ocrSum = `<div class="ocr-sum" id="ocrSum">
+      <div>Macchina <b>${esc((pendingJob && pendingJob.machineName) || (mNow && mNow.name) || '—')}</b> · Lavoro <b>${esc(jNow ? (jNow.name || jNow.machineName || '—') : 'nessuno')}</b></div>
+      <div>Nominale <b>${nominal != null ? esc(fmtMm3(nominal)) + ' mm' : 'non letto'}</b>${tolPh != null ? ' · tolleranza <b>±' + esc(fmtMm3(tolPh)) + ' mm</b>' : ''}</div>
+      <div>Gioco min/max <b>${fromPhoto ? parsed.giocoMin + '–' + parsed.giocoMax + ' µm' : 'non letti (uso la serie)'}</b></div>
+      <div>S (maschio) <b>${S != null ? esc(fmtMmS(S)) + ' mm' : '—'}</b> · F (foro) <b>${F != null ? esc(fmtMmS(F)) + ' mm' : '—'}</b></div>
+      <div>G letto dallo strumento <b class="${gUm != null && gUm < 0 ? 'neg' : ''}">${gUm != null ? esc(sg(gUm)) + ' µm' : '—'}</b> <span class="meta">(segno originale)</span></div>
+      ${gi.giocoUm != null ? `<div>Gioco di accoppiamento F − S <b class="${gi.interferenza ? 'intf' : ''}">${esc(sg(gi.giocoUm))} µm</b>${gi.interferenza ? ' <span class="intf">INTERFERENZA</span>' : ' (positivo = gioco)'}${gi.dedotto ? ' <span class="meta">dedotto da G, da controllare</span>' : ''}</div>` : ''}
+      <div class="meta">Diametri in mm · scostamenti e giochi in µm.</div></div>`;
+    if (plan.action === 'update' && plan.series) plan.note = `Base ${fmtMm3(plan.series.base)} letta dalla foto · il foglio ha gioco ${plan.gmin}–${plan.gmax} µm, la serie ${plan.series.giocoMin}–${plan.series.giocoMax} µm: scegli sotto`;
     const planNote = (plan.action === 'block' || !plan.note ? '' :
       `<div class="photo-note ${plan.action === 'create' || plan.action === 'update' ? 'new' : ''}" id="ocrPlanNote">${esc(plan.note)}</div>`) +
       ((parsed.notes || []).length ? `<div class="photo-note warn" id="ocrParseNote">${parsed.notes.map(esc).join('<br>')}</div>` : '');
@@ -2621,7 +2709,9 @@
     $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal ocr-confirm">
       <h2>${pendingJob ? 'Nuovo lavoro · ' + esc(pendingJob.machineName) : 'Conferma lettura foto'}</h2>
       ${pairedBox || `<div class="typo-box" style="margin-bottom:8px">${paired === false ? 'Non ancora accoppiato → useremo S1A' : (paired ? 'Accoppiato' : 'Verifica i valori')}</div>`}
+      ${ocrSum}
       ${planNote}
+      ${needCheck ? `<label class="chk-big" id="ocrCheckRow"><input type="checkbox" id="ocrChecked"/><span>Ho controllato i valori sullo schermo della macchina${parsed._ai ? ' (letti con AI)' : ' (alcuni letti male)'}</span></label>` : ''}
       <div id="ocrWarn" class="form-err hidden"></div>
       <div class="actions" style="display:flex;gap:8px;margin:10px 0 4px"><button type="button" class="btn btn-sec" id="ocrCancel" style="flex:1">Annulla</button>
       <button type="button" class="btn btn-teal" id="ocrGo" style="flex:1.6">${pairedBox && (useF ? F : S) == null ? 'OK' : 'Conferma e calcola'}</button></div>
@@ -2632,12 +2722,13 @@
       <label id="ocrGLbl">${fromPhoto ? `Gioco ${parsed.giocoMin}–${parsed.giocoMax} µm (dalla foto)` : 'Gioco µm · riga G non trovata, uso quello della serie'}</label>
       <div class="field-row" id="ocrGRow"><div><input id="ocrGmin" inputmode="numeric" aria-label="Gioco minimo µm" value="${esc(String(gMin0))}"${fromPhoto ? '' : ' class="low"'}/></div>
       <div><input id="ocrGmax" inputmode="numeric" aria-label="Gioco massimo µm" value="${esc(String(gMax0))}"${fromPhoto ? '' : ' class="low"'}/></div></div>
-      <div id="ocrGSave" class="hidden" style="margin-top:8px"><label style="display:flex;align-items:center;gap:10px;min-height:48px;font-size:14px;color:var(--text);margin:0">
-        <input type="checkbox" id="ocrGSaveChk" style="width:26px;min-height:26px;height:26px;flex:none"/><span id="ocrGSaveTxt"></span></label></div>
+      <div id="ocrGSave" class="hidden" style="margin-top:8px"><div class="meta" id="ocrGSaveTxt"></div>
+        <div class="apply-choice" id="ocrApply"><label id="ocrApJobL" class="on"><input type="radio" name="ocrAp" id="ocrApJob" value="job" checked/><span>Applica solo a questo lavoro</span></label>
+        <label id="ocrApSerL"><input type="radio" name="ocrAp" id="ocrApSer" value="serie"/><span>Aggiorna anche la serie</span></label></div></div>
       <div id="ocrGNoSave" class="meta hidden" style="margin-top:6px"></div>
-      <div class="field-row"><div><label>S1A (mm)${useF ? '' : ' · <b>misura usata</b>'}</label><input id="ocrS" inputmode="decimal" value="${S != null ? esc(fmtMmS(S)) : ''}"${lowCls('S1A')}/></div>
-      <div><label>F1A (mm)${useF ? ' · <b>femmina usata</b>' : ''}</label><input id="ocrF" inputmode="decimal" value="${F != null ? esc(fmtMmS(F)) : ''}"${lowCls('F1A')}/></div></div>
-      <div><label>G1A (µm)</label><input id="ocrG" value="${gUm != null ? esc(fmtUm(gUm)) : ''}"${lowCls('G1A')}/></div>
+      <div class="field-row"><div><label>S1A maschio (mm)${useF ? '' : ' · <b>misura usata</b>'}</label><input id="ocrS" inputmode="decimal" value="${S != null ? esc(fmtMmS(S)) : ''}"${lowCls('S1A')}/></div>
+      <div><label>F1A foro (mm)${useF ? ' · <b>femmina usata</b>' : ''}</label><input id="ocrF" inputmode="decimal" value="${F != null ? esc(fmtMmS(F)) : ''}"${lowCls('F1A')}/></div></div>
+      <div><label>G letto dallo strumento · G1A (µm, segno originale)</label><input id="ocrG" value="${gUm != null ? esc(fmtUm(gUm)) : ''}"${lowCls('G1A')}/></div>
       <div class="field-row"><div><label>Codice</label><input id="ocrCod" value="${esc((parsed.header && parsed.header.codice) || '')}"/></div>
       <div><label>Lotto</label><input id="ocrLotto" value="${esc((parsed.header && parsed.header.lotto) || '')}"/></div></div>
       </div></div>`;
@@ -2657,20 +2748,18 @@
     };
     // the photo is the truth for its own series: new series, or the existing series with the photo base
     const photoOwns = (t) => !!t && (t.isNew || (nominal != null && plan.series && t.ser && t.ser.id === plan.series.id && (plan.action === 'update' || plan.action === 'use')));
-    let gTouched = false, warned = false;
+    let gTouched = false, warned = false, applyJobOnly = false;
     const refreshGSave = () => {
       const t = target(), g = readG(), box = $('ocrGSave'), ns = $('ocrGNoSave');
       ns.classList.add('hidden'); box.classList.add('hidden');
-      if (!t || !g) { $('ocrGSaveChk').checked = false; return; }
+      if (!t || !g) return;
       if (t.isNew) { ns.textContent = `Verrà creata la serie Base ${fmtMm3(t.base)} · gioco ${g.min}–${g.max} µm · tol ±${fmtMm3(t.tol)}`; ns.classList.remove('hidden'); return; }
       const ser = t.ser;
-      if (g.min === ser.giocoMin && g.max === ser.giocoMax) { $('ocrGSaveChk').checked = false; return; }
-      if (photoOwns(t)) { ns.textContent = `Il gioco della serie Base ${fmtMm3(ser.base)} diventa ${g.min}–${g.max} µm (era ${ser.giocoMin}–${ser.giocoMax})`; ns.classList.remove('hidden'); return; }
-      if (!photoMatchesSeries(parsed, ser)) { // never write the photo's gioco into a series that does not match the photo
-        $('ocrGSaveChk').checked = false;
+      if (g.min === ser.giocoMin && g.max === ser.giocoMax) return;
+      if (!photoOwns(t) && !photoMatchesSeries(parsed, ser)) { // never write the photo's gioco into a series that does not match the photo
         ns.textContent = `Il gioco ${g.min}–${g.max} µm vale solo per questo calcolo: la Base ${fmtMm3(ser.base)} non corrisponde alla foto.`; ns.classList.remove('hidden'); return;
       }
-      $('ocrGSaveTxt').textContent = `La serie Base ${fmtMm3(ser.base)} ha ${ser.giocoMin}–${ser.giocoMax} µm. Salva ${g.min}–${g.max} µm nella serie`;
+      $('ocrGSaveTxt').textContent = `Il foglio dice gioco ${g.min}–${g.max} µm, la serie Base ${fmtMm3(ser.base)} ha ${ser.giocoMin}–${ser.giocoMax} µm. Scegli:`;
       box.classList.remove('hidden');
     };
     const checkPlaus = () => {
@@ -2688,6 +2777,7 @@
       refreshGSave(); checkPlaus();
     });
     ['ocrGmin', 'ocrGmax'].forEach((id) => $(id).addEventListener('input', () => { gTouched = true; refreshGSave(); }));
+    ['ocrApJob', 'ocrApSer'].forEach((id) => $(id).addEventListener('change', () => { $('ocrApJobL').classList.toggle('on', $('ocrApJob').checked); $('ocrApSerL').classList.toggle('on', $('ocrApSer').checked); }));
     $('ocrS').addEventListener('input', checkPlaus); $('ocrF').addEventListener('input', checkPlaus);
     refreshGSave(); checkPlaus();
     if (plan.action === 'block' && S != null) warn(esc(plan.note));
@@ -2696,6 +2786,7 @@
     $('ocrGo').onclick = () => {
       const t = target();
       if (!t) { warn('Scegli una serie'); return; }
+      if (needCheck && !$('ocrChecked').checked) { warn('Valori non sicuri: controllali sullo schermo e spunta «Ho controllato i valori». L\'app non calcola su valori indovinati.'); haptic(60); return; }
       const g = readG();
       if (!g || g.min < 0 || g.max > 100 || g.max - g.min < 1) { warn('Gioco non valido: numeri interi in µm (es. 7 e 10)'); return; }
       const sv = parseMmNumber($(useF ? 'ocrF' : 'ocrS').value);
@@ -2716,15 +2807,17 @@
         }
         note = `Nuova serie Base ${fmtMm3(ser.base)} · gioco ${g.min}–${g.max} creata dalla foto`;
         saveData(state);
-      } else if (photoOwns(t) && (g.min !== ser.giocoMin || g.max !== ser.giocoMax)) {
-        note = `Base ${fmtMm3(ser.base)}: gioco aggiornato ${ser.giocoMin}–${ser.giocoMax} → ${g.min}–${g.max} µm (dalla foto)`;
+      } else if (!$('ocrGSave').classList.contains('hidden') && $('ocrApSer').checked) { // Beta 0.6.0: the user chose «Aggiorna anche la serie»
+        note = `Base ${fmtMm3(ser.base)}: gioco della serie aggiornato ${ser.giocoMin}–${ser.giocoMax} → ${g.min}–${g.max} µm (era ${ser.giocoMin}–${ser.giocoMax})`;
+        ser.giocoPrev = (ser.giocoPrev || []).concat([{ ts: new Date().toISOString(), min: ser.giocoMin, max: ser.giocoMax }]).slice(-10);
         ser.giocoMin = g.min; ser.giocoMax = g.max;
         if (plan.tol != null && ser.tolleranza == null) ser.tolleranza = plan.tol;
         saveData(state);
-      } else if (!$('ocrGSave').classList.contains('hidden') && $('ocrGSaveChk').checked && photoMatchesSeries(parsed, ser)) {
-        ser.giocoMin = g.min; ser.giocoMax = g.max; saveData(state); note = `Gioco ${g.min}–${g.max} µm salvato nella serie`;
+      } else if (!$('ocrGSave').classList.contains('hidden')) { // «Applica solo a questo lavoro»
+        applyJobOnly = true;
       }
       const codice = $('ocrCod').value.trim(), lotto = $('ocrLotto').value.trim();
+      const gJobOnly = applyJobOnly ? { seriesId: ser.id, min: g.min, max: g.max } : null;
       if (pendingJob) { // «Nuovo lavoro»: this photo starts the job, which becomes the active context
         const j = startJob({ machineName: pendingJob.machineName, series: ser, codice, lotto }); pendingJob = null;
         note = (note ? note + ' · ' : '') + 'Lavoro: ' + j.machineName;
@@ -2734,10 +2827,11 @@
         if (j && lotto && !j.lotto) j.lotto = lotto;
       }
       setContext(null, ser.id, false);
+      if (gJobOnly) { const jj = activeJob(); if (jj) { jj.giocoOv = gJobOnly; saveData(state); note = (note ? note + ' · ' : '') + `Gioco ${g.min}–${g.max} µm solo per questo lavoro (la serie resta ${ser.giocoMin}–${ser.giocoMax})`; } else note = (note ? note + ' · ' : '') + `Gioco ${g.min}–${g.max} µm solo per questo calcolo (la serie resta ${ser.giocoMin}–${ser.giocoMax})`; }
       $('modalRoot').innerHTML = '';
       if (sv == null) { // paired photo without S: verdict only
-        const okP = pairedBox.includes('BUONO');
-        toast((note ? note + ' · ' : '') + (okP ? 'Accoppiato: BUONO' : 'Accoppiato: FUORI GIOCO'), okP ? '' : 'warn'); return;
+        const okP = pairedBox.includes('GIOCO CONFORME');
+        toast((note ? note + ' · ' : '') + (okP ? 'Accoppiato: gioco conforme' : pairedBox.includes('INTERFERENZA') ? 'Accoppiato: INTERFERENZA' : 'Accoppiato: FUORI GIOCO'), okP ? '' : 'warn'); return;
       }
       const S4 = round4(sv);
       manualPrefix = Math.floor(S4 + 1e-9);
@@ -2833,11 +2927,14 @@
       // Beta 0.1.0: check the file first and show what it contains
       const res = inspectBackup(raw);
       if (!res.ok) { toast('Import fallito: ' + res.error, 'warn'); return; }
+      const dd = importDuplicates(state, res.data); res.data = dd.data;
       const inf = res.info;
       const when = inf.exportedAt ? new Date(inf.exportedAt).toLocaleString('it-IT') : 'data non indicata';
       const html = `<p class="meta">Backup: <b>${esc(inf.app)}${inf.appVersion ? ' ' + esc(inf.appVersion) : ''}</b> · ${esc(when)}</p>
         <p class="meta">Contiene: ${inf.machines} macchina/e · ${inf.series} basi · ${inf.measures} misure · ${inf.femmine} femmine · ${inf.turni} turni archiviati.</p>
         ${inf.dropped ? `<p class="meta">${inf.dropped} basi non valide verranno saltate.</p>` : ''}
+        ${dd.inFile ? `<p class="meta dup-warn" id="impDupFile">⚠ ${dd.inFile} misure doppie nel file: verranno importate una volta sola.</p>` : ''}
+        ${dd.already ? `<p class="meta dup-warn" id="impDupHave">⚠ ${dd.already} misure del file ci sono già sul telefono (stesso backup già importato?).</p>` : ''}
         <p class="meta">I dati attuali vengono <b>sostituiti</b>. Prima l'app ne salva una copia automatica.</p>`;
       if (!(await askBig({ title: 'Sostituire i dati con il backup?', html, ok: 'Sostituisci', danger: true }))) return;
       autoBackup('prima di importare un backup', JSON.stringify(state), JSON.stringify(prefs));
@@ -2917,7 +3014,7 @@
   // ── Beta 0.5.0: AI (Assistente + Leggi foto con AI). The AI never computes: the app's numbers are shown, the AI explains. ──
   const AI = window.RettificaAI;
   function aiCtx() {
-    const { series } = currentContext(), m = myMachine(), c = { machine: (m && m.name) || '' };
+    const { series } = currentContext(), m = myMachine(), cl = calOf(m), c = { machine: ((m && m.name) || '') + ' (taratura ' + (cl.stato === 'verificata' ? 'verificata' : 'da verificare') + ', + ' + cl.outer + ' sull\'esterno, 1 tocco = ' + fmtUm(cl.umPerTocco) + ' µm sul ' + cl.scala + ')' };
     if (series) {
       c.base = fmtMm3(series.base); c.giocoMin = series.giocoMin; c.giocoMax = series.giocoMax; c.tol = series.tolleranza != null ? fmtMm3(series.tolleranza) : null;
       c.last = (series.history || []).slice(-3).map((h) => fmtMmS(h.S) + ' mm → pezzo ' + h.chosen + (h.status === 'scarto' ? ' (scarto)' : ''));
@@ -2927,7 +3024,7 @@
     if (lastCalc && lastCalc.acc) {
       const a = lastCalc.acc, v = a.valid || [], co = lastCalc.corr;
       c.calc = `misura ${lastCalc.display} mm; pezzi validi ${v.length ? v[0] + '…' + v[v.length - 1] : 'nessuno'}; centro ${fmtUm(a.ideal)}; scelto ${lastCalc.selected != null ? lastCalc.selected : '—'}`
-        + (co ? (co.none ? '; correzione: nessuna' : `; correzione: ${co.key} ×${co.presses} (${fmtUm(Math.abs(co.diffUm))} µm)`) : '');
+        + (co ? (co.none ? '; correzione: nessuna' : `; correzione: ${co.key} ×${co.presses} tocchi (${fmtUm(Math.abs(co.diffUm))} µm sul diametro)`) : '');
     }
     try { const n = intNow(); if (n.tgt) c.interno = `quota foro ${fmtMm4(n.tgt.lo)}–${fmtMm4(n.tgt.hi)} mm` + (n.r ? `; foro ${fmtMm4(n.bore)} → ${n.r.state}; ${internoWords(n.r)}` : ''); const r = intRule(); c.intDir = r ? (r === 'plus_smaller' ? '+ stringe il foro, − allarga' : '+ allarga il foro, − stringe') : 'non impostato'; } catch (e) {}
     return AI.buildContext(c);
@@ -3086,6 +3183,7 @@
     toast('Letto con AI: controlla i valori');
   }
   window.__rettifica = {
+    openHistModal: (a, b) => openHistModal(a, b), openMachineDialog: () => openMachineDialog(), openSeriesModal: (id) => openSeriesModal(id), saveCurrent: (x) => saveCurrent(x), refreshDisplay: () => refreshDisplay(), setDigits: (d) => { measureDigits = d; refreshDisplay(); },
     webPhotoData: (i, w, h) => webPhotoData(i, w, h), runCalc, showPage, setContext, openAssistant, chatSend: (t) => chatSend(t), get chatMsgs() { return chatMsgs; }, openAiSettings, aiCtx, get state() { return state; }, get prefs() { return prefs; },
     openCrop: (p, b) => openCrop(p, b), renderLastHint: () => renderLastHint(), shiftText: () => shiftText(), get lastPhoto() { return lastPhoto; }, openOcrConfirm: (p) => openOcrConfirm(p),
     get lastCalc() { return lastCalc; }, fem, renderFemPage: () => renderFemPage(), renderEmpty: () => renderEmpty(), backupInfo: () => backupInfo(), openRestoreBackup: () => openRestoreBackup(), wipeAll: (w) => wipeAll(w), femFromPhoto: (p) => femFromPhoto(p), setPendingFem: (v) => { pendingFem = !!v; }, femSetField: (f) => femSetField(f), femKey: (k) => femKey(k), openOcrConfirm: (p) => openOcrConfirm(p), applyOcrText: (t) => applyOcrText(t), intS, intKey: (k) => intKey(k), intFromPhoto: (p) => intFromPhoto(p), setPendingInt: (v) => { pendingInt = !!v; }, renderIntPage: () => renderIntPage(), fitPads: () => fitPads(), lavoroMode: () => lavoroMode(), setLavoro: (m) => setLavoro(m), openJobSetup: (p) => openJobSetup(p),

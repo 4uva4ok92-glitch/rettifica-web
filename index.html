@@ -148,7 +148,7 @@ body{
 }
 .tk.no{color:#ff8a8a;background:rgba(255,90,90,.08);border-color:rgba(255,90,90,.25);box-shadow:none}
 .tk.lim{color:var(--amber);background:rgba(255,197,61,.1);border-color:rgba(255,197,61,.35)}
-.tk.ok{color:#1a0d00;background:linear-gradient(160deg,#ffb14a,#ff7a12);border-color:transparent;box-shadow:0 4px 14px rgba(255,138,31,.3)}
+.tk.ok{color:#04210f;background:linear-gradient(160deg,#5ef0a0,#22b866);border-color:transparent;box-shadow:0 4px 14px rgba(61,220,132,.3)}
 .tk.sel{outline:2px solid #fff;outline-offset:2px}
 .legend{display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--muted);font-weight:600}
 .legend b{color:var(--text)}
@@ -453,7 +453,7 @@ html[data-theme="light"]{
 html[data-theme="light"] body{background:radial-gradient(520px 340px at 80% -40px,rgba(255,138,31,.1),transparent 65%),var(--bg)}
 html[data-theme="light"] .nav{background:rgba(240,242,247,.95)}
 html[data-theme="light"] .toast{background:#fff;color:#c45a00;border-color:var(--orange)}
-html[data-theme="light"] .tk.ok{color:#1a0d00}
+html[data-theme="light"] .tk.ok{color:#04210f}
 html[data-theme="light"] .modal{background:#f4f6fa}
 html[data-theme="light"] .pre{color:#c45a00}
 html[data-theme="light"] .toggle{background:rgba(0,0,0,.08)}
@@ -728,7 +728,7 @@ html[data-theme="light"] .job-card{background:#fff}
 .g-tip{background:rgba(80,160,255,.10);border-radius:12px;padding:10px 12px}
 .g-img{display:block;width:100%;max-width:300px;margin:10px auto;border-radius:14px;border:1px solid var(--line2)}
 .g-dot{display:inline-block;width:12px;height:12px;border-radius:4px;vertical-align:middle}
-.g-dot.ok{background:var(--orange)}.g-dot.lim{background:#e8c547}.g-dot.no{background:#ff6b6b}
+.g-dot.ok{background:var(--green)}.g-dot.lim{background:#e8c547}.g-dot.no{background:#ff6b6b}
 html[data-theme="light"] .g-sec{background:#fff}
 @media (max-height:700px){
   .pad{grid-template-rows:repeat(4,50px);gap:7px;margin-top:8px}
@@ -906,7 +906,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
 .ai-btns{display:flex;gap:8px;margin-top:8px}.ai-btns .btn{flex:1;min-height:56px;font-size:17px}
 .ai-err,.ai-warn{display:block;color:#ff8a8a;font-weight:700}.ai-warn{margin-top:8px;font-size:13px}
 .btn.off{opacity:.45}.ai-why{color:var(--muted);margin:0 0 6px}
-/* Beta 0.5.2 chat */
+/* Beta 0.6.0 chat */
 .key-help{margin:8px 0}.kh-btns{display:flex;gap:8px}.kh-btns .btn{flex:1;min-height:56px;font-size:16px}
 .kh-steps{margin:8px 0 0;padding-left:22px;font-size:15px;line-height:1.4}.kh-steps li{margin:2px 0}
 .chat-key{padding:10px 12px;border-radius:14px;border:2px solid var(--orange);background:rgba(255,138,31,.08)}.chat-key p{margin:4px 0;font-size:14px;color:var(--muted)}
@@ -928,6 +928,27 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
 #chatQ{width:100%;min-height:60px;max-height:120px;font-size:17px;border-radius:14px;padding:10px 12px;box-sizing:border-box;font-family:inherit;resize:none;background:var(--surface);color:var(--text);border:1.5px solid var(--line2)}
 .chat-btns{display:flex;gap:8px}.chat-btns .btn{flex:1;min-height:56px;font-size:17px}.chat-btns #chatSend{flex:1.4}
 @media (max-height:680px){.chat-head h2{font-size:19px}#chatQ{min-height:52px}.chat-btns .btn{min-height:52px}}
+.live-prev{margin-top:4px;line-height:1.2}.lp-m{font-size:19px;font-weight:800;color:var(--text)}.lp-m b{font-family:inherit}.lp-c{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live-prev.bad .lp-m{color:var(--red)}
+@media (max-height:700px){.live-prev{margin-top:0;line-height:1.05}.lp-m{font-size:16px}.lp-c{display:none}#calcInputView .disp .dig,#calcInputView .disp .pre{font-size:44px}#calcInputView .disp .val{margin-top:2px}}
+.corr-now{margin:8px 0 -2px;padding:8px 12px;border-radius:12px;background:var(--card,rgba(255,255,255,.04));font-size:15px}
+.cw-next{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.cw-words{display:block;font-weight:700}.cw-warn{display:block;color:var(--amber);font-weight:800;margin-top:4px}
+.corr.unver{border-color:var(--amber)!important}
+.qual{padding:12px 14px}
+.qual .ql{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"l w b" "v v b";gap:0 10px;align-items:center;padding:8px 0;border-top:1px solid rgba(255,255,255,.06)}
+.qual .ql-l{grid-area:l;font-weight:800;min-width:78px}.qual .ql-w{grid-area:w;font-weight:800}.qual .ql-v{grid-area:v;color:var(--muted);font-size:12.5px}
+.qual .ql.ok .ql-w{color:var(--green)}.qual .ql.lim .ql-w{color:var(--amber)}.qual .ql.no .ql-w{color:var(--red)}.qual .ql.na .ql-w,.qual .ql.nr .ql-w{color:var(--muted)}
+.qual .ql-btn{grid-area:b;min-height:44px;min-width:76px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:transparent;color:var(--text);font-weight:800}
+.cal-box{margin:10px 0;padding:10px 12px;border-radius:12px;border:2px solid var(--amber)}.cal-box.ok{border-color:var(--green)}
+.cal-h{font-weight:800;display:flex;justify-content:space-between}.cal-box.unver .cal-st{color:var(--amber)}.cal-box.ok .cal-st{color:var(--green)}
+.lim-h{margin-top:10px;font-weight:800;font-size:14px}
+.ocr-sum{margin:6px 0 8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.04);font-size:13.5px;line-height:1.45}
+.ocr-sum b{font-weight:800}.ocr-sum .neg{color:var(--amber)}.ocr-sum .intf{color:var(--red);font-weight:800}
+.apply-choice{display:flex;flex-direction:column;gap:8px;margin:8px 0}.apply-choice label{display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 10px;border-radius:12px;border:2px solid rgba(255,255,255,.12);font-size:15px;font-weight:700;margin:0;color:var(--text)}
+.apply-choice input{width:24px;height:24px;flex:none}.apply-choice label.on{border-color:var(--orange)}
+.chk-big{display:flex;align-items:center;gap:10px;min-height:52px;font-size:15px;font-weight:700;margin:6px 0;color:var(--text)}.chk-big input{width:26px;height:26px;flex:none}
+.dup-warn{color:var(--amber)!important;font-weight:700}
 .web-install{margin:0 0 12px;padding:12px 14px}.web-install p{margin:4px 0 8px}
 </style>
 </head>
@@ -963,13 +984,14 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
       </div>
       <button type="button" class="last-hint hidden" id="lastHint"></button>
       <div class="card disp">
-        <div class="lbl"><span>Misura maschio S</span></div>
+        <div class="lbl"><span id="dispLbl">Misura maschio S</span></div>
         <div class="status" id="liveStatus"><span class="dot"></span><span id="liveStatusTxt">inserisci misura</span></div>
         <button type="button" class="ib cam cam-lbl" id="btnFoto" title="Leggi la misura S da foto" aria-label="Foto: leggi misura S"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><small>leggi S</small></button>
         <div class="val cond">
           <span class="pre" id="measurePrefix">24,<i>▾</i></span>
           <span class="dig" id="digDisplay"></span><span class="cur" id="curBlink"></span><span class="u">mm</span>
         </div>
+        <div class="live-prev" id="livePrev"><div class="lp-m" id="livePreview">Misura interpretata: —</div><div class="lp-c" id="liveCtx"></div></div>
         <div class="prefix-menu" id="prefixMenu"></div>
         <div class="fem-open-row"><button type="button" class="fem-open" id="btnFemOpen" aria-label="Adatta alla femmina">⚥ Adatta alla femmina</button><button type="button" class="fem-open int-open" id="btnIntOpen" aria-label="Interno (femmina): rettifica del foro">◎ Interno (femmina)</button></div>
       </div>
@@ -1003,10 +1025,11 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
         <div class="hint-row" id="hintRow"></div>
         <div class="ruler">
           <div class="ticks cond" id="tickRow"></div>
-          <div class="legend"><span>tocca un numero → <b>va bene?</b></span><span><b style="color:var(--orange)">■</b> ok <b style="color:var(--amber)">■</b> limite <b style="color:#ff8a8a">■</b> no</span></div>
+          <div class="legend"><span>tocca un numero → <b>va bene?</b></span><span><b style="color:var(--green)">■</b> verde = ok <b style="color:var(--amber)">■</b> giallo = limite <b style="color:#ff8a8a">■</b> rosso = no</span></div>
         </div>
         <div id="vaBeneBox" class="typo-box hidden" style="margin-top:8px"></div>
       </div>
+      <div class="corr-now" id="corrNow"></div>
       <div class="card corr sticky-corr" id="corrCard">
         <div class="key cond" id="corrKey">−</div><div class="x cond" id="corrX">×0</div>
         <div class="t" id="corrTxt">correzione<small>—</small></div><div class="chev">›</div>
@@ -1017,6 +1040,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
         <div class="tp-row" id="conFondoRow"><span class="tp-s">In fondo</span><div class="stp cond"><button type="button" class="b" id="conFondoMinus" aria-label="In fondo meno">−</button><div class="v na" id="conFondoVal" role="button">— <small>µm</small></div><button type="button" class="b" id="conFondoPlus" aria-label="In fondo più">+</button></div></div>
       </div>
       <div class="card formbox hidden" id="formBox"></div>
+      <div class="card qual" id="qualBox"></div>
       <details class="expl-bar" id="spiegazioneBox"><summary>Spiegazione / Controllo F</summary>
         <div id="spiegazioneText" class="mono" style="margin-top:8px;font-size:13px"></div>
         <label for="fInput" style="display:block;margin-top:10px;font-size:12px;color:var(--muted);font-weight:700">Controllo F: misura del pezzo di accoppiamento (mm)</label>
@@ -1217,18 +1241,18 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
     </div>
     <input type="file" id="importFile" accept="application/json,.json,text/plain" class="hidden"/>
     <button type="button" class="btn btn-danger" id="btnReset" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗑 Azzera tutto</button>
-    <p class="ver">Rettifica Beta v0.5.2 · offline · µm</p>
+    <p class="ver">Rettifica Beta v0.6.0 · diametri in mm · giochi e correzioni in µm</p>
   </section>
 
   <section class="page" id="page-guida">
     <div class="page-head"><h2>Guida</h2></div>
     <div class="g-brand">Rettifica Beta</div>
     <button type="button" class="btn btn-sec" id="btnBackGuida" style="min-height:52px">← Indietro</button>
-    <p class="g-intro">Manuale veloce di <b>Rettifica Beta</b> per chi inizia. Tocca un titolo per aprirlo. Tutto funziona <b>senza internet</b>; le misure sono sempre in <b>µm</b> (1 µm = 0,001 mm).</p>
+    <p class="g-intro">Manuale veloce di <b>Rettifica Beta</b> per chi inizia. Tocca un titolo per aprirlo. Funziona <b>senza internet</b>, tranne <b>💬 Chat</b> e <b>✨ Leggi foto con AI</b> (servono rete e chiave AI). <b>Diametri in mm; scostamenti, giochi e correzioni in µm</b> (1 µm = 0,001 mm). Colori sempre uguali: <b>verde = OK</b>, giallo = al limite, rosso = fuori, sempre con la parola accanto.</p>
     <div class="guida">
       <details class="g-sec" open><summary><span class="g-ico">🎯</span>Cosa fa l'app</summary>
         <p>Misuri il pezzo <b>S</b> (o fai una foto del foglio di misura) e l'app ti dice <b>quale pezzo di accoppiamento</b> (il numero) usare per avere il <b>gioco giusto</b>.</p>
-        <ul><li>Ti dice anche se correggere la macchina e di quante <b>pressioni</b>.</li>
+        <ul><li>Ti dice anche se correggere la macchina e di quante <b>tocchi</b>.</li>
         <li>Ti fa segnare la <b>conicità</b> (davanti / in fondo) e ti dice subito da che parte girare la manopola. L'<b>ovalità</b> si controlla dopo (massimo 2–3 µm).</li>
         <li>Conta i pezzi del turno e salva lo storico.</li></ul>
       </details>
@@ -1256,7 +1280,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
       <details class="g-sec"><summary><span class="g-ico">🖥</span>Leggere lo schermo di misura (F / S / G)</summary>
         <ul><li><b>S1A</b> = il pezzo che stai rettificando (es. <b>17,9991</b>). <i>(18 ± 0,1)</i> vuol dire base 18 con tolleranza ±0,1 mm.</li>
         <li><b>F1A</b> = il pezzo di accoppiamento (controparte).</li>
-        <li><b>G1A</b> = il gioco tra i due, già accoppiati. <i>(−0,008 / −0,011)</i> vuol dire gioco da <b>8 a 11 µm</b>. Il valore (es. −0,0099) è il gioco vero: <b>9,9 µm</b>.</li>
+        <li><b>G1A</b> = <b>G letto dallo strumento</b>, con il suo segno (lo schermo calcola S − F). <i>(−0,008 / −0,011)</i> = limiti, cioè gioco da <b>8 a 11 µm</b>. Il valore −0,0099 vuol dire <b>gioco di accoppiamento F − S (foro − maschio) = +9,9 µm</b> (positivo = gioco). Se F − S viene negativo è <b>interferenza</b>: l'app lo scrive, non lo trasforma in gioco. Nella conferma foto vedi sempre i due valori separati.</li>
         <li><b>A, B, C</b> = tre misure dello stesso pezzo. Se S cambia molto tra A, B e C, controlla la forma.</li></ul>
         <p class="g-tip">💡 Se il pezzo è già accoppiato, l'app ti dice subito <b>BUONO</b> o <b>FUORI GIOCO</b> dalla riga G.</p>
         <p>Il numero piccolo accanto al valore (es. <i>0,0098</i> sotto «mm») è lo <b>scostamento</b> dalla base: l'app lo usa solo per controllo, non come misura.</p>
@@ -1275,7 +1299,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
         <p><b>Intero fisso (es. 21, invece di 22,)</b>: tocca il numero intero grande (<b>22, ▾</b>) e scegli <b>21,</b>. Da quel momento resta <b>21,</b> per tutti i pezzi di quella serie / lavoro: anche dopo Salva, Nuova misura, Annulla e se chiudi l'app. Sotto la misura vedi «intero 21, fisso». Per tornare a 22, sceglilo di nuovo dallo stesso menu.</p>
         <p>Se le cifre non tornano con l'intero scelto (es. scegli 21, e scrivi 005), l'app non cambia l'intero da sola: ti avvisa e propone la misura giusta. <b>Correggi</b> vale solo per quella misura.</p>
         <p>Esempio: base <b>24,600</b>, S = <b>24,590</b> → <b>−10 µm</b>. Con gioco 10–13 µm: pezzo <b>1</b> = gioco 11 µm, pezzo <b>2</b> = gioco 12 µm. In grande vedi i pezzi migliori.</p>
-        <ul><li><span class="g-dot ok"></span> arancione = va bene · <span class="g-dot lim"></span> giallo = al limite · <span class="g-dot no"></span> rosso = fuori gioco.</li>
+        <ul><li><span class="g-dot ok"></span> verde = va bene · <span class="g-dot lim"></span> giallo = al limite · <span class="g-dot no"></span> rosso = fuori gioco.</li>
         <li>Tocca un numero per sceglierne un altro: l'app ti chiede <b>Va bene?</b>.</li>
         <li>Un pezzo <b>rosso</b> si salva solo dopo la conferma rossa: viene salvato come <b>scarto</b>.</li>
         <li>Tocca <b>✓ Salva pezzo N</b>: l'app salva e torna <b>subito alla tastiera</b>, pronta per il pezzo dopo.</li>
@@ -1295,13 +1319,13 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
         <ol><li><b>Femmina nominale · tolleranze · gioco ✎</b>: nominale, tolleranza − e +, gioco min/max. Restano salvati per <b>questo lavoro</b>.</li>
         <li><b>Femmina misurata F</b>: scrivi solo le cifre dopo la virgola (es. <b>122</b> = 20,122) oppure la misura intera con la virgola.</li>
         <li>Vedi subito se la femmina è <b>in tolleranza</b> o <b>maggiorata +122 µm</b> / <b>minorata</b> (e di quanto è fuori), e in grande la <b>Misura da fare (maschio)</b>: centro e da F − gioco max a F − gioco min.</li>
-        <li>Facoltativo: tocca <b>Maschio ora S</b> e scrivi la misura del pezzo sulla macchina (se oggi hai salvato un maschio in Calcolo è già scritta): l'app ti dice quanto manca al centro e le <b>pressioni</b> (es. <b>+ ×2</b> = più piccolo).</li>
+        <li>Facoltativo: tocca <b>Maschio ora S</b> e scrivi la misura del pezzo sulla macchina (se oggi hai salvato un maschio in Calcolo è già scritta): l'app ti dice quanto manca al centro e le <b>tocchi</b> (es. <b>+ ×2</b> = più piccolo).</li>
         <li><b>✓ SALVA femmina</b>: la salva (Storico → <b>Femmine salvate</b>, CSV, riga nel Turno). <b>↶ Annulla</b> per 8 s. Torna a Calcolo con <b>←</b>.</li></ol>
         <p class="g-tip">Esempio: nominale 20 ±0,1, gioco 8–11 µm, femmina <b>20,122</b> → <b>maggiorata +122 µm</b> (fuori di 22 µm) → maschio da fare <b>20,1110–20,1140</b>, centro <b>20,1125</b>.</p>
       </details>
       <details class="g-sec" id="gInterno"><summary><span class="g-ico">◎</span>Interno (femmina): rettifica del foro</summary>
         <p>Quando rettifichi <b>il foro della femmina</b> (interno), tocca <b>◎ Interno (femmina)</b> sotto la misura. Pagina a parte, tastiera grande.</p>
-        <ol><li><b>Prima volta: verso del tasto.</b> Su interno il + può andare al contrario rispetto all'esterno. L'app chiede: <b>«Su interno il + fa il foro: più grande / più piccolo»</b>, per questa macchina. Finché non lo scegli, l'app scrive solo le parole (es. <b>allarga di 3 µm</b>) e <b>nessun tasto + o −</b>.</li>
+        <ol><li><b>Verso del tasto (una regola sola).</b> Per ogni macchina l'app parte da <b>«+ stringe il foro, − allarga»</b> (Lizzini, Studer), segnato <b>da verificare</b>. Controlla sul primo pezzo e, se serve, cambialo con <b>Cambia</b> o in <b>Macchina ✎ → Taratura macchina</b>, poi metti <b>verificata</b>. Non copiare il segno dell'esterno. Se scegli «non lo so», l'app scrive solo le parole (es. <b>allarga di 3 µm</b>) senza tasto + o −.</li>
         <li><b>Quota foro ✎</b>: o <b>nominale ± tolleranza</b>, oppure <b>dal maschio</b>: misura del maschio + gioco min/max (foro = maschio + gioco).</li>
         <li><b>Foro misurato</b>: «Misura in mm» (es. 0215 = 20,0215, o intera con la virgola) oppure «Numero» come i pezzi: µm dalla base (es. 17, o −3 con il tasto ±).</li>
         <li>Vedi subito <b>STRETTO</b> (troppo piccolo), <b>LARGO</b> (troppo grande) o <b>✓ in quota</b>, di quanti µm dal centro e dai limiti, e la correzione. <b>1 tocco = 1 µm sul diametro.</b></li>
@@ -1312,7 +1336,8 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
       <details class="g-sec"><summary><span class="g-ico">⭕</span>Ovalità e conicità (max 2–3 µm)</summary>
         <ul><li><b>Conicità</b>: differenza tra <b>davanti</b> e <b>in fondo</b>. Si corregge alla macchina con la manopola.</li>
         <li><b>Ovalità</b>: misura in più punti girando il pezzo (differenza tra il più grande e il più piccolo). <b>Si controlla dopo</b>, non alla macchina: nella schermata Calcolo non si inserisce più.</li>
-        <li>Fino a <b>2 µm</b> va bene, <b>3 µm</b> è al limite, oltre è <b>fuori</b> (il pezzo viene salvato come <b>scarto</b>).</li></ul>
+        <li>Fino a <b>2 µm</b> va bene, <b>3 µm</b> è al limite, oltre è <b>fuori</b> (il pezzo viene salvato come <b>scarto</b>). 2/3 µm sono i valori predefiniti: si cambiano per lavoro in <b>Serie → Modifica quote → Tolleranze di forma</b>.</li>
+        <li>Il risultato mostra una riga per voce: <b>Gioco · Diametro · Conicità · Ovalità</b>, ognuna <b>conforme</b> / al limite / fuori / <b>non misurata</b> / <b>non registrata</b>. L'ovalità si segna con <b>Segna</b> (facoltativo).</li></ul>
         <p>Nel riquadro <b>Conicità</b> ci sono due righe: <b>Davanti</b> e <b>In fondo</b>. Premi <b>+</b> sul lato dove il pezzo è <b>più grande</b>, una volta per ogni µm. Solo un lato può avere un valore: premendo + su un lato l'altro torna a 0. Se è uguale (0) tocca il numero.</p>
         <p>Finché non la tocchi, l'app scrive <b>non misurata</b>. Ad ogni pezzo nuovo riparte da <b>non misurata</b>: misurala sempre.</p>
         <p>Appena segni un lato l'app ti dice subito da che parte girare la manopola (Studer: <b>In fondo più grande → verso di te</b>, <b>Davanti più grande → dalla parte opposta</b>) e, se la manopola è tarata, <b>di quante tacche</b>.</p>
@@ -1320,14 +1345,15 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
         <p><b>Taratura manopola</b> (una volta per macchina): Macchina ✎ → <b>Manopola conicità</b>. Misura la conicità (T0), gira la manopola di N tacche <b>sempre dallo stesso lato</b>, rettifica e rimisura (T1). L'app calcola <b>k = |T1 − T0| ÷ N</b> µm per tacca.</p>
         <p class="g-tip">💡 La manopola ha gioco: se superi, torna indietro oltre e riavvicinati dallo stesso lato.</p>
       </details>
-      <details class="g-sec"><summary><span class="g-ico">±</span>Correzione: le pressioni</summary>
+      <details class="g-sec"><summary><span class="g-ico">±</span>Correzione: i tocchi</summary>
         <p>La scheda correzione ti dice cosa fare sulla macchina per il pezzo dopo:</p>
         <ul><li><b>✓ Nessuna correzione</b>: il pezzo è già centrato nel gioco.</li>
-        <li><b>+ ×2</b> / <b>− ×1</b>: premi il tasto quel numero di volte. Su Studer <b>+ fa il pezzo più piccolo</b>, <b>− più grande</b>.</li>
+        <li><b>+ ×2</b> / <b>− ×1</b>: dai quel numero di <b>tocchi</b> al tasto. Predefinito (Studer, Lizzini): <b>+ stringe</b> (diametro più piccolo), <b>− allarga</b>, 1 tocco = 1 µm sul diametro. Si cambia per macchina in <b>Macchina ✎ → Taratura macchina</b> (verso del + su esterno e foro, µm per tocco, diametro o raggio, verso manopola, <b>da verificare / verificata</b>). Finché è <b>da verificare</b> la correzione è scritta anche a parole («diametro da ridurre di 3 µm») con un avviso giallo.</li>
+        <li>La scheda è divisa in due: <b>Sul pezzo attuale</b> (con quale pezzo accoppiarlo adesso) e <b>Per il prossimo pezzo</b> (la correzione da dare alla macchina).</li>
         <li>La correzione si legge così: <b>prima dove è la misura</b>, poi cosa fare. Es. <b>«1,1 µm sotto il centro → fai più grande: − ×1»</b> = il pezzo è 1,1 µm più piccolo del centro, premi − una volta. «sopra il centro» = pezzo più grande → +.</li>
         <li>Tocca la scheda per vedere un altro numero di pezzo.</li>
         <li><b>Controparte F · accoppiato</b> (riquadro azzurro sotto il pezzo): la misura che deve avere il pezzo di accoppiamento per stare nel gioco, <b>da S + gioco min a S + gioco max</b>, es. S 18,0018 e gioco 8–11 → <b>da 18,0098 a 18,0128 mm</b>, <b>centro ideale 18,0113</b>. Usa lo stesso gioco del calcolo (foto o serie). Utile sulle macchine senza pezzi numerati (es. Lizzini). Tocca <b>Copia</b> per copiarla. La trovi anche in Modalità officina e nella striscia ULTIMO.</li>
-        <li><b>Riga «Correzione per il pezzo»</b> (subito sotto il pezzo consigliato): mostra sempre il pezzo e i vicini, es. <b>16 + ×1 · 17 ✓ · 18 − ×1</b>. Vuol dire: per arrivare al 18 premi − una volta, per il 16 premi + una volta (1 pressione = 1 µm).</li>
+        <li><b>Riga «Correzione per il pezzo»</b> (subito sotto il pezzo consigliato): mostra sempre il pezzo e i vicini, es. <b>16 + ×1 · 17 ✓ · 18 − ×1</b>. Vuol dire: per arrivare al 18 premi − una volta, per il 16 premi + una volta (1 tocco = 1 µm).</li>
         <li>Tocca un numero della riga e la scheda correzione mira a quel pezzo. <b>Altro pezzo…</b> apre tutti i pezzi vicini (es. <b>14 → + ×3</b>).</li>
         <li>Dopo <b>Salva</b>, sopra la misura resta la striscia <b>ULTIMO</b> con le correzioni dell'ultimo pezzo: la vedi mentre misuri il prossimo. Toccala per un altro pezzo. Sugli schermi piccoli prende il posto della riga ULTIMI.</li>
         <li>Quando hai corretto davvero, tocca <b>Segna come fatta</b>: conta nel riepilogo e l'andamento riparte.</li></ul>
@@ -1355,12 +1381,12 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
         <p><b>«Misura impossibile».</b><br/>La misura è troppo lontana dalla base: hai sbagliato serie o cifre. Tocca <b>Riscrivi</b>.</p>
         <p><b>Ho salvato per sbaglio.</b><br/>Tocca <b>↶ Annulla</b> in alto entro 8 secondi: torni al risultato di prima. Dopo, tocca <b>Modifica</b> sulla riga nello Storico.</p>
         <p><b>Ho cambiato macchina.</b><br/><b>Nuovo lavoro</b> con il nome della nuova macchina. La taratura della manopola resta legata al nome.</p>
-        <p><b>Il gioco del foglio è diverso da quello della serie.</b><br/>Vince il foglio: l'app aggiorna la serie e te lo scrive.</p>
-        <p><b>Serve internet?</b><br/>No. Tutto resta sul telefono. Fai ogni tanto un backup (Setup → Esporta).</p>
+        <p><b>Il gioco del foglio è diverso da quello della serie.</b><br/>L'app te lo mostra e scegli tu: <b>Applica solo a questo lavoro</b> (la serie resta com'è) oppure <b>Aggiorna anche la serie</b> (il valore vecchio resta salvato).</p>
+        <p><b>Serve internet?</b><br/>No per calcolo, foto (lettura offline nell'APK), storico e turno. Sì solo per <b>💬 Chat</b> e <b>✨ Leggi foto con AI</b>. I dati restano sul telefono (nella versione web: nel browser, che può cancellarli): fai ogni tanto un backup (Setup → Esporta).</p>
         <p><b>Guanti?</b><br/>I tasti sono grandi apposta. Ogni bottone foto (📷 Nuovo lavoro, 📷 leggi S, 📷 in Adatta alla femmina) chiede: <b>📷 Scatta foto</b> oppure <b>🖼 Dalla galleria</b> (una foto già fatta). Poi stesso ritaglio e stessa lettura.</p>
       </details>
     </div>
-    <p class="ver">Rettifica Beta v0.5.2</p>
+    <p class="ver">Rettifica Beta v0.6.0</p>
   </section>
   <section class="page" id="page-macchine">
     <button type="button" class="btn btn-sec" id="btnBackSetup1">← Setup</button>
@@ -1385,10 +1411,10 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
         <b>Base</b>: diametro di riferimento della serie.<br/>
         <b>S</b>: pezzo che stai rettificando (misura attuale).<br/>
         <b>F</b>: pezzo di accoppiamento (controparte).<br/>
-        <b>Gioco</b>: G = S − F in µm (tolleranza di accoppiamento).<br/>
+        <b>Gioco di accoppiamento</b> = F − S (foro − maschio) in µm: positivo = gioco, negativo = interferenza. <b>G letto dallo strumento</b> ha il suo segno (sullo schermo di misura di solito S − F: −0,0081 = 8,1 µm di gioco); l'app li mostra separati e non cambia mai il segno di nascosto.<br/>
         <b>Ovalità</b>: differenza max−min su una sezione (si controlla dopo, non alla macchina).<br/>
         <b>Conicità</b>: differenza tra due sezioni lungo l’asse.<br/>
-        <b>Pressioni</b>: impulsi +/− sulla macchina per correggere S.
+        <b>Tocchi</b>: impulsi +/− sulla macchina per correggere S.
       </div>
     </details>
   </section>
@@ -1400,7 +1426,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
   <button type="button" class="new cond" id="btnNuova">Nuova misura</button>
 </div>
 
-<!-- Beta 0.5.2: Chat with the AI (own tab: never covers the Calcolo keypad) -->
+<!-- Beta 0.6.0: Chat with the AI (own tab: never covers the Calcolo keypad) -->
 <section class="page" id="page-chat"><div class="chat-wrap" id="chatWrap">
   <div class="chat-head"><div><h2>💬 Chat</h2><span class="meta" id="chatProv">—</span></div><button type="button" class="btn btn-sec" id="chatNew">＋ Nuova chat</button></div>
   <details class="ai-app chat-app" id="chatApp"><summary>📐 Calcolo dell'app <span class="meta">(tocca per vedere)</span></summary><div id="aiApp"></div></details>

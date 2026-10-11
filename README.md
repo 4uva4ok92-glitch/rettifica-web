@@ -1,3 +1,3 @@
-# Rettifica Web 0.5.2
-Versione web (PWA) di Rettifica Beta 0.5.2. Funziona offline dopo la prima apertura; «Aggiungi a Home» per installarla.
+# Rettifica Web 0.6.0
+Versione web (PWA) di Rettifica Beta 0.6.0. Funziona offline dopo la prima apertura; «Aggiungi a Home» per installarla.
 Dati e chiave AI restano solo nel browser (chiavi `rweb_*`), la chiave non va mai negli export.

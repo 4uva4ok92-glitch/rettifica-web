@@ -512,7 +512,7 @@ function detectDrift(SValues, opts) {
       if (rule === 'studer') key = rising ? '+' : '−';
       else if (rule === 'plus_bigger') key = rising ? '−' : '+';
       suggestion = { key, presses, per2Um: per2 };
-      text += key ? ' → premi ' + key + ' ×' + presses + '?' : ' → correggi di ' + presses + ' µm?';
+      text += key ? ' → dai ' + key + ' ×' + presses + (presses === 1 ? ' tocco?' : ' tocchi?') : ' → correggi di ' + presses + ' µm?';
     } else text += ' · tienilo d\'occhio';
   } else text += ' · tienilo d\'occhio';
   return { ok: true, points: n, slopeUmPerPiece: slopeR, alert: text, suggestion, rule: runRule ? 'serie5' : 'trend' };
@@ -963,11 +963,12 @@ function randomTrainingS(base, giocoMin, giocoMax, rng) {
  */
 const FORM_OK_UM = 2;
 const FORM_MAX_UM = 3;
-function formStatus(um) {
+function formStatus(um, okUm, maxUm) {
   if (um == null || um === '') return 'na'; // v1.9.4: non misurata
   const v = Math.abs(Number(um) || 0);
-  if (v <= FORM_OK_UM + 1e-9) return 'ok';
-  if (v <= FORM_MAX_UM + 1e-9) return 'lim';
+  const ok = Number.isFinite(okUm) ? okUm : FORM_OK_UM, mx = Number.isFinite(maxUm) ? maxUm : FORM_MAX_UM; // Beta 0.6.0: per-job limits
+  if (v <= ok + 1e-9) return 'ok';
+  if (v <= mx + 1e-9) return 'lim';
   return 'no';
 }
 
@@ -984,12 +985,12 @@ function taperHint(conUm, biggerEnd, opts) {
   opts = opts || {};
   const studer = opts.studer !== false;
   const v = Math.abs(Number(conUm) || 0);
-  const status = conUm == null ? 'na' : formStatus(v);
+  const status = conUm == null ? 'na' : formStatus(v, opts.okUm, opts.maxUm);
   const out = { status, show: status === 'lim' || status === 'no', needEnd: false, title: '', hint: '', turn: null, tacche: null, taccheText: '', knobText: '' };
   // v2.0.1: with the two-side control the side is known at once → direction shown for any taper > 0
   if (opts.always && conUm != null && v > 0) out.show = true;
   if (!out.show) return out;
-  out.title = 'Conicità ' + fmtUm(v) + ' µm · ' + (status === 'ok' ? 'entro tolleranza' : status === 'lim' ? 'al limite' : 'fuori tolleranza') + ' (max ~' + FORM_MAX_UM + ' µm)';
+  out.title = 'Conicità ' + fmtUm(v) + ' µm · ' + (status === 'ok' ? 'entro tolleranza' : status === 'lim' ? 'al limite' : 'fuori tolleranza') + ' (max ~' + (Number.isFinite(opts.maxUm) ? fmtUm(opts.maxUm) : FORM_MAX_UM) + ' µm)';
   const end = biggerEnd === 'fondo' || biggerEnd === 'davanti' ? biggerEnd : null;
   if (!end) { out.needEnd = true; out.hint = 'Dove è più grande il pezzo? Davanti o in fondo?'; return out; }
   const where = end === 'fondo' ? 'in fondo' : 'davanti';
@@ -1003,16 +1004,17 @@ function taperHint(conUm, biggerEnd, opts) {
     }
     return out;
   }
-  out.turn = end === 'fondo' ? 'verso' : 'via';
+  const toMe = (end === 'fondo') !== !!opts.invert; // Beta 0.6.0: machine with the knob direction inverted
+  out.turn = toMe ? 'verso' : 'via';
   out.hint = 'Pezzo più grande ' + where + ' → gira la manopola della conicità ' +
-    (end === 'fondo' ? 'verso di te' : 'dalla parte opposta (via da te)');
+    (toMe ? 'verso di te' : 'dalla parte opposta (via da te)');
   const kt = knobTacche(v, opts.k);
   if (kt) {
     out.tacche = kt.tacche;
     out.taccheText = kt.text;
     out.knobText = kt.tacche > 0
-      ? 'Gira circa ' + kt.text + (end === 'fondo' ? ' verso\u00a0di\u00a0te' : ' dall\'altra\u00a0parte')
-      : 'Gira pochissimo (meno di mezza tacca) ' + (end === 'fondo' ? 'verso\u00a0di\u00a0te' : 'dall\'altra\u00a0parte');
+      ? 'Gira circa ' + kt.text + (toMe ? ' verso\u00a0di\u00a0te' : ' dall\'altra\u00a0parte')
+      : 'Gira pochissimo (meno di mezza tacca) ' + (toMe ? 'verso\u00a0di\u00a0te' : 'dall\'altra\u00a0parte');
     out.hint = 'Pezzo più grande ' + where + ' → ' + out.knobText;
   }
   return out;
@@ -1613,8 +1615,123 @@ function undoSave(state, rec) {
   return done;
 }
 
+
+/* ---------- Beta 0.6.0: clarity, per-machine calibration, per-job form limits, history snapshots ---------- */
+/**
+ * G read from the instrument vs the mating clearance. Gioco di accoppiamento = F − S (foro − maschio), positive = clearance.
+ * The sign of G is kept as read. Never flips a negative into interference silently: the convention is stated.
+ * @returns {{giocoUm:number|null, gLettoUm:number|null, src:'F−S'|'G'|null, conv:'S−F'|'F−S'|'diverso'|null, dedotto:boolean, interferenza:boolean, note:string}}
+ */
+function interpretG(Gmm, F, S) {
+  const n = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : null);
+  const g = n(Gmm), f = n(F), sv = n(S);
+  const gL = g == null ? null : round1(g * 1000);
+  const out = { giocoUm: null, gLettoUm: gL, src: null, conv: null, dedotto: false, interferenza: false, note: '' };
+  if (f != null && sv != null) {
+    out.giocoUm = round1((f - sv) * 1000); out.src = 'F−S';
+    if (gL != null) out.conv = Math.abs(gL + out.giocoUm) <= 1 ? 'S−F' : Math.abs(gL - out.giocoUm) <= 1 ? 'F−S' : 'diverso';
+  } else if (gL != null) {
+    // the measuring screen shows G = S − F (e.g. −0,0081 = 8,1 µm of clearance): stated, not hidden
+    out.giocoUm = round1(-gL); out.src = 'G'; out.conv = 'S−F'; out.dedotto = true;
+  }
+  if (out.giocoUm != null) out.interferenza = out.giocoUm < 0;
+  const sg = (x) => (x > 0 ? '+' : x < 0 ? '−' : '') + fmtUm(Math.abs(x));
+  if (out.giocoUm != null) {
+    out.note = (gL != null ? 'G letto ' + sg(gL) + ' µm (segno dello strumento)' : 'G non letto') + ' · gioco di accoppiamento F − S = ' + sg(out.giocoUm) + ' µm'
+      + (out.interferenza ? ' → INTERFERENZA (il maschio è più grande del foro)' : ' (gioco)')
+      + (out.dedotto ? ' · dedotto da G = S − F: controlla F e S' : '') + (out.conv === 'diverso' ? ' · ATTENZIONE: G non torna con F − S, controlla i valori' : '');
+  }
+  return out;
+}
+/**
+ * Per-machine calibration (configuration only; the pairing math is unchanged).
+ * outer/bore: what «+» does to the diameter ('stringe' = smaller). Default '+ stringe' for both, status 'da_verificare'.
+ */
+const CAL_DEFAULT = { outer: 'stringe', bore: 'stringe', umPerTocco: 1, scala: 'diametro', taper: 'normale', stato: 'da_verificare' };
+function machineCal(m) {
+  const c = Object.assign({}, CAL_DEFAULT, (m && m.cal) || {});
+  if (!(m && m.cal && m.cal.outer) && m && m.rule === 'plus_bigger') c.outer = 'allarga';
+  if (!(m && m.cal && m.cal.bore) && m && m.internoRule === 'plus_bigger') c.bore = 'allarga';
+  if (!(Number(c.umPerTocco) > 0 && Number(c.umPerTocco) <= 50)) c.umPerTocco = 1; else c.umPerTocco = Number(c.umPerTocco);
+  if (c.scala !== 'raggio') c.scala = 'diametro';
+  if (c.taper !== 'invertito') c.taper = 'normale';
+  if (c.stato !== 'verificata') c.stato = 'da_verificare';
+  return c;
+}
+/** machine.rule / internoRule from the calibration (keeps the existing math keys). */
+function calRules(cal) { return { rule: cal.outer === 'allarga' ? 'plus_bigger' : 'studer', internoRule: cal.bore === 'allarga' ? 'plus_bigger' : 'plus_smaller' }; }
+/** Number of tocchi for a diameter change of diffUm µm. 1 µm/tocco on the diameter = the old presses (identical). */
+function tocchiFor(diffUm, cal) {
+  const c = cal || CAL_DEFAULT, per = (Number(c.umPerTocco) || 1) * (c.scala === 'raggio' ? 2 : 1);
+  const v = Math.abs(Number(diffUm) || 0) / per;
+  return v < 1e-9 ? 0 : Math.max(1, Math.ceil(v - 0.5 - 1e-9));
+}
+function fmtTocchi(n) { return n + (n === 1 ? ' tocco' : ' tocchi'); }
+/** Correction in words: what happens to the diameter, independent of the key sign. diffUm = target − measured (same as corrWords). */
+function corrWordsDiam(diffUm) {
+  const d = Number(diffUm) || 0; if (Math.abs(d) < 0.05) return 'diametro già al centro';
+  return (d > 0 ? 'diametro da aumentare di ' : 'diametro da ridurre di ') + fmtUm(Math.abs(d)) + ' µm';
+}
+/** Per-job form limits (µm). Default 2 µm conforme, 3 µm limite, for conicità and ovalità. */
+const LIM_DEFAULT = { conOk: 2, conMax: 3, ovalOk: 2, ovalMax: 3 };
+function jobLimits(series) {
+  const s = series || {}, o = Object.assign({}, LIM_DEFAULT);
+  ['conOk', 'conMax', 'ovalOk', 'ovalMax'].forEach((k) => { const v = Number(s.lim && s.lim[k]); if (Number.isFinite(v) && v >= 0 && v <= 50) o[k] = v; });
+  if (o.conMax < o.conOk) o.conMax = o.conOk; if (o.ovalMax < o.ovalOk) o.ovalMax = o.ovalOk;
+  return o;
+}
+/**
+ * Beta 0.6.0: separate result lines instead of one BUONO.
+ * @returns {Array<{k:string, label:string, st:'ok'|'lim'|'no'|'na'|'nr', word:string, val:string}>}
+ */
+function qualityLines(o) {
+  const L = jobLimits({ lim: o.lim }), W = { ok: 'conforme', lim: 'al limite', no: 'fuori', na: 'non misurata', nr: 'non registrata' };
+  const out = [];
+  const gst = o.gioco == null ? 'na' : (o.gioco < o.giocoMin - 1e-9 || o.gioco > o.giocoMax + 1e-9) ? 'no' : (Math.abs(o.gioco - o.giocoMin) < 0.05 || Math.abs(o.gioco - o.giocoMax) < 0.05) ? 'lim' : 'ok';
+  out.push({ k: 'gioco', label: 'Gioco', st: gst, word: W[gst], val: o.gioco == null ? '—' : fmtUm(o.gioco) + ' µm (' + o.giocoMin + '–' + o.giocoMax + ' µm)' });
+  let dst = 'na', dv = '—';
+  if (o.S != null && o.base != null && o.tolMm != null) { const d = round1((o.S - o.base) * 1000); dst = Math.abs(d) <= o.tolMm * 1000 + 1e-6 ? 'ok' : 'no'; dv = (d >= 0 ? '+' : '−') + fmtUm(Math.abs(d)) + ' µm dalla base (±' + fmtUm(o.tolMm * 1000) + ' µm)'; }
+  out.push({ k: 'diam', label: 'Diametro', st: dst, word: W[dst], val: dv });
+  const cst = formStatus(o.con, L.conOk, L.conMax);
+  out.push({ k: 'con', label: 'Conicità', st: cst, word: W[cst], val: o.con == null ? 'limite ' + fmtUm(L.conOk) + '/' + fmtUm(L.conMax) + ' µm' : fmtUm(Math.abs(o.con)) + ' µm (limite ' + fmtUm(L.conOk) + '/' + fmtUm(L.conMax) + ' µm)' });
+  const ost = o.oval == null ? 'nr' : formStatus(o.oval, L.ovalOk, L.ovalMax);
+  out.push({ k: 'oval', label: 'Ovalità', st: ost, word: W[ost], val: o.oval == null ? 'si controlla dopo · limite ' + fmtUm(L.ovalOk) + '/' + fmtUm(L.ovalMax) + ' µm' : fmtUm(Math.abs(o.oval)) + ' µm (limite ' + fmtUm(L.ovalOk) + '/' + fmtUm(L.ovalMax) + ' µm)' });
+  return out;
+}
+/** Snapshot stored with every saved measure: later edits of the series never change old records. */
+function historySnap(series, gMin, gMax, cal) {
+  const L = jobLimits(series);
+  return { base: series.base, tolMm: seriesTol(series), giocoMin: gMin != null ? gMin : series.giocoMin, giocoMax: gMax != null ? gMax : series.giocoMax,
+    conOk: L.conOk, conMax: L.conMax, ovalOk: L.ovalOk, ovalMax: L.ovalMax, cal: cal ? { outer: cal.outer, umPerTocco: cal.umPerTocco, scala: cal.scala, stato: cal.stato } : null };
+}
+/** Edit a saved measure keeping the previous values (h.edits). Uses the record's own snapshot, not the current series. */
+function editHistoryRecord(h, series, newS, newChosen, nowIso) {
+  const snap = h.snap || historySnap(series);
+  const prev = { ts: nowIso, S: h.S, chosen: h.chosen, gioco: h.gioco, status: h.status };
+  h.edits = (h.edits || []).concat([prev]).slice(-20);
+  h.S = round4(newS); h.chosen = newChosen;
+  const acc = calcAccoppiamento(h.S, snap.base, snap.giocoMin, snap.giocoMax, h.lavoro); h.gioco = giocoOf(newChosen, acc);
+  if (!acc.valid.includes(newChosen)) h.status = 'scarto';
+  else if (h.status === 'scarto' && formStatus(h.oval, snap.ovalOk, snap.ovalMax) !== 'no' && formStatus(h.con, snap.conOk, snap.conMax) !== 'no') h.status = 'buono';
+  if (!h.snap) h.snap = snap;
+  return h;
+}
+/** Import: duplicate measures inside the file and measures already in the phone. */
+function importDuplicates(cur, incoming) {
+  const key = (sid, h) => (h.id ? 'id:' + h.id : 'v:' + sid + '|' + h.ts + '|' + h.S);
+  const have = new Set(); ((cur && cur.series) || []).forEach((s) => (s.history || []).forEach((h) => have.add(key(s.id, h))));
+  let inFile = 0, already = 0; const seen = new Set();
+  const series = ((incoming && incoming.series) || []).map((s) => {
+    const hist = [];
+    (s.history || []).forEach((h) => { const k = key(s.id, h), k2 = 'v:' + s.id + '|' + h.ts + '|' + h.S; if (seen.has(k) || seen.has(k2)) { inFile++; return; } seen.add(k); seen.add(k2); if (have.has(k)) already++; hist.push(h); });
+    return Object.assign({}, s, { history: hist });
+  });
+  return { inFile, already, data: Object.assign({}, incoming, { series }) };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
 module.exports = {
+  interpretG, CAL_DEFAULT, machineCal, calRules, tocchiFor, fmtTocchi, corrWordsDiam, LIM_DEFAULT, jobLimits, qualityLines, historySnap, editHistoryRecord, importDuplicates,
   calcAccoppiamento,
   calcTarget,
   calcCorrezione,
