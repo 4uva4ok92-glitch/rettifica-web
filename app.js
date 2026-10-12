@@ -1,4 +1,4 @@
-/* Rettifica Beta v0.6.1 (base: Rettifica OmT v2.0.8) */
+/* Rettifica Beta v0.7.0 (base: Rettifica OmT v2.0.8) */
 (function () {
   const STORAGE_KEY = 'rweb_v1';
   const PREFS_KEY = 'rweb_v1_prefs';
@@ -6,7 +6,7 @@
   const CLEAN_KEY = 'rweb_clean_206';       // v2.0.6 one-time clean start done
   const BACKUP_KEY = 'rweb_backup_pre206';
   const BACKUPS_KEY = 'rweb_backups';           // Beta 0.1.0: last 5 automatic backups (before migration / import / wipe)
-  const APP_VERSION = '0.6.1';
+  const APP_VERSION = '0.7.0';
   /** Beta 0.1.0: automatic local backup; also kept as the «hidden restore» backup (Setup). */
   function autoBackup(why, rawData, rawPrefs) {
     try {
@@ -513,7 +513,7 @@
     const prevActive = document.querySelector('.page.active');
     document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
     document.querySelectorAll('.nv').forEach((b) => {
-      const map = { macchine: 'setup', serie: 'setup', train: 'setup', guida: 'setup', femmina: 'calc', interno: 'calc' };
+      const map = { macchine: 'setup', serie: 'setup', train: 'setup', guida: 'setup', femmina: 'calc', interno: 'calc', manuale: 'calc' };
       b.classList.toggle('on', b.dataset.page === name || b.dataset.page === map[name]);
     });
     const page = $('page-' + name); if (page) page.classList.add('active');
@@ -523,11 +523,12 @@
     if (name === 'setup') fillSetupSelects();
     if (name === 'macchine') renderMachines();
     if (name === 'serie') renderSeries();
-    if (name === 'storico') { histShown = 50; renderFemList(); renderIntList(); renderStorico(); renderAndamento(); renderArchivio(); }
+    if (name === 'storico') { histShown = 50; renderFemList(); renderIntList(); renderManList(); renderStorico(); renderAndamento(); renderArchivio(); }
     if (name === 'turno') { renderTurno(); renderStock(); renderPezzi(); renderRiepilogo(); }
     if (name === 'train') renderTrain();
     if (name === 'femmina') renderFemPage();
     if (name === 'interno') renderIntPage();
+    if (name === 'manuale') renderMan();
     if (name === 'chat') renderChat();
     if (name !== 'calc' || $('calcResultView').classList.contains('hidden')) $('actBar').classList.add('hidden');
     else $('actBar').classList.remove('hidden');
@@ -561,7 +562,7 @@
     $('prefixMenu').innerHTML = '<div class="pm-h">Intero · resta fisso</div>' + [bi - 1, bi, bi + 1].map((p) =>
       `<button type="button" data-pref="${p}" class="${p === cur ? 'on' : ''}">${p},</button>`).join('');
   }
-  /** Beta 0.6.1: big live preview of the measure the app will use, with machine, job, base and gioco nearby. */
+  /** Beta 0.7.0: big live preview of the measure the app will use, with machine, job, base and gioco nearby. */
   function renderLivePrev(series, p) {
     const el = $('livePreview'), cx = $('liveCtx'); if (!el) return;
     const m = myMachine(), j = jobsOn ? activeJob() : null;
@@ -692,7 +693,7 @@
     if (lastCalc.acc.recommended[0] != null) return lastCalc.acc.recommended[0];
     return Math.round(lastCalc.acc.ideal);
   }
-  // ── Beta 0.6.1: per-machine calibration (µm per tocco, diametro/raggio, verso del +, stato). Default = identical to before. ──
+  // ── Beta 0.7.0: per-machine calibration (µm per tocco, diametro/raggio, verso del +, stato). Default = identical to before. ──
   function taperOpts(m) { const L = limOf(); return { invert: calOf(m).taper === 'invertito', okUm: L.conOk, maxUm: L.conMax }; }
   function calOf(m) { return machineCal(m || myMachine()); }
   function calT(o, diffKey, m) { // tocchi from the µm change (configuration only)
@@ -1246,7 +1247,7 @@
         : toC < -0.5 ? `<b>Non togliere altro: ${fmtUm(-toC)} µm sopra il centro ${fmtMm4(n.tgt.centro)}</b>` : `<b>Al centro ${fmtMm4(n.tgt.centro)}: non togliere altro</b>`;
       const lims = `<small>${toLo > 0 ? 'al minimo mancano ' + fmtUm(toLo) + ' µm' : toLo === 0 ? 'proprio sul minimo' : fmtUm(-toLo) + ' µm sopra il minimo'} · ${toHi >= 0 ? 'al massimo restano ' + fmtUm(toHi) + ' µm' : 'oltre il massimo di ' + fmtUm(-toHi) + ' µm'}</small>`;
       h = `<div class="is-big ${r.state}" id="intState">${big}</div><div class="int-mat ${r.state}" id="intMat">${mat}${lims}</div>${gauge}
-        <div class="int-adv ${r.none ? 'ok' : r.state}" id="intAdv">${adv}<small id="intCorr">${r.none ? '1 tocco = 1 µm sul diametro' : 'Per i prossimi pezzi · ' + esc(internoWords(r).replace(/ → .*$/, '')) + ' sul Ø (' + fmtUm(round1(Math.abs(r.needUm) / 2)) + ' per lato) · 1 tocco = 1 µm sul diametro'}${n.rule && !(myMachine() || {}).internoRule ? ' · segno predefinito: verifica al 1° pezzo' : ''}</small></div>
+        <div class="int-adv ${r.none ? 'ok' : r.state}" id="intAdv">${adv}<small id="intCorr">${r.none ? calLegend() : 'Per i prossimi pezzi · ' + esc(internoWords(r).replace(/ → .*$/, '')) + ' sul Ø (' + fmtUm(round1(Math.abs(r.needUm) / 2)) + ' per lato) · ' + calLegend()}${n.rule && !(myMachine() || {}).internoRule ? ' · segno predefinito: verifica al 1° pezzo' : ''}</small></div>
         <div class="is-lines">${r.state === 'ok' ? esc(lim) : esc(lim)} · dal centro ${fmtMm4(n.tgt.centro)}: <b>${sg(r.devUm)} µm</b></div>
         `;
     }
@@ -1339,6 +1340,73 @@
   $('btnIntOpen').addEventListener('click', openInt); $('btnIntOpen2').addEventListener('click', openInt);
   $('intBack').addEventListener('click', () => showPage('calc'));
   function intShift() { const t0 = (state.turno && state.turno.startedAt) || ''; return (state.interni || []).filter((r) => String(r.ts || '') >= t0).length; }
+  // ── Beta 0.7.0: Rettifica manuale (everything by hand; no series, no photo). Math in calc.js: manualTarget / manualStatus ──
+  function calLegend() { const c = calOf(); return '1 tocco = ' + fmtUm(c.umPerTocco) + ' µm sul ' + c.scala; }
+  const man = { mode: 'maschio', mk: 'mis', last: null };
+  function manNum(id) { const v = $(id) ? parseMmNumber($(id).value) : null; return v == null ? null : v; }
+  function manCompute() {
+    const mode = man.mode;
+    let mate = null;
+    if (man.mk === 'mis') { const v = manNum('manMate'); if (v != null) mate = { lo: v, hi: v, src: 'misurata' }; }
+    else { const n = manNum('manMateNomV'); if (n != null) { const r = rangeFromNominal(n, parseTolMm($('manMateT1').value), parseTolMm($('manMateT2').value)); mate = Object.assign(r, { src: 'nominale', nom: n }); } }
+    const gMin = parseGiocoSheet($('manGmin').value), gMax = parseGiocoSheet($('manGmax').value);
+    const on = manNum('manOwnNom'), draw = on != null ? rangeFromNominal(on, parseTolMm($('manOwnT1').value), parseTolMm($('manOwnT2').value)) : null;
+    const t = manualTarget(mode, mate, gMin, gMax, draw);
+    const cur = manNum('manCur'), cal = calOf();
+    const st = t.ok ? manualStatus(mode, cur, t.target, cal) : null;
+    return { mode, mate, gMin, gMax, draw, t, cur, st, cal };
+  }
+  function renderMan() {
+    document.querySelectorAll('[data-mm]').forEach((b) => b.classList.toggle('on', b.dataset.mm === man.mode));
+    document.querySelectorAll('[data-mk]').forEach((b) => b.classList.toggle('on', b.dataset.mk === man.mk));
+    $('manMateMisRow').classList.toggle('hidden', man.mk !== 'mis'); $('manMateNomRow').classList.toggle('hidden', man.mk === 'mis');
+    const fem = man.mode === 'femmina';
+    $('manMateH').textContent = fem ? 'Maschio esistente' : 'Femmina esistente (foro)';
+    $('manOwnH').innerHTML = (fem ? 'Il tuo foro (femmina)' : 'Il tuo maschio') + ' · disegno <span class="meta">(facoltativo)</span>';
+    $('manCurL').innerHTML = 'Misura attuale ' + (fem ? 'del tuo foro' : 'del tuo maschio') + ' <b>mm</b> <span class="meta">(facoltativa)</span>';
+    const r = manCompute(); man.last = r;
+    const box = $('manRes');
+    if (!r.t.ok) { box.innerHTML = `<div class="meta" id="manErr">${esc(r.t.error)}</div>`; $('manSave').disabled = true; return; }
+    const T = r.t.target, who = fem ? 'Foro da fare' : 'Maschio da fare';
+    let h = `<div class="mr-t">${who}</div><div class="mr-big cond" id="manRange">da ${esc(fmtMm4(T.lo))} a ${esc(fmtMm4(T.hi))} mm</div><div class="mr-c">centro <b class="cond" id="manCentro">${esc(fmtMm4(T.centro))} mm</b></div>`;
+    h += `<div class="meta">${r.mate.src === 'nominale' ? 'pezzo da accoppiare ' + fmtMm4(r.mate.lo) + '–' + fmtMm4(r.mate.hi) + ' mm (caso peggiore)' : 'pezzo da accoppiare ' + fmtMm4(r.mate.lo) + ' mm'} · gioco ${fmtUm(Math.min(r.gMin, r.gMax))}–${fmtUm(Math.max(r.gMin, r.gMax))} µm${r.draw ? ' · disegno ' + fmtMm4(r.draw.lo) + '–' + fmtMm4(r.draw.hi) + ' mm' : ''}</div>`;
+    if (r.t.overlap === true && (T.lo !== r.t.fit.lo || T.hi !== r.t.fit.hi)) h += `<div class="meta">Ristretto dal disegno (solo gioco: ${fmtMm4(r.t.fit.lo)}–${fmtMm4(r.t.fit.hi)} mm)</div>`;
+    if (r.t.warn) h += `<div class="mr-w" id="manWarn">⚠ ${esc(r.t.warn)}</div>`;
+    const s2 = r.st;
+    if (s2) {
+      const unver = r.cal.stato !== 'verificata';
+      if (s2.state === 'no') h += `<div class="mr-st no" id="manSt">✗ NON RECUPERABILE<br><small>${esc(s2.words)}</small></div>`;
+      else {
+        h += `<div class="mr-st ${s2.state}" id="manSt">${s2.state === 'ok' ? '✓ IN QUOTA' : '! DA TOGLIERE ANCORA'} · ${esc(fmtMm4(r.cur))} mm<br><small>${s2.none ? 'al centro: non togliere altro' : 'da togliere ' + fmtUm(s2.removeUm) + ' µm sul Ø · ' + fmtUm(s2.perSideUm) + ' µm per lato'}${s2.state === 'da_togliere' ? ' · ' + fmtUm(s2.toLimitUm) + ' µm al limite' : ''}</small></div>`;
+        if (!s2.none) h += `<div class="mr-c" id="manCorr">${fem ? 'Allarga il foro' : 'Stringi il diametro'}: <span class="mr-k cond">${esc(s2.key)} ×${s2.presses}</span> ${s2.presses === 1 ? 'tocco' : 'tocchi'} <small class="meta">(${esc(calLegend())}${unver ? ' · ⚠ taratura da verificare: controlla il verso del + sul primo pezzo' : ''})</small></div>`;
+      }
+    }
+    box.innerHTML = h; $('manSave').disabled = false;
+  }
+  function manSave() {
+    const r = man.last; if (!r || !r.t.ok || saveLock) return;
+    saveLock = true; setTimeout(() => { saveLock = false; }, 700);
+    const m = myMachine();
+    const rec = { id: 'm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ts: new Date().toISOString(), lavoro: 'manuale', mode: r.mode,
+      mate: r.mate, giocoMin: Math.min(r.gMin, r.gMax), giocoMax: Math.max(r.gMin, r.gMax), draw: r.draw, target: r.t.target, warn: r.t.warn || '',
+      cur: r.cur, state: r.st ? r.st.state : null, removeUm: r.st ? r.st.removeUm : null, key: r.st ? r.st.key : '', presses: r.st ? r.st.presses : 0,
+      machineName: (m && m.name) || '', cal: { outer: r.cal.outer, bore: r.cal.bore, umPerTocco: r.cal.umPerTocco, scala: r.cal.scala, stato: r.cal.stato } };
+    state.manuali = (state.manuali || []).concat([rec]).slice(-500); saveData(state); haptic(30);
+    showUndo('Salvato nello Storico · rettifica manuale', () => { state.manuali = (state.manuali || []).filter((x) => x.id !== rec.id); saveData(state); toast('Annullato'); });
+  }
+  function renderManList() {
+    const el = $('manList'); if (!el) return;
+    const l = (state.manuali || []).slice().reverse().slice(0, 50);
+    el.innerHTML = l.length ? l.map((r) => `<div class="hist-row fem-row"><span class="mono">${esc(new Date(r.ts).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' ' + fmtTime(r.ts))}</span>
+      <span><b class="cond">${r.mode === 'femmina' ? 'Foro' : 'Maschio'} da ${esc(fmtMm4(r.target.lo))} a ${esc(fmtMm4(r.target.hi))} mm</b>${r.cur != null ? ' · misura ' + esc(fmtMm4(r.cur)) + ' mm ' + (r.state === 'ok' ? '<b style="color:var(--green)">✓ in quota</b>' : r.state === 'no' ? '<b style="color:#ff8a8a">non recuperabile</b>' : '<b style="color:var(--amber)">da togliere ' + esc(fmtUm(r.removeUm)) + ' µm</b>') : ''}<small> gioco ${esc(fmtUm(r.giocoMin))}–${esc(fmtUm(r.giocoMax))} µm${r.machineName ? ' · ' + esc(r.machineName) : ''}</small></span></div>`).join('')
+      : '<p class="meta">Nessuna rettifica manuale salvata (Calcolo → ✍ Manuale).</p>';
+  }
+  $('btnManOpen').addEventListener('click', () => { haptic(12); showPage('manuale'); });
+  $('manBack').addEventListener('click', () => showPage('calc'));
+  document.querySelectorAll('[data-mm]').forEach((b) => b.addEventListener('click', () => { man.mode = b.dataset.mm; haptic(12); renderMan(); }));
+  document.querySelectorAll('[data-mk]').forEach((b) => b.addEventListener('click', () => { man.mk = b.dataset.mk; haptic(12); renderMan(); }));
+  $('page-manuale').addEventListener('input', (e) => { if (e.target.classList.contains('man-in')) renderMan(); });
+  $('manSave').addEventListener('click', manSave);
   function intRows() {
     return (state.interni || []).map((r) => ({ ts: r.ts, machine: r.machineName, base: r.base, lotto: '', S: r.bore, d: r.base != null ? round1((r.bore - r.base) * 1000) : null, chosen: null, gioco: null,
       status: r.state === 'ok' ? 'in quota' : r.state, lavoro: 'interno', target: null, interno: r }));
@@ -1516,7 +1584,7 @@
     saveLock = true; setTimeout(() => { saveLock = false; }, 700);
     const gioco = giocoOf(n, acc);
     const L0 = limOf(series);
-    const status = (st === 'no' || formStatus(lastCalc.con, L0.conOk, L0.conMax) === 'no' || formStatus(lastCalc.oval, L0.ovalOk, L0.ovalMax) === 'no') ? 'scarto' : 'buono'; // Beta 0.6.1: job limits
+    const status = (st === 'no' || formStatus(lastCalc.con, L0.conOk, L0.conMax) === 'no' || formStatus(lastCalc.oval, L0.ovalOk, L0.ovalMax) === 'no') ? 'scarto' : 'buono'; // Beta 0.7.0: job limits
     const id = uid(), ts = new Date().toISOString();
     series.history = series.history || [];
     series.history.push({ id, ts, S: lastCalc.S, chosen: n, gioco, oval: lastCalc.oval != null ? lastCalc.oval : null,
@@ -2684,7 +2752,7 @@
     const gMax0 = plan.gmax != null ? plan.gmax : (ser0 ? ser0.giocoMax : '');
     // idea 7: paired photo → verdict straight from the G row
     let pairedBox = '';
-    const gi = interpretG(G, paired ? F : null, paired ? S : null); // Beta 0.6.1: G with its own sign, gioco = F − S, never flipped silently
+    const gi = interpretG(G, paired ? F : null, paired ? S : null); // Beta 0.7.0: G with its own sign, gioco = F − S, never flipped silently
     if (paired && gUm != null && fromPhoto && !useF && gi.giocoUm != null) {
       const gap = gi.giocoUm, ok = !gi.interferenza && gap >= parsed.giocoMin - 0.05 && gap <= parsed.giocoMax + 0.05;
       pairedBox = `<div class="paired-verdict ${ok ? 'ok' : 'no'}">Pezzo già accoppiato · gioco di accoppiamento ${esc((gap > 0 ? '+' : gap < 0 ? '−' : '') + fmtUm(Math.abs(gap)))} µm → <b>${gi.interferenza ? 'INTERFERENZA' : ok ? 'GIOCO CONFORME' : 'FUORI GIOCO'}</b> <span>(${parsed.giocoMin}–${parsed.giocoMax} µm)</span><small class="pv-g">${esc(gi.note)}</small></div>`;
@@ -2807,7 +2875,7 @@
         }
         note = `Nuova serie Base ${fmtMm3(ser.base)} · gioco ${g.min}–${g.max} creata dalla foto`;
         saveData(state);
-      } else if (!$('ocrGSave').classList.contains('hidden') && $('ocrApSer').checked) { // Beta 0.6.1: the user chose «Aggiorna anche la serie»
+      } else if (!$('ocrGSave').classList.contains('hidden') && $('ocrApSer').checked) { // Beta 0.7.0: the user chose «Aggiorna anche la serie»
         note = `Base ${fmtMm3(ser.base)}: gioco della serie aggiornato ${ser.giocoMin}–${ser.giocoMax} → ${g.min}–${g.max} µm (era ${ser.giocoMin}–${ser.giocoMax})`;
         ser.giocoPrev = (ser.giocoPrev || []).concat([{ ts: new Date().toISOString(), min: ser.giocoMin, max: ser.giocoMax }]).slice(-10);
         ser.giocoMin = g.min; ser.giocoMax = g.max;
@@ -3183,6 +3251,7 @@
     toast('Letto con AI: controlla i valori');
   }
   window.__rettifica = {
+    man, renderMan: () => renderMan(),
     openHistModal: (a, b) => openHistModal(a, b), openMachineDialog: () => openMachineDialog(), openSeriesModal: (id) => openSeriesModal(id), saveCurrent: (x) => saveCurrent(x), refreshDisplay: () => refreshDisplay(), setDigits: (d) => { measureDigits = d; refreshDisplay(); },
     webPhotoData: (i, w, h) => webPhotoData(i, w, h), runCalc, showPage, setContext, openAssistant, chatSend: (t) => chatSend(t), get chatMsgs() { return chatMsgs; }, openAiSettings, aiCtx, get state() { return state; }, get prefs() { return prefs; },
     openCrop: (p, b) => openCrop(p, b), renderLastHint: () => renderLastHint(), shiftText: () => shiftText(), get lastPhoto() { return lastPhoto; }, openOcrConfirm: (p) => openOcrConfirm(p),

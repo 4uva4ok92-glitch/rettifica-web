@@ -1729,8 +1729,88 @@ function importDuplicates(cur, incoming) {
   return { inFile, already, data: Object.assign({}, incoming, { series }) };
 }
 
+/* ---------- Beta 0.7.0: Rettifica manuale (everything by hand, no series, no photo) ---------- */
+/** Gioco value: «7» = 7 µm; sheet style «-0,007» / «0,01» (mm, |v| < 1 with a separator) = 7 / 10 µm. */
+function parseGiocoSheet(raw) {
+  if (raw == null) return null; const t = String(raw).trim().replace(/\s+/g, '').replace('−', '-'); if (!t) return null;
+  if (!/^[-+]?\d*[.,]?\d+$/.test(t)) return null;
+  const v = Number(t.replace(',', '.')); if (!Number.isFinite(v)) return null;
+  const um = /[.,]/.test(t) && Math.abs(v) < 1 ? Math.abs(v) * 1000 : Math.abs(v);
+  return um > 200 ? null : round1(um);
+}
+/** Tolerance in mm, signed («-0,01», «+0,02», «0»); also accepts µm written as integer ≥ 1 (e.g. «-10» = −0,010 mm). */
+function parseTolMm(raw) {
+  if (raw == null) return null; const t = String(raw).trim().replace(/\s+/g, '').replace('−', '-'); if (!t) return null;
+  if (!/^[-+]?\d*[.,]?\d+$/.test(t)) return null;
+  const v = Number(t.replace(',', '.')); if (!Number.isFinite(v)) return null;
+  if (!/[.,]/.test(t) && Math.abs(v) >= 1) return round4(v / 1000);
+  return Math.abs(v) > 1 ? null : round4(v);
+}
+/** Range [lo, hi] mm from nominal + tolerances (any order). */
+function rangeFromNominal(nom, tA, tB) {
+  if (nom == null) return null; const a = tA == null ? 0 : tA, b = tB == null ? 0 : tB;
+  return { lo: round4(nom + Math.min(a, b)), hi: round4(nom + Math.max(a, b)) };
+}
+/**
+ * Target for the own part. mode 'maschio' (fit an existing female/bore) or 'femmina' (fit an existing male).
+ * mate = { lo, hi } mm (measured → lo = hi). gioco = F − S in µm. Worst case over the whole mate range.
+ * draw = own drawing limits { lo, hi } or null → intersection.
+ * @returns {{ok:boolean, error:string, fit:{lo,hi,centro}|null, target:{lo,hi,centro}|null, overlap:boolean|null, warn:string}}
+ */
+function manualTarget(mode, mate, gMin, gMax, draw) {
+  const out = { ok: false, error: '', fit: null, target: null, overlap: null, warn: '' };
+  if (!mate || mate.lo == null || mate.hi == null) { out.error = 'Scrivi la misura (o nominale e tolleranze) del pezzo da accoppiare'; return out; }
+  if (gMin == null || gMax == null) { out.error = 'Scrivi gioco min e max (µm)'; return out; }
+  const g1 = Math.min(gMin, gMax), g2 = Math.max(gMin, gMax);
+  let lo, hi;
+  if (mode === 'femmina') { lo = mate.hi + g1 / 1000; hi = mate.lo + g2 / 1000; } // bore F = S + gioco
+  else { lo = mate.hi - g2 / 1000; hi = mate.lo - g1 / 1000; } // male S = F − gioco
+  lo = round4(lo); hi = round4(hi);
+  if (hi < lo - 1e-9) { out.error = 'La tolleranza del pezzo da accoppiare è più larga del gioco: misura il pezzo vero e scrivi la misura'; return out; }
+  out.fit = { lo, hi, centro: round4((lo + hi) / 2) };
+  out.target = out.fit; out.ok = true;
+  if (draw && draw.lo != null && draw.hi != null) {
+    const a = Math.max(lo, draw.lo), b = Math.min(hi, draw.hi);
+    out.overlap = b >= a - 1e-9;
+    if (out.overlap) out.target = { lo: round4(a), hi: round4(b), centro: round4((a + b) / 2) };
+    else out.warn = 'Il gioco richiesto e la tolleranza del disegno non si sovrappongono: decidi con il capo (uso il gioco)';
+  }
+  return out;
+}
+/**
+ * Current measure of the own part vs the target. Outer (maschio): can only get smaller. Bore (femmina): can only get bigger.
+ * diffUm = target centre − measured (µm on Ø). Correction keys from the machine calibration (outer / bore «+ stringe|allarga»).
+ */
+function manualStatus(mode, cur, target, cal) {
+  if (cur == null || !target) return null;
+  const c = cal || CAL_DEFAULT, bore = mode === 'femmina';
+  const inRange = cur >= target.lo - 1e-9 && cur <= target.hi + 1e-9;
+  const diffUm = round1((target.centro - cur) * 1000);
+  const out = { state: 'ok', inRange, diffUm, removeUm: 0, perSideUm: 0, toLimitUm: 0, recoverable: true, key: '', presses: 0, words: '', none: false };
+  const tooSmallMale = !bore && cur < target.lo - 1e-9, tooBigBore = bore && cur > target.hi + 1e-9;
+  if (tooSmallMale || tooBigBore) {
+    out.state = 'no'; out.recoverable = false;
+    out.toLimitUm = round1(Math.abs((bore ? target.hi : target.lo) - cur) * 1000);
+    out.words = 'non recuperabile: ' + (bore ? 'foro troppo grande di ' : 'maschio troppo piccolo di ') + fmtUm(out.toLimitUm) + ' µm sul Ø';
+    out.none = true; return out;
+  }
+  const rem = round1(Math.abs(diffUm)); // material to remove to reach the centre (always the right direction here)
+  out.removeUm = Math.abs(diffUm) <= 0.5 ? 0 : rem; out.perSideUm = round1(out.removeUm / 2);
+  out.state = inRange ? 'ok' : 'da_togliere';
+  if (!inRange) out.toLimitUm = round1(Math.abs(cur - (bore ? target.lo : target.hi)) * 1000);
+  if (out.removeUm === 0) { out.none = true; out.words = 'al centro: non togliere altro'; return out; }
+  if (!inRange || Math.abs(diffUm) > 0.5) {
+    const effect = bore ? 'allarga' : 'stringe'; // what we need: male smaller (stringe), bore bigger (allarga)
+    const plus = bore ? c.bore : c.outer; out.key = plus === effect ? '+' : '−';
+    out.presses = tocchiFor(out.removeUm, c);
+    out.words = (bore ? 'allarga il foro di ' : 'stringi il diametro di ') + fmtUm(out.removeUm) + ' µm sul Ø (' + fmtUm(out.perSideUm) + ' µm per lato) → ' + out.key + ' ×' + out.presses + ' ' + (out.presses === 1 ? 'tocco' : 'tocchi');
+  }
+  return out;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
 module.exports = {
+  parseGiocoSheet, parseTolMm, rangeFromNominal, manualTarget, manualStatus,
   interpretG, CAL_DEFAULT, machineCal, calRules, tocchiFor, fmtTocchi, corrWordsDiam, LIM_DEFAULT, jobLimits, qualityLines, historySnap, editHistoryRecord, importDuplicates,
   calcAccoppiamento,
   calcTarget,

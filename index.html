@@ -906,7 +906,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
 .ai-btns{display:flex;gap:8px;margin-top:8px}.ai-btns .btn{flex:1;min-height:56px;font-size:17px}
 .ai-err,.ai-warn{display:block;color:#ff8a8a;font-weight:700}.ai-warn{margin-top:8px;font-size:13px}
 .btn.off{opacity:.45}.ai-why{color:var(--muted);margin:0 0 6px}
-/* Beta 0.6.1 chat */
+/* Beta 0.7.0 chat */
 .key-help{margin:8px 0}.kh-btns{display:flex;gap:8px}.kh-btns .btn{flex:1;min-height:56px;font-size:16px}
 .kh-steps{margin:8px 0 0;padding-left:22px;font-size:15px;line-height:1.4}.kh-steps li{margin:2px 0}
 .chat-key{padding:10px 12px;border-radius:14px;border:2px solid var(--orange);background:rgba(255,138,31,.08)}.chat-key p{margin:4px 0;font-size:14px;color:var(--muted)}
@@ -949,6 +949,18 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
 .apply-choice input{width:24px;height:24px;flex:none}.apply-choice label.on{border-color:var(--orange)}
 .chk-big{display:flex;align-items:center;gap:10px;min-height:52px;font-size:15px;font-weight:700;margin:6px 0;color:var(--text)}.chk-big input{width:26px;height:26px;flex:none}
 .dup-warn{color:var(--amber)!important;font-weight:700}
+.fem-open-row .man-open{border-color:var(--orange);color:var(--orange)}
+.man-title{font-weight:800;font-size:18px;line-height:1.15}.man-title small{display:block;font-size:12px;color:var(--muted);font-weight:600}
+.man-seg{display:flex;gap:8px;margin:10px 0}.man-seg button{flex:1;min-height:64px;border-radius:14px;border:2px solid rgba(255,255,255,.15);background:transparent;color:var(--text);font:inherit;font-weight:900;font-size:17px}
+.man-seg button small{display:block;font-size:11.5px;font-weight:600;color:var(--muted)}.man-seg button.on{border-color:var(--orange);background:rgba(255,138,31,.12);color:var(--orange)}
+.man-seg.sm button{min-height:48px;font-size:14px}
+.man-card{padding:12px 14px;margin-top:10px}.man-h{font-weight:800;margin-bottom:4px}
+.man-in{min-height:56px!important;font-size:22px!important;font-weight:800}
+.man-res{padding:14px;margin-top:10px}.man-res .mr-t{font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.man-res .mr-big{font-size:26px;font-weight:900;line-height:1.15}.man-res .mr-c{font-size:16px;font-weight:700}
+.man-res .mr-st{margin-top:10px;padding:10px 12px;border-radius:12px;font-weight:800;font-size:17px}
+.man-res .mr-st.ok{background:rgba(61,220,132,.15);color:var(--green)}.man-res .mr-st.no{background:rgba(255,90,90,.15);color:var(--red)}.man-res .mr-st.da_togliere{background:rgba(255,197,61,.13);color:var(--amber)}
+.man-res .mr-k{font-size:30px;font-weight:900}.man-res .mr-w{margin-top:8px;color:var(--amber);font-weight:800}.man-rem{margin-top:10px}
 .web-install{margin:0 0 12px;padding:12px 14px}.web-install p{margin:4px 0 8px}
 </style>
 </head>
@@ -993,7 +1005,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
         </div>
         <div class="live-prev" id="livePrev"><div class="lp-m" id="livePreview">Misura interpretata: —</div><div class="lp-c" id="liveCtx"></div></div>
         <div class="prefix-menu" id="prefixMenu"></div>
-        <div class="fem-open-row"><button type="button" class="fem-open" id="btnFemOpen" aria-label="Adatta alla femmina">⚥ Adatta alla femmina</button><button type="button" class="fem-open int-open" id="btnIntOpen" aria-label="Interno (femmina): rettifica del foro">◎ Interno (femmina)</button></div>
+        <div class="fem-open-row"><button type="button" class="fem-open" id="btnFemOpen" aria-label="Adatta alla femmina">⚥ Adatta alla femmina</button><button type="button" class="fem-open int-open" id="btnIntOpen" aria-label="Interno (femmina): rettifica del foro">◎ Interno (femmina)</button><button type="button" class="fem-open man-open" id="btnManOpen" aria-label="Rettifica manuale: tutto a mano">✍ Manuale</button></div>
       </div>
       <div class="recent" id="recentRow"><span class="h mono">ULTIMI</span><span class="empty" style="padding:0;font-size:13px" id="recentEmpty">nessuna ancora</span></div>
       <div id="typoBox" class="typo-box hidden"></div>
@@ -1081,6 +1093,34 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
   </section>
 
   <!-- Beta 0.3.0: Interno (femmina) — internal grinding of the bore -->
+  <section class="page" id="page-manuale">
+    <div class="fm-top"><button type="button" class="ib" id="manBack" aria-label="Torna a Calcolo">←</button><div class="man-title">✍ Rettifica manuale <small>tutto a mano · senza serie né foto</small></div></div>
+    <div class="man-seg" role="group" aria-label="Cosa stai facendo">
+      <button type="button" data-mm="maschio" class="on" id="manMaschio">MASCHIO<small>per una femmina che c'è già</small></button>
+      <button type="button" data-mm="femmina" id="manFemmina">FEMMINA (foro)<small>per un maschio che c'è già</small></button></div>
+    <div class="card man-card">
+      <div class="man-h" id="manMateH">Femmina esistente (foro)</div>
+      <div class="man-seg sm"><button type="button" data-mk="mis" class="on" id="manMateMis">Misurata</button><button type="button" data-mk="nom" id="manMateNom">Nominale + tolleranze</button></div>
+      <div id="manMateMisRow"><label for="manMate">Diametro misurato <b>mm</b></label><input id="manMate" class="man-in" inputmode="decimal" placeholder="es. 20,0120" autocomplete="off"/></div>
+      <div id="manMateNomRow" class="hidden"><label for="manMateNom">Nominale <b>mm</b></label><input id="manMateNomV" class="man-in" inputmode="decimal" placeholder="es. 20,000"/>
+        <div class="field-row"><div><label for="manMateT1">Toll. inf. <b>mm</b></label><input id="manMateT1" class="man-in" inputmode="decimal" placeholder="0"/></div><div><label for="manMateT2">Toll. sup. <b>mm</b></label><input id="manMateT2" class="man-in" inputmode="decimal" placeholder="+0,021"/></div></div></div>
+    </div>
+    <div class="card man-card">
+      <div class="man-h">Gioco <span class="meta">(F − S, µm · anche −0,007 / −0,01 come sul foglio)</span></div>
+      <div class="field-row"><div><label for="manGmin">Gioco min <b>µm</b></label><input id="manGmin" class="man-in" inputmode="decimal" placeholder="8"/></div><div><label for="manGmax">Gioco max <b>µm</b></label><input id="manGmax" class="man-in" inputmode="decimal" placeholder="11"/></div></div>
+    </div>
+    <div class="card man-card">
+      <div class="man-h" id="manOwnH">Il tuo maschio · disegno <span class="meta">(facoltativo)</span></div>
+      <label for="manOwnNom">Nominale <b>mm</b></label><input id="manOwnNom" class="man-in" inputmode="decimal" placeholder="es. 20,000"/>
+      <div class="field-row"><div><label for="manOwnT1">Toll. inf. <b>mm</b></label><input id="manOwnT1" class="man-in" inputmode="decimal" placeholder="-0,013"/></div><div><label for="manOwnT2">Toll. sup. <b>mm</b></label><input id="manOwnT2" class="man-in" inputmode="decimal" placeholder="0"/></div></div>
+    </div>
+    <div class="card man-card">
+      <label for="manCur" id="manCurL">Misura attuale del tuo maschio <b>mm</b> <span class="meta">(facoltativa)</span></label><input id="manCur" class="man-in" inputmode="decimal" placeholder="es. 20,0100"/>
+    </div>
+    <div class="card man-res" id="manRes"><div class="meta">Scrivi la misura del pezzo da accoppiare e il gioco.</div></div>
+    <div class="rem man-rem">Ovalità e conicità: controllale sempre, devono restare entro circa 2–3 µm.</div>
+    <button type="button" class="btn btn-orange" id="manSave" style="width:100%;min-height:60px;font-size:18px;margin-top:10px" disabled>✓ Salva nello Storico</button>
+  </section>
   <section class="page" id="page-interno">
     <div class="fm-top">
       <button type="button" class="ib" id="intBack" aria-label="Torna a Calcolo">←</button>
@@ -1160,6 +1200,8 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
     <div id="femList"></div>
     <div class="sec-title">Interni salvati (foro)</div>
     <div id="intList"></div>
+    <div class="sec-title">Rettifiche manuali</div>
+    <div id="manList"></div>
     <div class="sec-title">Turni archiviati</div>
     <div id="archivioList"></div>
   </section>
@@ -1241,7 +1283,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
     </div>
     <input type="file" id="importFile" accept="application/json,.json,text/plain" class="hidden"/>
     <button type="button" class="btn btn-danger" id="btnReset" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗑 Azzera tutto</button>
-    <p class="ver">Rettifica Beta v0.6.1 · diametri in mm · giochi e correzioni in µm</p>
+    <p class="ver">Rettifica Beta v0.7.0 · diametri in mm · giochi e correzioni in µm</p>
   </section>
 
   <section class="page" id="page-guida">
@@ -1333,6 +1375,14 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
         <p><b>Foto da Calcolo:</b> dopo ogni foto (📷 leggi S, fotocamera o galleria) l'app chiede <b>Lavoro il MASCHIO</b> (usa S1A) o <b>Lavoro la FEMMINA (interno)</b> (usa F1A come foro e S1A + gioco come quota). L'ultima scelta del lavoro è evidenziata: basta un tocco.</p>
         <p class="g-tip">Esempio: maschio 20,0120, gioco 8–11 → foro da <b>20,0200 a 20,0230</b>, centro 20,0215. Foro misurato 20,0170 → <b>STRETTO</b> di 3 µm dal limite, <b>allarga di 4,5 µm</b>.</p>
       </details>
+      <details class="g-sec" id="gManuale"><summary><span class="g-ico">✍</span>Rettifica manuale (tutto a mano)</summary>
+        <p>Da Calcolo tocca <b>✍ Manuale</b>. Pagina a parte, <b>senza serie né foto</b>: scrivi tutto tu.</p>
+        <ol><li>Scegli <b>MASCHIO</b> (per una femmina che c'è già) o <b>FEMMINA (foro)</b> (per un maschio che c'è già).</li>
+        <li>Pezzo da accoppiare: <b>misurato</b> (mm) oppure <b>nominale + tolleranze</b> (mm, es. 0 e +0,021).</li>
+        <li><b>Gioco min / max</b> in µm (8 e 11) o come sul foglio (−0,008 / −0,011).</li>
+        <li>Facoltativo: <b>nominale e tolleranze del disegno</b> del tuo pezzo, e la <b>misura attuale</b>.</li></ol>
+        <p>Vedi <b>da X a Y mm</b> con il centro (già dentro il disegno; avviso se gioco e disegno non si sovrappongono). Con la misura attuale: <b>verde = in quota</b>, giallo = da togliere ancora (µm sul Ø e per lato, e i <b>tocchi</b> secondo la taratura della macchina), <b>rosso = non recuperabile</b> (maschio troppo piccolo o foro troppo grande). <b>✓ Salva nello Storico</b> → Storico → <b>Rettifiche manuali</b>.</p>
+      </details>
       <details class="g-sec"><summary><span class="g-ico">⭕</span>Ovalità e conicità (max 2–3 µm)</summary>
         <ul><li><b>Conicità</b>: differenza tra <b>davanti</b> e <b>in fondo</b>. Si corregge alla macchina con la manopola.</li>
         <li><b>Ovalità</b>: misura in più punti girando il pezzo (differenza tra il più grande e il più piccolo). <b>Si controlla dopo</b>, non alla macchina: nella schermata Calcolo non si inserisce più.</li>
@@ -1386,7 +1436,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
         <p><b>Guanti?</b><br/>I tasti sono grandi apposta. Ogni bottone foto (📷 Nuovo lavoro, 📷 leggi S, 📷 in Adatta alla femmina) chiede: <b>📷 Scatta foto</b> oppure <b>🖼 Dalla galleria</b> (una foto già fatta). Poi stesso ritaglio e stessa lettura.</p>
       </details>
     </div>
-    <p class="ver">Rettifica Beta v0.6.1</p>
+    <p class="ver">Rettifica Beta v0.7.0</p>
   </section>
   <section class="page" id="page-macchine">
     <button type="button" class="btn btn-sec" id="btnBackSetup1">← Setup</button>
@@ -1426,7 +1476,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
   <button type="button" class="new cond" id="btnNuova">Nuova misura</button>
 </div>
 
-<!-- Beta 0.6.1: Chat with the AI (own tab: never covers the Calcolo keypad) -->
+<!-- Beta 0.7.0: Chat with the AI (own tab: never covers the Calcolo keypad) -->
 <section class="page" id="page-chat"><div class="chat-wrap" id="chatWrap">
   <div class="chat-head"><div><h2>💬 Chat</h2><span class="meta" id="chatProv">—</span></div><button type="button" class="btn btn-sec" id="chatNew">＋ Nuova chat</button></div>
   <details class="ai-app chat-app" id="chatApp"><summary>📐 Calcolo dell'app <span class="meta">(tocca per vedere)</span></summary><div id="aiApp"></div></details>
