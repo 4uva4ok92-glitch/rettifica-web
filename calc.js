@@ -1808,8 +1808,62 @@ function manualStatus(mode, cur, target, cal) {
   return out;
 }
 
+/* ---------- Beta 0.7.2: gioco obiettivo + fascia consigliata per serie, femmina fissa, inserimento a 3 cifre ---------- */
+/** Series target settings, or null when the series has none (then nothing changes). */
+function seriesObjective(series) {
+  const s = series || {}; const gmin = s.giocoMin, gmax = s.giocoMax;
+  const num = (v) => (v === '' || v == null || !Number.isFinite(Number(v)) ? null : Number(v));
+  const obj = num(s.obiettivo), fLo = num(s.fasciaLo), fHi = num(s.fasciaHi);
+  if (obj == null && fLo == null && fHi == null) return null;
+  const o = obj != null ? obj : (gmin + gmax) / 2;
+  let lo = fLo, hi = fHi;
+  if (lo == null || hi == null) { const third = (gmax - gmin) / 3; lo = round1(gmin + third); hi = round1(gmax - third); } // default: middle third
+  if (hi < lo) { const t = lo; lo = hi; hi = t; }
+  return { obiettivo: o, fasciaLo: Math.max(gmin, lo), fasciaHi: Math.min(gmax, hi) };
+}
+/**
+ * Apply the objective to an accoppiamento result (maschio mode). Valid parts are unchanged (same pairing math);
+ * only the recommendation moves to d + obiettivo and the «fascia consigliata» d+fLo..d+fHi is reported.
+ */
+function applyObjective(acc, obj) {
+  if (!acc || !obj || acc.mode === 'femmina') return acc;
+  const sg = 1, d = acc.d, ideal = round1(d + sg * obj.obiettivo);
+  const fascia = acc.valid.filter((n) => n - d >= obj.fasciaLo - 1e-9 && n - d <= obj.fasciaHi + 1e-9);
+  const inF = (n) => (fascia.includes(n) ? 0 : 1);
+  const byObj = [...acc.valid].sort((a, b) => { const da = Math.abs(a - ideal), db = Math.abs(b - ideal); return Math.abs(da - db) < 1e-9 ? (inF(a) - inF(b)) || (a - b) : da - db; });
+  const recommended = byObj.slice(0, Math.min(2, byObj.length));
+  const edges = acc.valid.length <= 2 ? [] : [acc.valid[0], acc.valid[acc.valid.length - 1]].filter((n) => !recommended.includes(n));
+  const details = acc.details.map((x) => Object.assign({}, x, { centered: recommended.includes(x.n), edge: edges.includes(x.n), fascia: fascia.includes(x.n) }));
+  return Object.assign({}, acc, { ideal, recommended, edges, details, fascia, obiettivo: obj.obiettivo, fasciaLo: obj.fasciaLo, fasciaHi: obj.fasciaHi, consigliata: byObj.length ? byObj[0] : null });
+}
+/** Fixed female F (mm) against male S (mm): gioco = F − S, OK when gioco in [gmin, gmax]. n = female number (µm above base). */
+function fixedFemale(F, S, base, gmin, gmax) {
+  if (F == null || S == null || base == null) return null;
+  const gioco = round1((F - S) * 1000), n = Math.round((F - base) * 1000);
+  return { n, gioco, ok: gioco >= gmin - 1e-9 && gioco <= gmax + 1e-9 };
+}
+/**
+ * Measure entry that stays near the base: when the fixed integer prefix (sticky / from the last measure) gives a value
+ * far from the base but the automatic reading fits the base (e.g. base 10: «001» after a 9,998 → 10,001, not 9,001), use the automatic one.
+ */
+function interpretNearBase(raw, base, tol, forcedPrefix) {
+  const p1 = interpretMeasure(raw, base, tol, forcedPrefix);
+  if (forcedPrefix == null || !raw || /[.,]/.test(String(raw))) return p1;
+  const hard = hardLimitMm(tol);
+  if (p1 && p1.value != null && Math.abs(p1.value - base) <= hard + 1e-9) return p1;
+  const p0 = interpretMeasure(raw, base, tol, null);
+  if (p0 && p0.value != null && Math.abs(p0.value - base) <= (tol == null ? 0.1 : tol) + 1e-9) return Object.assign({}, p0, { autoFix: true });
+  return p1;
+}
+/** Preset for the series «Corpo/Spillo Ø10» (Albedo). */
+function presetCorpoSpillo10() {
+  return { name: 'Corpo/Spillo Ø10', lotto: 'Corpo/Spillo Ø10', base: 10, tolleranza: 0.1, giocoMin: 10, giocoMax: 30, obiettivo: 20, fasciaLo: 20, fasciaHi: 25, forma: false,
+    notes: 'Maschio = spillo (micrometro), femmina = corpo (Bowers). Gioco = F − S. Femmine numerate in µm sopra 10,000 (+7 = 10,007). Altre quote del disegno, fuori dall\'accoppiamento: 1,4 ± 0,05 e 4,4 ± 0,2 (altimetro).' };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
 module.exports = {
+  seriesObjective, applyObjective, fixedFemale, interpretNearBase, presetCorpoSpillo10,
   parseGiocoSheet, parseTolMm, rangeFromNominal, manualTarget, manualStatus,
   interpretG, CAL_DEFAULT, machineCal, calRules, tocchiFor, fmtTocchi, corrWordsDiam, LIM_DEFAULT, jobLimits, qualityLines, historySnap, editHistoryRecord, importDuplicates,
   calcAccoppiamento,

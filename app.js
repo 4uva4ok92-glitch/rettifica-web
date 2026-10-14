@@ -1,4 +1,4 @@
-/* Rettifica Beta v0.7.0 (base: Rettifica OmT v2.0.8) */
+/* Rettifica Beta v0.7.2 (base: Rettifica OmT v2.0.8) */
 (function () {
   const STORAGE_KEY = 'rweb_v1';
   const PREFS_KEY = 'rweb_v1_prefs';
@@ -6,7 +6,7 @@
   const CLEAN_KEY = 'rweb_clean_206';       // v2.0.6 one-time clean start done
   const BACKUP_KEY = 'rweb_backup_pre206';
   const BACKUPS_KEY = 'rweb_backups';           // Beta 0.1.0: last 5 automatic backups (before migration / import / wipe)
-  const APP_VERSION = '0.7.0';
+  const APP_VERSION = '0.7.2';
   /** Beta 0.1.0: automatic local backup; also kept as the «hidden restore» backup (Setup). */
   function autoBackup(why, rawData, rawPrefs) {
     try {
@@ -138,9 +138,12 @@
     d.version = 2; return d;
   }
   function loadData() {
-    try { const raw = localStorage.getItem(STORAGE_KEY); if (!raw) { const d = defaultData(); d.v194 = true; d.appVersion = APP_VERSION; saveData(d); return d; }
+    try { const raw = localStorage.getItem(STORAGE_KEY); if (!raw) { const d = defaultData(); d.v194 = true; d.preset072 = true; d.appVersion = APP_VERSION; saveData(d); return d; }
       const parsed = JSON.parse(raw);
       const d = migrate(JSON.parse(raw));
+      // Beta 0.7.2: on update add the series «Corpo/Spillo Ø10» once, only if no series with base 10 exists (never touches other data)
+      if (!d.preset072) { d.preset072 = true; d.series = d.series || [];
+        if (!d.series.some((x) => Math.abs(Number(x.base) - 10) < 0.0005)) d.series.push(Object.assign({ id: 'corpo10_' + Date.now().toString(36), machineId: (d.machines && d.machines[0] && d.machines[0].id) || null, history: [], stock: {} }, presetCorpoSpillo10())); }
       // Beta 0.1.0: back up BEFORE a migration or an app update changes the saved data
       if (parsed.appVersion !== APP_VERSION || JSON.stringify(d) !== JSON.stringify(parsed)) { autoBackup('prima della migrazione ' + (parsed.appVersion || 'vecchia') + ' → ' + APP_VERSION, raw, localStorage.getItem(PREFS_KEY)); d.appVersion = APP_VERSION; }
       return d; }
@@ -528,7 +531,7 @@
     if (name === 'train') renderTrain();
     if (name === 'femmina') renderFemPage();
     if (name === 'interno') renderIntPage();
-    if (name === 'manuale') renderMan();
+    if (name === 'manuale') { if (prevActive !== page) manOnOpen(); renderMan(); } // Beta 0.7.2: draft back, current measure empty
     if (name === 'chat') renderChat();
     if (name !== 'calc' || $('calcResultView').classList.contains('hidden')) $('actBar').classList.add('hidden');
     else $('actBar').classList.remove('hidden');
@@ -555,14 +558,14 @@
     const bi = Math.floor(series.base);
     const sp = stickyPrefix();
     let cur = effPrefix() != null ? effPrefix() : bi; const cur0 = cur;
-    if (measureDigits) { const p = interpretMeasure(measureDigits, series.base, seriesTol(series), effPrefix()); if (p && p.prefix != null && p.value != null) cur = p.prefix; }
+    if (measureDigits) { const p = interpretNearBase(measureDigits, series.base, seriesTol(series), effPrefix()); if (p && p.prefix != null && p.value != null) cur = p.prefix; }
     $('measurePrefix').innerHTML = cur + ',<i>▾</i>';
     $('measurePrefix').classList.toggle('sticky', sp != null && sp !== bi);
     $('measurePrefix').classList.toggle('auto-chg', cur !== cur0); // v2.0.8: integer changed by itself → orange
     $('prefixMenu').innerHTML = '<div class="pm-h">Intero · resta fisso</div>' + [bi - 1, bi, bi + 1].map((p) =>
       `<button type="button" data-pref="${p}" class="${p === cur ? 'on' : ''}">${p},</button>`).join('');
   }
-  /** Beta 0.7.0: big live preview of the measure the app will use, with machine, job, base and gioco nearby. */
+  /** Beta 0.7.2: big live preview of the measure the app will use, with machine, job, base and gioco nearby. */
   function renderLivePrev(series, p) {
     const el = $('livePreview'), cx = $('liveCtx'); if (!el) return;
     const m = myMachine(), j = jobsOn ? activeJob() : null;
@@ -570,7 +573,7 @@
     $('livePrev').classList.toggle('bad', !!(measureDigits && !(p && p.value != null)));
     const dl = $('dispLbl'); if (dl) dl.textContent = innerHeight <= 700 && series ? 'Maschio S · gioco ' + series.giocoMin + '–' + series.giocoMax + ' µm' : 'Misura maschio S'; // short screens: gioco next to the measure, machine/base in the pills above
     cx.textContent = [m && m.name ? 'Macchina ' + m.name : null, j ? 'Lavoro ' + (j.name || j.machineName || '') : null,
-      series ? 'Base ' + fmtMm3(series.base) + ' mm' : 'nessuna base', series ? 'gioco ' + series.giocoMin + '–' + series.giocoMax + ' µm' : null].filter(Boolean).join(' · ');
+      series ? 'Base ' + fmtMm3(series.base) + ' mm' : 'nessuna base', series ? 'gioco ' + series.giocoMin + '–' + series.giocoMax + ' µm' : null, series && series.fixedF != null ? 'femmina fissa ' + fmtMm4(series.fixedF) : null].filter(Boolean).join(' · ');
   }
   function refreshDisplay() {
     const { series } = currentContext(); $('digDisplay').textContent = measureDigits;
@@ -581,7 +584,7 @@
       st.classList.remove('bad'); const sp = stickyPrefix(); fitPads();
       txt.textContent = 'inserisci misura' + (sp != null && sp !== Math.floor(series.base) ? ' · intero ' + sp + ', fisso' : ''); return;
     }
-    const p = interpretMeasure(measureDigits, series.base, seriesTol(series), effPrefix());
+    const p = interpretNearBase(measureDigits, series.base, seriesTol(series), effPrefix());
     renderLivePrev(series, p);
     if (!p || p.value == null) { st.classList.add('bad'); txt.textContent = 'misura non valida'; return; }
     const d = round1((p.value - series.base) * 1000);
@@ -632,7 +635,7 @@
     const { machine, series } = currentContext();
     if (!series || !machine) { toast('Scegli la serie'); return; }
     if (!measureDigits) { toast('Inserisci la misura'); return; }
-    const p = interpretMeasure(measureDigits, series.base, seriesTol(series), effPrefix());
+    const p = interpretNearBase(measureDigits, series.base, seriesTol(series), effPrefix());
     if (!p || p.value == null) { toast((p && p.warning) || 'Misura non valida'); return; }
     const lastS = (prefs.lastMeasureBySeries && prefs.lastMeasureBySeries[series.id] && prefs.lastMeasureBySeries[series.id].S) || null;
     const guard = typoGuard(p.value, series.base, seriesTol(series), lastS);
@@ -661,7 +664,7 @@
     const gOv = opts && opts.gioco && opts.gioco.min != null && opts.gioco.max != null ? opts.gioco : jOv;
     const gMin = gOv ? gOv.min : series.giocoMin, gMax = gOv ? gOv.max : series.giocoMax;
     const mode = lavoroMode();
-    const acc = calcAccoppiamento(S, series.base, gMin, gMax, mode);
+    const acc = applyObjective(calcAccoppiamento(S, series.base, gMin, gMax, mode), seriesObjective(Object.assign({}, series, { giocoMin: gMin, giocoMax: gMax }))); // Beta 0.7.2: only series with an objective change the recommendation
     // Beta 0.2.0: when the user manages the pieces on the table, classify and recommend available + valid first
     const stockCls = classifyStock(acc, series.stock || {});
     const stockRec = stockCls.managed
@@ -674,6 +677,8 @@
       giocoMin: gMin, giocoMax: gMax, giocoSrc: gOv ? (gOv.src || 'foto') : 'serie',
       selected: stockRec.recommended[0] != null ? stockRec.recommended[0] : null, oval: null, con: null, conEnd: null, taper: { dav: null, fondo: null }, status: 'ok',
       wantPezzo: null, corrDone: false, savedId: null };
+    const fxF = mode !== 'femmina' && series.fixedF != null ? Number(series.fixedF) : null; // Beta 0.7.2: femmina fissa
+    if (fxF != null && Number.isFinite(fxF)) { lastCalc.fixed = Object.assign({ F: fxF }, fixedFemale(fxF, S, series.base, gMin, gMax)); lastCalc.selected = lastCalc.fixed.n; }
     $('vaBeneBox').classList.add('hidden');
     if ($('fInput')) $('fInput').value = '';
     $('fResult').classList.add('hidden');
@@ -693,7 +698,7 @@
     if (lastCalc.acc.recommended[0] != null) return lastCalc.acc.recommended[0];
     return Math.round(lastCalc.acc.ideal);
   }
-  // ── Beta 0.7.0: per-machine calibration (µm per tocco, diametro/raggio, verso del +, stato). Default = identical to before. ──
+  // ── Beta 0.7.2: per-machine calibration (µm per tocco, diametro/raggio, verso del +, stato). Default = identical to before. ──
   function taperOpts(m) { const L = limOf(); return { invert: calOf(m).taper === 'invertito', okUm: L.conOk, maxUm: L.conMax }; }
   function calOf(m) { return machineCal(m || myMachine()); }
   function calT(o, diffKey, m) { // tocchi from the µm change (configuration only)
@@ -805,6 +810,8 @@
     const series = seriesById(lastCalc.seriesId); if (!series) return;
     const acc = lastCalc.acc, sel = lastCalc.selected, gc = calcGioco(lastCalc, series);
     const lines = qualityLines({ S: lastCalc.S, base: series.base, tolMm: seriesTol(series), gioco: sel != null ? giocoOf(sel, acc) : null, giocoMin: gc.min, giocoMax: gc.max, con: lastCalc.con, oval: lastCalc.oval, lim: limOf(series) });
+    if (series.forma === false) lines.splice(2, 2, { k: 'forma', label: 'Ovalità/conicità', st: 'na', word: 'non richieste', val: 'questa serie non le controlla' });
+    if (lastCalc.fixed) { lines[0].val = fmtUm(lastCalc.fixed.gioco) + ' µm con la femmina fissa (' + gc.min + '–' + gc.max + ' µm)'; }
     const pst = pieceStatus(sel, acc); lines[0].st = sel == null ? 'no' : pst; lines[0].word = { ok: 'conforme', lim: 'al limite', no: 'fuori' }[lines[0].st];
     box.innerHTML = '<div class="lbl"><span>Esito per voce</span><span class="meta">limiti del lavoro</span></div>' + lines.map((l) =>
       `<div class="ql ${l.st}" data-q="${l.k}"><span class="ql-l">${esc(l.label)}</span><span class="ql-w">${l.st === 'ok' ? '✓ ' : l.st === 'no' ? '✗ ' : l.st === 'lim' ? '! ' : ''}${esc(l.word)}</span><small class="ql-v">${esc(l.val)}</small>${l.k === 'oval' && !lastCalc.savedId ? '<button type="button" class="ql-btn" id="ovalSet">' + (lastCalc.oval == null ? 'Segna' : 'Cambia') + '</button>' : ''}</div>`).join('');
@@ -837,6 +844,15 @@
     }
     const gcR = calcGioco(lastCalc, series);
     $('resGiocoRange').textContent = 'gioco ' + gcR.min + '–' + gcR.max + ' µm' + (gcR.src === 'foto' ? ' (dalla foto)' : gcR.src === 'lavoro' ? ' (solo questo lavoro)' : '');
+    const on = $('objNote');
+    if (on) { const a = lastCalc.acc, sg = (n) => (n > 0 ? '+' : '') + n; const fx = lastCalc.fixed;
+      const parts = [];
+      if (fx) parts.push(`<div class="fixed-box ${fx.ok ? 'ok' : 'no'}" id="fixedBox">Femmina fissa ${esc(fmtMm4(fx.F))} mm (${sg(fx.n)}) · gioco F − S <b>${esc(fmtUm(fx.gioco))} µm</b> → <b>${fx.ok ? '✓ OK' : '✗ NO'}</b> <small>(${gcR.min}–${gcR.max} µm)</small></div>`);
+      if (a.obiettivo != null) parts.push(`<div class="obj-line" id="objLine">Consigliata <b>${a.consigliata == null ? '—' : sg(a.consigliata)}</b> (gioco obiettivo ${esc(fmtUm(a.obiettivo))} µm) · consigliate <b>${a.fascia.length ? sg(a.fascia[0]) + '…' + sg(a.fascia[a.fascia.length - 1]) : '—'}</b> (gioco ${esc(fmtUm(a.fasciaLo))}–${esc(fmtUm(a.fasciaHi))}) · valide <b>${a.valid.length ? sg(a.valid[0]) + '…' + sg(a.valid[a.valid.length - 1]) : 'nessuna'}</b> (gioco ${gcR.min}–${gcR.max})</div>`);
+      on.innerHTML = parts.join(''); on.classList.toggle('hidden', !parts.length); }
+    const noForm = series.forma === false; // Beta 0.7.2: series without ovalità/conicità
+    ['taperCard', 'formBox'].forEach((id) => { if ($(id)) $(id).classList.toggle('noform', noForm); });
+    document.body.classList.toggle('no-forma', noForm);
     const pn = $('resPhotoNote'); if (pn) { pn.textContent = lastCalc.photoNote || ''; pn.classList.toggle('hidden', !lastCalc.photoNote); }
     const rec = lastCalc.stockRec.recommended.length ? lastCalc.stockRec.recommended : acc.recommended;
     $('recGrid').innerHTML = rec.map((n) => {
@@ -849,7 +865,7 @@
     const tr = $('tickRow'); tr.style.setProperty('--n', String(Math.min(ticks.length, 6)));
     tr.innerHTML = ticks.map((n) => {
       const st = pieceStatus(n, acc);
-      return `<button type="button" class="tk ${st} ${n === sel ? 'sel' : ''}" data-pick="${n}">${n}</button>`;
+      return `<button type="button" class="tk ${st} ${n === sel ? 'sel' : ''} ${acc.fascia && acc.fascia.includes(n) ? 'fa' : ''}" data-pick="${n}">${n}</button>`;
     }).join('');
     renderTaper();
     renderFormBox();
@@ -1340,7 +1356,7 @@
   $('btnIntOpen').addEventListener('click', openInt); $('btnIntOpen2').addEventListener('click', openInt);
   $('intBack').addEventListener('click', () => showPage('calc'));
   function intShift() { const t0 = (state.turno && state.turno.startedAt) || ''; return (state.interni || []).filter((r) => String(r.ts || '') >= t0).length; }
-  // ── Beta 0.7.0: Rettifica manuale (everything by hand; no series, no photo). Math in calc.js: manualTarget / manualStatus ──
+  // ── Beta 0.7.2: Rettifica manuale (everything by hand; no series, no photo). Math in calc.js: manualTarget / manualStatus ──
   function calLegend() { const c = calOf(); return '1 tocco = ' + fmtUm(c.umPerTocco) + ' µm sul ' + c.scala; }
   const man = { mode: 'maschio', mk: 'mis', last: null };
   function manNum(id) { const v = $(id) ? parseMmNumber($(id).value) : null; return v == null ? null : v; }
@@ -1349,12 +1365,13 @@
     let mate = null;
     if (man.mk === 'mis') { const v = manNum('manMate'); if (v != null) mate = { lo: v, hi: v, src: 'misurata' }; }
     else { const n = manNum('manMateNomV'); if (n != null) { const r = rangeFromNominal(n, parseTolMm($('manMateT1').value), parseTolMm($('manMateT2').value)); mate = Object.assign(r, { src: 'nominale', nom: n }); } }
-    const gMin = parseGiocoSheet($('manGmin').value), gMax = parseGiocoSheet($('manGmax').value);
+    let gMin = parseGiocoSheet($('manGmin').value), gMax = parseGiocoSheet($('manGmax').value), gSwap = false;
+    if (gMin != null && gMax != null && gMin > gMax) { [gMin, gMax] = [gMax, gMin]; gSwap = true; } // Beta 0.7.2: same as Calcolo, min/max never inverted
     const on = manNum('manOwnNom'), draw = on != null ? rangeFromNominal(on, parseTolMm($('manOwnT1').value), parseTolMm($('manOwnT2').value)) : null;
     const t = manualTarget(mode, mate, gMin, gMax, draw);
     const cur = manNum('manCur'), cal = calOf();
     const st = t.ok ? manualStatus(mode, cur, t.target, cal) : null;
-    return { mode, mate, gMin, gMax, draw, t, cur, st, cal };
+    return { mode, mate, gMin, gMax, gSwap, draw, t, cur, st, cal };
   }
   function renderMan() {
     document.querySelectorAll('[data-mm]').forEach((b) => b.classList.toggle('on', b.dataset.mm === man.mode));
@@ -1365,6 +1382,7 @@
     $('manOwnH').innerHTML = (fem ? 'Il tuo foro (femmina)' : 'Il tuo maschio') + ' · disegno <span class="meta">(facoltativo)</span>';
     $('manCurL').innerHTML = 'Misura attuale ' + (fem ? 'del tuo foro' : 'del tuo maschio') + ' <b>mm</b> <span class="meta">(facoltativa)</span>';
     const r = manCompute(); man.last = r;
+    document.querySelectorAll('[data-gp]').forEach((b) => { const [a, c] = b.dataset.gp.split('-').map(Number); b.classList.toggle('on', r.gMin === a && r.gMax === c); });
     const box = $('manRes');
     if (!r.t.ok) { box.innerHTML = `<div class="meta" id="manErr">${esc(r.t.error)}</div>`; $('manSave').disabled = true; return; }
     const T = r.t.target, who = fem ? 'Foro da fare' : 'Maschio da fare';
@@ -1401,11 +1419,38 @@
       <span><b class="cond">${r.mode === 'femmina' ? 'Foro' : 'Maschio'} da ${esc(fmtMm4(r.target.lo))} a ${esc(fmtMm4(r.target.hi))} mm</b>${r.cur != null ? ' · misura ' + esc(fmtMm4(r.cur)) + ' mm ' + (r.state === 'ok' ? '<b style="color:var(--green)">✓ in quota</b>' : r.state === 'no' ? '<b style="color:#ff8a8a">non recuperabile</b>' : '<b style="color:var(--amber)">da togliere ' + esc(fmtUm(r.removeUm)) + ' µm</b>') : ''}<small> gioco ${esc(fmtUm(r.giocoMin))}–${esc(fmtUm(r.giocoMax))} µm${r.machineName ? ' · ' + esc(r.machineName) : ''}</small></span></div>`).join('')
       : '<p class="meta">Nessuna rettifica manuale salvata (Calcolo → ✍ Manuale).</p>';
   }
+  // ── Beta 0.7.2: last manual draft in prefs (never the current measure: each piece starts empty) ──
+  const MAN_DRAFT_IDS = ['manMate', 'manMateNomV', 'manMateT1', 'manMateT2', 'manGmin', 'manGmax', 'manOwnNom', 'manOwnT1', 'manOwnT2'];
+  function manSaveDraft() {
+    const f = {}; MAN_DRAFT_IDS.forEach((id) => { const v = $(id) ? String($(id).value || '') : ''; if (v) f[id] = v.slice(0, 24); });
+    prefs.manDraft = { mode: man.mode, mk: man.mk, f }; savePrefs(prefs);
+  }
+  function manRestoreDraft() {
+    const d = prefs.manDraft; if (!d || typeof d !== 'object') return;
+    if (d.mode === 'maschio' || d.mode === 'femmina') man.mode = d.mode;
+    if (d.mk === 'mis' || d.mk === 'nom') man.mk = d.mk;
+    const f = (d.f && typeof d.f === 'object') ? d.f : {};
+    MAN_DRAFT_IDS.forEach((id) => { if ($(id)) $(id).value = typeof f[id] === 'string' ? f[id] : ''; });
+  }
+  /** min > max (both readable) → put the boxes back in order; called when leaving a gioco box, not while typing */
+  function manFixGioco() {
+    const a = parseGiocoSheet($('manGmin').value), c = parseGiocoSheet($('manGmax').value);
+    if (a == null || c == null || a <= c) return false;
+    const t = $('manGmin').value; $('manGmin').value = $('manGmax').value; $('manGmax').value = t;
+    $('manGswap').classList.remove('hidden'); clearTimeout(manFixGioco.tm); manFixGioco.tm = setTimeout(() => $('manGswap').classList.add('hidden'), 4000);
+    return true;
+  }
+  function manOnOpen() { manRestoreDraft(); $('manCur').value = ''; }
   $('btnManOpen').addEventListener('click', () => { haptic(12); showPage('manuale'); });
-  $('manBack').addEventListener('click', () => showPage('calc'));
-  document.querySelectorAll('[data-mm]').forEach((b) => b.addEventListener('click', () => { man.mode = b.dataset.mm; haptic(12); renderMan(); }));
-  document.querySelectorAll('[data-mk]').forEach((b) => b.addEventListener('click', () => { man.mk = b.dataset.mk; haptic(12); renderMan(); }));
-  $('page-manuale').addEventListener('input', (e) => { if (e.target.classList.contains('man-in')) renderMan(); });
+  $('manBack').addEventListener('click', () => { manFixGioco(); manSaveDraft(); showPage('calc'); });
+  document.querySelectorAll('[data-mm]').forEach((b) => b.addEventListener('click', () => { man.mode = b.dataset.mm; haptic(12); renderMan(); manSaveDraft(); }));
+  document.querySelectorAll('[data-mk]').forEach((b) => b.addEventListener('click', () => { man.mk = b.dataset.mk; haptic(12); renderMan(); manSaveDraft(); }));
+  document.querySelectorAll('[data-gp]').forEach((b) => b.addEventListener('click', () => {
+    const [a, c] = b.dataset.gp.split('-'); $('manGmin').value = a; $('manGmax').value = c; $('manGswap').classList.add('hidden');
+    haptic(15); renderMan(); manSaveDraft();
+  }));
+  $('page-manuale').addEventListener('input', (e) => { if (e.target.classList.contains('man-in')) { renderMan(); manSaveDraft(); } });
+  $('page-manuale').addEventListener('change', (e) => { if ((e.target.id === 'manGmin' || e.target.id === 'manGmax') && manFixGioco()) { renderMan(); manSaveDraft(); } });
   $('manSave').addEventListener('click', manSave);
   function intRows() {
     return (state.interni || []).map((r) => ({ ts: r.ts, machine: r.machineName, base: r.base, lotto: '', S: r.bore, d: r.base != null ? round1((r.bore - r.base) * 1000) : null, chosen: null, gioco: null,
@@ -1584,10 +1629,11 @@
     saveLock = true; setTimeout(() => { saveLock = false; }, 700);
     const gioco = giocoOf(n, acc);
     const L0 = limOf(series);
-    const status = (st === 'no' || formStatus(lastCalc.con, L0.conOk, L0.conMax) === 'no' || formStatus(lastCalc.oval, L0.ovalOk, L0.ovalMax) === 'no') ? 'scarto' : 'buono'; // Beta 0.7.0: job limits
+    const nf = series.forma === false;
+    const status = (st === 'no' || (!nf && formStatus(lastCalc.con, L0.conOk, L0.conMax) === 'no') || (!nf && formStatus(lastCalc.oval, L0.ovalOk, L0.ovalMax) === 'no')) ? 'scarto' : 'buono'; // Beta 0.7.2: job limits
     const id = uid(), ts = new Date().toISOString();
     series.history = series.history || [];
-    series.history.push({ id, ts, S: lastCalc.S, chosen: n, gioco, oval: lastCalc.oval != null ? lastCalc.oval : null,
+    series.history.push({ id, ts, S: lastCalc.S, chosen: n, gioco: lastCalc.fixed ? lastCalc.fixed.gioco : gioco, fixedF: lastCalc.fixed ? lastCalc.fixed.F : undefined, oval: lastCalc.oval != null ? lastCalc.oval : null,
       snap: historySnap(series, lastCalc.giocoMin, lastCalc.giocoMax, calOf(machineById(lastCalc.machineId) || myMachine())),
       con: lastCalc.con, conEnd: lastCalc.con > 0 ? (lastCalc.conEnd || null) : null, status, lavoro: lastCalc.mode || 'maschio', machineId: lastCalc.machineId, machineName: (myMachine() || {}).name || '', jobId: prefs.jobId || null });
     if (series.history.length > HIST_MAX) series.history = series.history.slice(-HIST_MAX);
@@ -1752,7 +1798,7 @@
       forma.push(line);
     }
     const accTxt = sel == null ? 'Nessun pezzo valido' : 'gioco ' + fmtUm(g) + ' µm · ' + (pst === 'ok' ? 'ACCOPPIAMENTO OK' : pst === 'lim' ? 'AL LIMITE' : 'FUORI GIOCO');
-    const na = conSt === 'na' ? '<div class="sub" style="font-size:19px;margin-top:14px">Conicità non misurata: misurala (l\'ovalità si controlla dopo)</div>' : '';
+    const na = conSt === 'na' && (seriesById(lastCalc.seriesId) || {}).forma !== false ? '<div class="sub" style="font-size:19px;margin-top:14px">Conicità non misurata: misurala (l\'ovalità si controlla dopo)</div>' : '';
     const serO = seriesById(lastCalc.seriesId), gcO = serO ? calcGioco(lastCalc, serO) : null;
     const mO = gcO ? matingRange(lastCalc.S, gcO.min, gcO.max, lastCalc.mode) : null;
     const femO = lastCalc.mode === 'femmina';
@@ -2075,6 +2121,7 @@
     const s = id ? seriesById(id) : { lotto: '', base: '', tolleranza: 0.1, giocoMin: 10, giocoMax: 13, notes: '', history: [], stock: {} };
     if (!s) return;
     $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal"><h2>${id ? 'Modifica quote' : 'Nuova serie'}</h2>
+      ${id ? '' : '<button type="button" class="btn btn-sec preset-btn" id="sPreset10">⚡ Preset Corpo/Spillo Ø10 (gioco 10–30, obiettivo 20)</button>'}
       <div class="field-row"><div><label>Base mm</label><input id="sBase" inputmode="decimal" placeholder="es. 24,600" value="${s.base === '' ? '' : esc(String(s.base).replace('.', ','))}"/></div>
       <div><label>Tol ± mm</label><input id="sTol" inputmode="decimal" placeholder="0,1" value="${s.tolleranza != null ? esc(String(s.tolleranza).replace('.', ',')) : ''}"/></div></div>
       <div class="field-row"><div><label>Gioco min µm</label><input id="sGmin" inputmode="numeric" value="${s.giocoMin}"/></div>
@@ -2082,6 +2129,11 @@
       ${(() => { const L = jobLimits(s); return `<div class="lim-h">Tolleranze di forma del lavoro (µm)</div>
       <div class="field-row"><div><label>Conicità ok ≤ µm</label><input id="sConOk" inputmode="decimal" value="${esc(fmtUm(L.conOk))}"/></div><div><label>Conicità max µm</label><input id="sConMax" inputmode="decimal" value="${esc(fmtUm(L.conMax))}"/></div></div>
       <div class="field-row"><div><label>Ovalità ok ≤ µm</label><input id="sOvOk" inputmode="decimal" value="${esc(fmtUm(L.ovalOk))}"/></div><div><label>Ovalità max µm</label><input id="sOvMax" inputmode="decimal" value="${esc(fmtUm(L.ovalMax))}"/></div></div>`; })()}
+      <div class="lim-h">Pezzo consigliato (facoltativo)</div>
+      <div class="field-row"><div><label>Gioco obiettivo µm</label><input id="sObj" inputmode="decimal" placeholder="centro" value="${s.obiettivo != null ? esc(fmtUm(s.obiettivo)) : ''}"/></div>
+      <div><label>Fascia consigliata µm</label><div style="display:flex;gap:6px"><input id="sFLo" inputmode="decimal" placeholder="da" value="${s.fasciaLo != null ? esc(fmtUm(s.fasciaLo)) : ''}"/><input id="sFHi" inputmode="decimal" placeholder="a" value="${s.fasciaHi != null ? esc(fmtUm(s.fasciaHi)) : ''}"/></div></div></div>
+      <div class="field-row"><div><label>Femmina fissa mm <small>(vuoto = no)</small></label><input id="sFixF" inputmode="decimal" placeholder="es. 10,009" value="${s.fixedF != null ? esc(fmtMm4(s.fixedF)) : ''}"/></div>
+      <div><label class="chk-big" style="margin-top:22px"><input type="checkbox" id="sForma" ${s.forma === false ? '' : 'checked'}/><span>Controlla ovalità/conicità</span></label></div></div>
       ${id ? '<p class="meta" id="sHistNote">Le misure già salvate tengono le quote di quando sono state fatte: modificare qui non le ricalcola.</p>' : ''}
       <label>Lotto / codice</label><input id="sLotto" value="${esc(s.lotto || '')}"/>
       <label>Note</label><textarea id="sNotes">${esc(s.notes || '')}</textarea>
@@ -2090,6 +2142,8 @@
       <button type="button" class="btn btn-teal" id="sSave" style="flex:1">Salva</button></div>
       ${id ? `<button type="button" class="btn btn-danger del-btn" id="sDelete">${TRASH}<span>Elimina serie</span></button>` : ''}</div></div>`;
     $('sCancel').onclick = () => { $('modalRoot').innerHTML = ''; };
+    if ($('sPreset10')) $('sPreset10').onclick = () => { const p = presetCorpoSpillo10(); $('sBase').value = '10,000'; $('sTol').value = '0,1'; $('sGmin').value = p.giocoMin; $('sGmax').value = p.giocoMax;
+      $('sObj').value = p.obiettivo; $('sFLo').value = p.fasciaLo; $('sFHi').value = p.fasciaHi; $('sForma').checked = false; $('sLotto').value = p.lotto; $('sNotes').value = p.notes; haptic(15); toast('Preset Corpo/Spillo Ø10: controlla e Salva'); };
     if ($('sDelete')) $('sDelete').onclick = () => { haptic(15); openSeriesDelete(id); };
     $('sSave').onclick = () => {
       const v = validateSeriesInput({ base: $('sBase').value, tol: $('sTol').value, gmin: $('sGmin').value, gmax: $('sGmax').value });
@@ -2098,7 +2152,10 @@
       const lim = { conOk: nv('sConOk'), conMax: nv('sConMax'), ovalOk: nv('sOvOk'), ovalMax: nv('sOvMax') };
       if (Object.values(lim).some((x) => x == null) || lim.conMax < lim.conOk || lim.ovalMax < lim.ovalOk) { const er = $('sErr'); er.textContent = 'Tolleranze di forma non valide: numeri in µm, max ≥ ok (es. 2 e 3)'; er.classList.remove('hidden'); haptic(60); return; }
       const mid = myMachine() ? myMachine().id : null;
-      const payload = Object.assign({ lim, machineId: mid, name: 'Base ' + fmtMm3(v.value.base), lotto: $('sLotto').value.trim(), notes: $('sNotes').value }, v.value);
+      const on = (id3) => { const t = String($(id3).value).trim(); if (!t) return null; const x = Number(t.replace(',', '.')); return Number.isFinite(x) && x >= 0 && x <= 100 ? x : NaN; };
+      const obiettivo = on('sObj'), fasciaLo = on('sFLo'), fasciaHi = on('sFHi'), fxT = String($('sFixF').value).trim(), fixedF = fxT ? parseMmNumber(fxT) : null;
+      if ([obiettivo, fasciaLo, fasciaHi].some((x) => Number.isNaN(x)) || (fxT && fixedF == null)) { const er = $('sErr'); er.textContent = 'Obiettivo / fascia in µm (es. 20 e 20–25), femmina fissa in mm (es. 10,009)'; er.classList.remove('hidden'); haptic(60); return; }
+      const payload = Object.assign({ lim, obiettivo, fasciaLo, fasciaHi, fixedF: fixedF != null ? round4(fixedF) : null, forma: $('sForma').checked ? true : false, machineId: mid, name: 'Base ' + fmtMm3(v.value.base), lotto: $('sLotto').value.trim(), notes: $('sNotes').value }, v.value);
       let sid = id;
       if (id) Object.assign(seriesById(id), payload);
       else { sid = uid(); state.series.push(Object.assign({ id: sid, history: [], stock: {} }, payload)); }
@@ -2752,7 +2809,7 @@
     const gMax0 = plan.gmax != null ? plan.gmax : (ser0 ? ser0.giocoMax : '');
     // idea 7: paired photo → verdict straight from the G row
     let pairedBox = '';
-    const gi = interpretG(G, paired ? F : null, paired ? S : null); // Beta 0.7.0: G with its own sign, gioco = F − S, never flipped silently
+    const gi = interpretG(G, paired ? F : null, paired ? S : null); // Beta 0.7.2: G with its own sign, gioco = F − S, never flipped silently
     if (paired && gUm != null && fromPhoto && !useF && gi.giocoUm != null) {
       const gap = gi.giocoUm, ok = !gi.interferenza && gap >= parsed.giocoMin - 0.05 && gap <= parsed.giocoMax + 0.05;
       pairedBox = `<div class="paired-verdict ${ok ? 'ok' : 'no'}">Pezzo già accoppiato · gioco di accoppiamento ${esc((gap > 0 ? '+' : gap < 0 ? '−' : '') + fmtUm(Math.abs(gap)))} µm → <b>${gi.interferenza ? 'INTERFERENZA' : ok ? 'GIOCO CONFORME' : 'FUORI GIOCO'}</b> <span>(${parsed.giocoMin}–${parsed.giocoMax} µm)</span><small class="pv-g">${esc(gi.note)}</small></div>`;
@@ -2875,7 +2932,7 @@
         }
         note = `Nuova serie Base ${fmtMm3(ser.base)} · gioco ${g.min}–${g.max} creata dalla foto`;
         saveData(state);
-      } else if (!$('ocrGSave').classList.contains('hidden') && $('ocrApSer').checked) { // Beta 0.7.0: the user chose «Aggiorna anche la serie»
+      } else if (!$('ocrGSave').classList.contains('hidden') && $('ocrApSer').checked) { // Beta 0.7.2: the user chose «Aggiorna anche la serie»
         note = `Base ${fmtMm3(ser.base)}: gioco della serie aggiornato ${ser.giocoMin}–${ser.giocoMax} → ${g.min}–${g.max} µm (era ${ser.giocoMin}–${ser.giocoMax})`;
         ser.giocoPrev = (ser.giocoPrev || []).concat([{ ts: new Date().toISOString(), min: ser.giocoMin, max: ser.giocoMax }]).slice(-10);
         ser.giocoMin = g.min; ser.giocoMax = g.max;

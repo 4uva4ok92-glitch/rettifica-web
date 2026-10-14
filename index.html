@@ -906,7 +906,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
 .ai-btns{display:flex;gap:8px;margin-top:8px}.ai-btns .btn{flex:1;min-height:56px;font-size:17px}
 .ai-err,.ai-warn{display:block;color:#ff8a8a;font-weight:700}.ai-warn{margin-top:8px;font-size:13px}
 .btn.off{opacity:.45}.ai-why{color:var(--muted);margin:0 0 6px}
-/* Beta 0.7.0 chat */
+/* Beta 0.7.2 chat */
 .key-help{margin:8px 0}.kh-btns{display:flex;gap:8px}.kh-btns .btn{flex:1;min-height:56px;font-size:16px}
 .kh-steps{margin:8px 0 0;padding-left:22px;font-size:15px;line-height:1.4}.kh-steps li{margin:2px 0}
 .chat-key{padding:10px 12px;border-radius:14px;border:2px solid var(--orange);background:rgba(255,138,31,.08)}.chat-key p{margin:4px 0;font-size:14px;color:var(--muted)}
@@ -956,11 +956,26 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
 .man-seg.sm button{min-height:48px;font-size:14px}
 .man-card{padding:12px 14px;margin-top:10px}.man-h{font-weight:800;margin-bottom:4px}
 .man-in{min-height:56px!important;font-size:22px!important;font-weight:800}
+#page-manuale .field-row>div{min-width:0}#page-manuale .man-in{width:100%;min-width:0;max-width:100%} /* Beta 0.7.2: two boxes side by side really fit at 360 px */
+/* Beta 0.7.2: gioco quick presets (big, glove-friendly) */
+.man-pre{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}.man-pre-l{width:100%;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.man-chip{flex:1;min-width:0;min-height:56px;border-radius:14px;border:2px solid rgba(255,255,255,.15);background:transparent;color:var(--text);font:inherit;font-weight:900;font-size:19px;white-space:nowrap}
+.man-chip small{font-size:12px;font-weight:700;color:var(--muted)}.man-chip.on{border-color:var(--orange);background:rgba(255,138,31,.12);color:var(--orange)}.man-chip.on small{color:var(--orange)}
+.man-chip:active{transform:scale(.97)}#manGswap{margin-top:8px;color:var(--amber);font-weight:700}
+html[data-theme="light"] .man-seg button,html[data-theme="light"] .man-chip{border-color:rgba(0,0,0,.18)}
+html[data-theme="light"] .man-seg button.on,html[data-theme="light"] .man-chip.on,html[data-theme="light"] .man-chip.on small{color:#c2410c;border-color:#ea7a12}
+html[data-theme="light"] #manGswap{color:#b45309}
+html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .man-res .mr-w{color:#b45309}html[data-theme="light"] .man-res .mr-st.ok{color:#15803d}html[data-theme="light"] .man-res .mr-st.no{color:#b91c1c}
 .man-res{padding:14px;margin-top:10px}.man-res .mr-t{font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 .man-res .mr-big{font-size:26px;font-weight:900;line-height:1.15}.man-res .mr-c{font-size:16px;font-weight:700}
 .man-res .mr-st{margin-top:10px;padding:10px 12px;border-radius:12px;font-weight:800;font-size:17px}
 .man-res .mr-st.ok{background:rgba(61,220,132,.15);color:var(--green)}.man-res .mr-st.no{background:rgba(255,90,90,.15);color:var(--red)}.man-res .mr-st.da_togliere{background:rgba(255,197,61,.13);color:var(--amber)}
 .man-res .mr-k{font-size:30px;font-weight:900}.man-res .mr-w{margin-top:8px;color:var(--amber);font-weight:800}.man-rem{margin-top:10px}
+.obj-note{margin:6px 0}.obj-line{font-size:13.5px;line-height:1.4;padding:6px 10px;border-radius:10px;background:rgba(61,220,132,.08)}
+.fixed-box{font-size:16px;font-weight:700;padding:10px 12px;border-radius:12px;margin-bottom:6px}.fixed-box.ok{background:rgba(61,220,132,.15);color:var(--green)}.fixed-box.no{background:rgba(255,90,90,.15);color:var(--red)}
+.tk.fa{outline:2px dashed var(--green);outline-offset:2px}
+#taperCard.noform,#formBox.noform{display:none!important}
+.preset-btn{width:100%;min-height:56px;margin-bottom:10px}
 .web-install{margin:0 0 12px;padding:12px 14px}.web-install p{margin:4px 0 8px}
 </style>
 </head>
@@ -1031,6 +1046,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
       <div class="card hero">
         <div class="lbl"><span id="resPairLbl">Pezzo femmina (numerato)</span><span id="resGiocoRange" style="color:var(--orange);text-transform:none;letter-spacing:.5px">gioco</span></div>
         <div id="resPhotoNote" class="photo-note new hidden"></div>
+        <div id="objNote" class="obj-note hidden"></div>
         <div class="pair cond" id="recGrid"></div>
         <div class="stock-panel" id="stockPanel"></div>
         <div class="mating" id="matingBox"></div>
@@ -1108,6 +1124,9 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
     <div class="card man-card">
       <div class="man-h">Gioco <span class="meta">(F − S, µm · anche −0,007 / −0,01 come sul foglio)</span></div>
       <div class="field-row"><div><label for="manGmin">Gioco min <b>µm</b></label><input id="manGmin" class="man-in" inputmode="decimal" placeholder="8"/></div><div><label for="manGmax">Gioco max <b>µm</b></label><input id="manGmax" class="man-in" inputmode="decimal" placeholder="11"/></div></div>
+      <div class="man-pre" role="group" aria-label="Gioco veloce"><span class="man-pre-l">Gioco veloce</span>
+        <button type="button" class="man-chip" data-gp="7-10" id="manGp710" aria-label="Gioco da 7 a 10 µm">7–10 <small>µm</small></button><button type="button" class="man-chip" data-gp="10-13" id="manGp1013" aria-label="Gioco da 10 a 13 µm">10–13 <small>µm</small></button><button type="button" class="man-chip" data-gp="20-25" id="manGp2025" aria-label="Gioco da 20 a 25 µm">20–25 <small>µm</small></button></div>
+      <div class="meta hidden" id="manGswap">↔ Min e max erano invertiti: li ho rimessi in ordine.</div>
     </div>
     <div class="card man-card">
       <div class="man-h" id="manOwnH">Il tuo maschio · disegno <span class="meta">(facoltativo)</span></div>
@@ -1283,7 +1302,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
     </div>
     <input type="file" id="importFile" accept="application/json,.json,text/plain" class="hidden"/>
     <button type="button" class="btn btn-danger" id="btnReset" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗑 Azzera tutto</button>
-    <p class="ver">Rettifica Beta v0.7.0 · diametri in mm · giochi e correzioni in µm</p>
+    <p class="ver">Rettifica Beta v0.7.2 · diametri in mm · giochi e correzioni in µm</p>
   </section>
 
   <section class="page" id="page-guida">
@@ -1379,8 +1398,9 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
         <p>Da Calcolo tocca <b>✍ Manuale</b>. Pagina a parte, <b>senza serie né foto</b>: scrivi tutto tu.</p>
         <ol><li>Scegli <b>MASCHIO</b> (per una femmina che c'è già) o <b>FEMMINA (foro)</b> (per un maschio che c'è già).</li>
         <li>Pezzo da accoppiare: <b>misurato</b> (mm) oppure <b>nominale + tolleranze</b> (mm, es. 0 e +0,021).</li>
-        <li><b>Gioco min / max</b> in µm (8 e 11) o come sul foglio (−0,008 / −0,011).</li>
+        <li><b>Gioco min / max</b> in µm (8 e 11) o come sul foglio (−0,008 / −0,011). Oppure tocca un <b>gioco veloce</b>: <b>7–10</b>, <b>10–13</b> o <b>20–25 µm</b>. Se scrivi min e max al contrario, li rimetto in ordine io.</li>
         <li>Facoltativo: <b>nominale e tolleranze del disegno</b> del tuo pezzo, e la <b>misura attuale</b>.</li></ol>
+        <p>L'app si ricorda l'ultimo lavoro manuale (maschio/femmina, pezzo da accoppiare, gioco, disegno): quando riapri la pagina lo ritrovi. La <b>misura attuale</b> invece riparte sempre vuota, per ogni pezzo.</p>
         <p>Vedi <b>da X a Y mm</b> con il centro (già dentro il disegno; avviso se gioco e disegno non si sovrappongono). Con la misura attuale: <b>verde = in quota</b>, giallo = da togliere ancora (µm sul Ø e per lato, e i <b>tocchi</b> secondo la taratura della macchina), <b>rosso = non recuperabile</b> (maschio troppo piccolo o foro troppo grande). <b>✓ Salva nello Storico</b> → Storico → <b>Rettifiche manuali</b>.</p>
       </details>
       <details class="g-sec"><summary><span class="g-ico">⭕</span>Ovalità e conicità (max 2–3 µm)</summary>
@@ -1436,7 +1456,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
         <p><b>Guanti?</b><br/>I tasti sono grandi apposta. Ogni bottone foto (📷 Nuovo lavoro, 📷 leggi S, 📷 in Adatta alla femmina) chiede: <b>📷 Scatta foto</b> oppure <b>🖼 Dalla galleria</b> (una foto già fatta). Poi stesso ritaglio e stessa lettura.</p>
       </details>
     </div>
-    <p class="ver">Rettifica Beta v0.7.0</p>
+    <p class="ver">Rettifica Beta v0.7.2</p>
   </section>
   <section class="page" id="page-macchine">
     <button type="button" class="btn btn-sec" id="btnBackSetup1">← Setup</button>
@@ -1476,7 +1496,7 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
   <button type="button" class="new cond" id="btnNuova">Nuova misura</button>
 </div>
 
-<!-- Beta 0.7.0: Chat with the AI (own tab: never covers the Calcolo keypad) -->
+<!-- Beta 0.7.2: Chat with the AI (own tab: never covers the Calcolo keypad) -->
 <section class="page" id="page-chat"><div class="chat-wrap" id="chatWrap">
   <div class="chat-head"><div><h2>💬 Chat</h2><span class="meta" id="chatProv">—</span></div><button type="button" class="btn btn-sec" id="chatNew">＋ Nuova chat</button></div>
   <details class="ai-app chat-app" id="chatApp"><summary>📐 Calcolo dell'app <span class="meta">(tocca per vedere)</span></summary><div id="aiApp"></div></details>
