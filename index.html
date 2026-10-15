@@ -945,6 +945,10 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
 .lim-h{margin-top:10px;font-weight:800;font-size:14px}
 .ocr-sum{margin:6px 0 8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.04);font-size:13.5px;line-height:1.45}
 .ocr-sum b{font-weight:800}.ocr-sum .neg{color:var(--amber)}.ocr-sum .intf{color:var(--red);font-weight:800}
+.sheet-confirm .sh-part{margin:8px 0;padding:8px 10px;border-radius:12px;border:1px solid var(--line)}.sheet-confirm .sh-part h3{margin:0 0 4px;font-size:15px}
+.sheet-confirm .sh-3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.sheet-confirm .sh-3 label{font-size:11px}.sheet-confirm .sh-3 input{padding:0 6px;font-size:16px;min-height:52px}
+.sheet-confirm .sh-swap{width:100%;min-height:48px;margin:2px 0 6px}.sheet-confirm .sh-part input{min-height:52px}
+.crop-actions #cropRot{flex:0 0 58px;font-size:24px}
 .apply-choice{display:flex;flex-direction:column;gap:8px;margin:8px 0}.apply-choice label{display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 10px;border-radius:12px;border:2px solid rgba(255,255,255,.12);font-size:15px;font-weight:700;margin:0;color:var(--text)}
 .apply-choice input{width:24px;height:24px;flex:none}.apply-choice label.on{border-color:var(--orange)}
 .chk-big{display:flex;align-items:center;gap:10px;min-height:52px;font-size:15px;font-weight:700;margin:6px 0;color:var(--text)}.chk-big input{width:26px;height:26px;flex:none}
@@ -1302,7 +1306,7 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
     </div>
     <input type="file" id="importFile" accept="application/json,.json,text/plain" class="hidden"/>
     <button type="button" class="btn btn-danger" id="btnReset" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗑 Azzera tutto</button>
-    <p class="ver">Rettifica Beta v0.7.2 · diametri in mm · giochi e correzioni in µm</p>
+    <p class="ver">Rettifica Beta v0.8.0 · diametri in mm · giochi e correzioni in µm</p>
   </section>
 
   <section class="page" id="page-guida">
@@ -1394,6 +1398,13 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
         <p><b>Foto da Calcolo:</b> dopo ogni foto (📷 leggi S, fotocamera o galleria) l'app chiede <b>Lavoro il MASCHIO</b> (usa S1A) o <b>Lavoro la FEMMINA (interno)</b> (usa F1A come foro e S1A + gioco come quota). L'ultima scelta del lavoro è evidenziata: basta un tocco.</p>
         <p class="g-tip">Esempio: maschio 20,0120, gioco 8–11 → foro da <b>20,0200 a 20,0230</b>, centro 20,0215. Foro misurato 20,0170 → <b>STRETTO</b> di 3 µm dal limite, <b>allarga di 4,5 µm</b>.</p>
       </details>
+      <details class="g-sec" id="gFoglio"><summary><span class="g-ico">📐</span>Foglio «Requisiti Disegno» (foto)</summary>
+        <p>Se non hai lo schermo del PC, fotografa il <b>foglio con i requisiti del disegno</b> (tabella con nominale ± tolleranza, limite superiore e inferiore, strumento, riga <b>Accoppiamento</b>). Vale per <b>qualsiasi serie</b>, anche se la foto è girata.</p>
+        <ol><li>Tocca <b>📷</b> e scatta, poi <b>Leggi</b>. L'app capisce da sola se è il foglio e prova a ruotare la foto. Puoi anche toccare <b>↻</b> per girarla tu.</li>
+        <li>Si apre <b>Foglio disegno · conferma</b>: foro (femmina) e maschio con nominale e limiti in mm, <b>gioco min/max in µm</b> (0,01–0,03 mm = 10–30 µm), strumenti e altre quote come note. Tutto si può correggere.</li>
+        <li>Spunta <b>Ho controllato i valori sul foglio</b>, scegli <b>Applica solo a questo lavoro</b> o <b>Aggiorna anche la serie</b> (oppure crea la serie nuova) e conferma.</li></ol>
+        <p class="g-tip">💡 Senza ovalità/conicità? Lascia spuntato «Senza ovalità/conicità»: i campi e il promemoria spariscono. Lettura offline nell'APK; nella versione web e se la lettura offline non basta serve <b>✨ Leggi foto con AI</b> (internet).</p>
+      </details>
       <details class="g-sec" id="gManuale"><summary><span class="g-ico">✍</span>Rettifica manuale (tutto a mano)</summary>
         <p>Da Calcolo tocca <b>✍ Manuale</b>. Pagina a parte, <b>senza serie né foto</b>: scrivi tutto tu.</p>
         <ol><li>Scegli <b>MASCHIO</b> (per una femmina che c'è già) o <b>FEMMINA (foro)</b> (per un maschio che c'è già).</li>
@@ -1456,7 +1467,7 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
         <p><b>Guanti?</b><br/>I tasti sono grandi apposta. Ogni bottone foto (📷 Nuovo lavoro, 📷 leggi S, 📷 in Adatta alla femmina) chiede: <b>📷 Scatta foto</b> oppure <b>🖼 Dalla galleria</b> (una foto già fatta). Poi stesso ritaglio e stessa lettura.</p>
       </details>
     </div>
-    <p class="ver">Rettifica Beta v0.7.2</p>
+    <p class="ver">Rettifica Beta v0.8.0</p>
   </section>
   <section class="page" id="page-macchine">
     <button type="button" class="btn btn-sec" id="btnBackSetup1">← Setup</button>
@@ -1521,6 +1532,7 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
 
 <script src="calc.js"></script>
 <script src="ocr-parse.js"></script>
+<script src="foglio-parse.js"></script>
 <script>window.RETTIFICA_WEB=true;</script>
 <script src="ai.js"></script>
 <script src="app.js"></script>

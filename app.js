@@ -1,4 +1,4 @@
-/* Rettifica Beta v0.7.2 (base: Rettifica OmT v2.0.8) */
+/* Rettifica Beta v0.8.0 (base: Rettifica OmT v2.0.8) */
 (function () {
   const STORAGE_KEY = 'rweb_v1';
   const PREFS_KEY = 'rweb_v1_prefs';
@@ -6,7 +6,7 @@
   const CLEAN_KEY = 'rweb_clean_206';       // v2.0.6 one-time clean start done
   const BACKUP_KEY = 'rweb_backup_pre206';
   const BACKUPS_KEY = 'rweb_backups';           // Beta 0.1.0: last 5 automatic backups (before migration / import / wipe)
-  const APP_VERSION = '0.7.2';
+  const APP_VERSION = '0.8.0';
   /** Beta 0.1.0: automatic local backup; also kept as the «hidden restore» backup (Setup). */
   function autoBackup(why, rawData, rawPrefs) {
     try {
@@ -141,7 +141,7 @@
     try { const raw = localStorage.getItem(STORAGE_KEY); if (!raw) { const d = defaultData(); d.v194 = true; d.preset072 = true; d.appVersion = APP_VERSION; saveData(d); return d; }
       const parsed = JSON.parse(raw);
       const d = migrate(JSON.parse(raw));
-      // Beta 0.7.2: on update add the series «Corpo/Spillo Ø10» once, only if no series with base 10 exists (never touches other data)
+      // Beta 0.8.0: on update add the series «Corpo/Spillo Ø10» once, only if no series with base 10 exists (never touches other data)
       if (!d.preset072) { d.preset072 = true; d.series = d.series || [];
         if (!d.series.some((x) => Math.abs(Number(x.base) - 10) < 0.0005)) d.series.push(Object.assign({ id: 'corpo10_' + Date.now().toString(36), machineId: (d.machines && d.machines[0] && d.machines[0].id) || null, history: [], stock: {} }, presetCorpoSpillo10())); }
       // Beta 0.1.0: back up BEFORE a migration or an app update changes the saved data
@@ -531,7 +531,7 @@
     if (name === 'train') renderTrain();
     if (name === 'femmina') renderFemPage();
     if (name === 'interno') renderIntPage();
-    if (name === 'manuale') { if (prevActive !== page) manOnOpen(); renderMan(); } // Beta 0.7.2: draft back, current measure empty
+    if (name === 'manuale') { if (prevActive !== page) manOnOpen(); renderMan(); } // Beta 0.8.0: draft back, current measure empty
     if (name === 'chat') renderChat();
     if (name !== 'calc' || $('calcResultView').classList.contains('hidden')) $('actBar').classList.add('hidden');
     else $('actBar').classList.remove('hidden');
@@ -565,7 +565,7 @@
     $('prefixMenu').innerHTML = '<div class="pm-h">Intero · resta fisso</div>' + [bi - 1, bi, bi + 1].map((p) =>
       `<button type="button" data-pref="${p}" class="${p === cur ? 'on' : ''}">${p},</button>`).join('');
   }
-  /** Beta 0.7.2: big live preview of the measure the app will use, with machine, job, base and gioco nearby. */
+  /** Beta 0.8.0: big live preview of the measure the app will use, with machine, job, base and gioco nearby. */
   function renderLivePrev(series, p) {
     const el = $('livePreview'), cx = $('liveCtx'); if (!el) return;
     const m = myMachine(), j = jobsOn ? activeJob() : null;
@@ -664,7 +664,7 @@
     const gOv = opts && opts.gioco && opts.gioco.min != null && opts.gioco.max != null ? opts.gioco : jOv;
     const gMin = gOv ? gOv.min : series.giocoMin, gMax = gOv ? gOv.max : series.giocoMax;
     const mode = lavoroMode();
-    const acc = applyObjective(calcAccoppiamento(S, series.base, gMin, gMax, mode), seriesObjective(Object.assign({}, series, { giocoMin: gMin, giocoMax: gMax }))); // Beta 0.7.2: only series with an objective change the recommendation
+    const acc = applyObjective(calcAccoppiamento(S, series.base, gMin, gMax, mode), seriesObjective(Object.assign({}, series, { giocoMin: gMin, giocoMax: gMax }))); // Beta 0.8.0: only series with an objective change the recommendation
     // Beta 0.2.0: when the user manages the pieces on the table, classify and recommend available + valid first
     const stockCls = classifyStock(acc, series.stock || {});
     const stockRec = stockCls.managed
@@ -677,7 +677,7 @@
       giocoMin: gMin, giocoMax: gMax, giocoSrc: gOv ? (gOv.src || 'foto') : 'serie',
       selected: stockRec.recommended[0] != null ? stockRec.recommended[0] : null, oval: null, con: null, conEnd: null, taper: { dav: null, fondo: null }, status: 'ok',
       wantPezzo: null, corrDone: false, savedId: null };
-    const fxF = mode !== 'femmina' && series.fixedF != null ? Number(series.fixedF) : null; // Beta 0.7.2: femmina fissa
+    const fxF = mode !== 'femmina' && series.fixedF != null ? Number(series.fixedF) : null; // Beta 0.8.0: femmina fissa
     if (fxF != null && Number.isFinite(fxF)) { lastCalc.fixed = Object.assign({ F: fxF }, fixedFemale(fxF, S, series.base, gMin, gMax)); lastCalc.selected = lastCalc.fixed.n; }
     $('vaBeneBox').classList.add('hidden');
     if ($('fInput')) $('fInput').value = '';
@@ -698,7 +698,7 @@
     if (lastCalc.acc.recommended[0] != null) return lastCalc.acc.recommended[0];
     return Math.round(lastCalc.acc.ideal);
   }
-  // ── Beta 0.7.2: per-machine calibration (µm per tocco, diametro/raggio, verso del +, stato). Default = identical to before. ──
+  // ── Beta 0.8.0: per-machine calibration (µm per tocco, diametro/raggio, verso del +, stato). Default = identical to before. ──
   function taperOpts(m) { const L = limOf(); return { invert: calOf(m).taper === 'invertito', okUm: L.conOk, maxUm: L.conMax }; }
   function calOf(m) { return machineCal(m || myMachine()); }
   function calT(o, diffKey, m) { // tocchi from the µm change (configuration only)
@@ -850,7 +850,7 @@
       if (fx) parts.push(`<div class="fixed-box ${fx.ok ? 'ok' : 'no'}" id="fixedBox">Femmina fissa ${esc(fmtMm4(fx.F))} mm (${sg(fx.n)}) · gioco F − S <b>${esc(fmtUm(fx.gioco))} µm</b> → <b>${fx.ok ? '✓ OK' : '✗ NO'}</b> <small>(${gcR.min}–${gcR.max} µm)</small></div>`);
       if (a.obiettivo != null) parts.push(`<div class="obj-line" id="objLine">Consigliata <b>${a.consigliata == null ? '—' : sg(a.consigliata)}</b> (gioco obiettivo ${esc(fmtUm(a.obiettivo))} µm) · consigliate <b>${a.fascia.length ? sg(a.fascia[0]) + '…' + sg(a.fascia[a.fascia.length - 1]) : '—'}</b> (gioco ${esc(fmtUm(a.fasciaLo))}–${esc(fmtUm(a.fasciaHi))}) · valide <b>${a.valid.length ? sg(a.valid[0]) + '…' + sg(a.valid[a.valid.length - 1]) : 'nessuna'}</b> (gioco ${gcR.min}–${gcR.max})</div>`);
       on.innerHTML = parts.join(''); on.classList.toggle('hidden', !parts.length); }
-    const noForm = series.forma === false; // Beta 0.7.2: series without ovalità/conicità
+    const noForm = series.forma === false; // Beta 0.8.0: series without ovalità/conicità
     ['taperCard', 'formBox'].forEach((id) => { if ($(id)) $(id).classList.toggle('noform', noForm); });
     document.body.classList.toggle('no-forma', noForm);
     const pn = $('resPhotoNote'); if (pn) { pn.textContent = lastCalc.photoNote || ''; pn.classList.toggle('hidden', !lastCalc.photoNote); }
@@ -1356,7 +1356,7 @@
   $('btnIntOpen').addEventListener('click', openInt); $('btnIntOpen2').addEventListener('click', openInt);
   $('intBack').addEventListener('click', () => showPage('calc'));
   function intShift() { const t0 = (state.turno && state.turno.startedAt) || ''; return (state.interni || []).filter((r) => String(r.ts || '') >= t0).length; }
-  // ── Beta 0.7.2: Rettifica manuale (everything by hand; no series, no photo). Math in calc.js: manualTarget / manualStatus ──
+  // ── Beta 0.8.0: Rettifica manuale (everything by hand; no series, no photo). Math in calc.js: manualTarget / manualStatus ──
   function calLegend() { const c = calOf(); return '1 tocco = ' + fmtUm(c.umPerTocco) + ' µm sul ' + c.scala; }
   const man = { mode: 'maschio', mk: 'mis', last: null };
   function manNum(id) { const v = $(id) ? parseMmNumber($(id).value) : null; return v == null ? null : v; }
@@ -1366,7 +1366,7 @@
     if (man.mk === 'mis') { const v = manNum('manMate'); if (v != null) mate = { lo: v, hi: v, src: 'misurata' }; }
     else { const n = manNum('manMateNomV'); if (n != null) { const r = rangeFromNominal(n, parseTolMm($('manMateT1').value), parseTolMm($('manMateT2').value)); mate = Object.assign(r, { src: 'nominale', nom: n }); } }
     let gMin = parseGiocoSheet($('manGmin').value), gMax = parseGiocoSheet($('manGmax').value), gSwap = false;
-    if (gMin != null && gMax != null && gMin > gMax) { [gMin, gMax] = [gMax, gMin]; gSwap = true; } // Beta 0.7.2: same as Calcolo, min/max never inverted
+    if (gMin != null && gMax != null && gMin > gMax) { [gMin, gMax] = [gMax, gMin]; gSwap = true; } // Beta 0.8.0: same as Calcolo, min/max never inverted
     const on = manNum('manOwnNom'), draw = on != null ? rangeFromNominal(on, parseTolMm($('manOwnT1').value), parseTolMm($('manOwnT2').value)) : null;
     const t = manualTarget(mode, mate, gMin, gMax, draw);
     const cur = manNum('manCur'), cal = calOf();
@@ -1419,7 +1419,7 @@
       <span><b class="cond">${r.mode === 'femmina' ? 'Foro' : 'Maschio'} da ${esc(fmtMm4(r.target.lo))} a ${esc(fmtMm4(r.target.hi))} mm</b>${r.cur != null ? ' · misura ' + esc(fmtMm4(r.cur)) + ' mm ' + (r.state === 'ok' ? '<b style="color:var(--green)">✓ in quota</b>' : r.state === 'no' ? '<b style="color:#ff8a8a">non recuperabile</b>' : '<b style="color:var(--amber)">da togliere ' + esc(fmtUm(r.removeUm)) + ' µm</b>') : ''}<small> gioco ${esc(fmtUm(r.giocoMin))}–${esc(fmtUm(r.giocoMax))} µm${r.machineName ? ' · ' + esc(r.machineName) : ''}</small></span></div>`).join('')
       : '<p class="meta">Nessuna rettifica manuale salvata (Calcolo → ✍ Manuale).</p>';
   }
-  // ── Beta 0.7.2: last manual draft in prefs (never the current measure: each piece starts empty) ──
+  // ── Beta 0.8.0: last manual draft in prefs (never the current measure: each piece starts empty) ──
   const MAN_DRAFT_IDS = ['manMate', 'manMateNomV', 'manMateT1', 'manMateT2', 'manGmin', 'manGmax', 'manOwnNom', 'manOwnT1', 'manOwnT2'];
   function manSaveDraft() {
     const f = {}; MAN_DRAFT_IDS.forEach((id) => { const v = $(id) ? String($(id).value || '') : ''; if (v) f[id] = v.slice(0, 24); });
@@ -1630,7 +1630,7 @@
     const gioco = giocoOf(n, acc);
     const L0 = limOf(series);
     const nf = series.forma === false;
-    const status = (st === 'no' || (!nf && formStatus(lastCalc.con, L0.conOk, L0.conMax) === 'no') || (!nf && formStatus(lastCalc.oval, L0.ovalOk, L0.ovalMax) === 'no')) ? 'scarto' : 'buono'; // Beta 0.7.2: job limits
+    const status = (st === 'no' || (!nf && formStatus(lastCalc.con, L0.conOk, L0.conMax) === 'no') || (!nf && formStatus(lastCalc.oval, L0.ovalOk, L0.ovalMax) === 'no')) ? 'scarto' : 'buono'; // Beta 0.8.0: job limits
     const id = uid(), ts = new Date().toISOString();
     series.history = series.history || [];
     series.history.push({ id, ts, S: lastCalc.S, chosen: n, gioco: lastCalc.fixed ? lastCalc.fixed.gioco : gioco, fixedF: lastCalc.fixed ? lastCalc.fixed.F : undefined, oval: lastCalc.oval != null ? lastCalc.oval : null,
@@ -2539,8 +2539,8 @@
     const b = full ? FULL_BOX() : box;
     if (lastPhoto) lastPhoto.box = b;
     toast(full ? 'Lettura della foto…' : 'Lettura del riquadro…');
-    if (hasNativeCrop()) { try { RettificaAndroid.ocrCrop(b.l, b.t, b.r, b.b); return; } catch (e) {} }
-    if (typeof window.__ocrCropHook === 'function') { window.__ocrCropHook(b); return; }
+    ocrAuto = null;
+    if (ocrRead(b, lastPhoto ? lastPhoto.rot || 0 : 0)) return;
     const raw = prompt('Testo OCR del riquadro (solo test nel browser):');
     if (raw == null || !String(raw).trim()) { pendingJob = null; return; } applyOcrText(raw);
   }
@@ -2564,6 +2564,7 @@
           <span class="crop-h" data-h="bl" style="left:0;top:100%"></span><span class="crop-h" data-h="br" style="left:100%;top:100%"></span></div></div>
       <div class="crop-actions"><button type="button" class="btn btn-sec" id="cropCancel">Annulla</button>
         <button type="button" class="btn btn-sec" id="cropFull">Tutta la foto</button>
+        <button type="button" class="btn btn-sec" id="cropRot" aria-label="Ruota la foto di 90 gradi">↻</button>
         <button type="button" class="btn btn-teal" id="cropGo">Leggi</button></div>
       <p class="crop-foot">Il ritaglio si può disattivare in Setup.</p></div>`;
     const stage = $('cropStage'), img = $('cropImg'), el = $('cropBox');
@@ -2613,6 +2614,7 @@
     img.onload = layout; img.src = photo.img; if (img.complete) layout();
     window.addEventListener('resize', layout, { once: true });
     $('cropCancel').onclick = cancelCrop;
+    $('cropRot').onclick = async () => { haptic(10); if (await setPhotoRot(((photo.rot || 0) + 90) % 360)) { closeCrop(); openCrop(lastPhoto); } };
     $('cropFull').onclick = () => { Object.assign(box, FULL_BOX()); draw(); };
     $('cropGo').onclick = () => { haptic(15); const b = Object.assign({}, box); closeCrop(); sendCrop(b); };
     document.addEventListener('keydown', cropKey);
@@ -2669,6 +2671,7 @@
       if (mG) parsed.G1A = parseFloat(mG[1].replace(',', '.'));
       const ml = String(raw).match(/Lotto\s*[:.]?\s*(\d+)/i); if (ml) parsed.header.lotto = ml[1];
     }
+    if (FG && !(parsed && (parsed.S1A != null || parsed.F1A != null || parsed.G1A != null)) && FG.foglioScore(raw).isFoglio) { pendingInt = false; pendingFem = false; openSheetConfirm(FG.parseFoglioText(raw)); return; }
     openOcrConfirm(parsed);
   }
   function pickSeriesForPhoto(parsed) {
@@ -2809,7 +2812,7 @@
     const gMax0 = plan.gmax != null ? plan.gmax : (ser0 ? ser0.giocoMax : '');
     // idea 7: paired photo → verdict straight from the G row
     let pairedBox = '';
-    const gi = interpretG(G, paired ? F : null, paired ? S : null); // Beta 0.7.2: G with its own sign, gioco = F − S, never flipped silently
+    const gi = interpretG(G, paired ? F : null, paired ? S : null); // Beta 0.8.0: G with its own sign, gioco = F − S, never flipped silently
     if (paired && gUm != null && fromPhoto && !useF && gi.giocoUm != null) {
       const gap = gi.giocoUm, ok = !gi.interferenza && gap >= parsed.giocoMin - 0.05 && gap <= parsed.giocoMax + 0.05;
       pairedBox = `<div class="paired-verdict ${ok ? 'ok' : 'no'}">Pezzo già accoppiato · gioco di accoppiamento ${esc((gap > 0 ? '+' : gap < 0 ? '−' : '') + fmtUm(Math.abs(gap)))} µm → <b>${gi.interferenza ? 'INTERFERENZA' : ok ? 'GIOCO CONFORME' : 'FUORI GIOCO'}</b> <span>(${parsed.giocoMin}–${parsed.giocoMax} µm)</span><small class="pv-g">${esc(gi.note)}</small></div>`;
@@ -2841,6 +2844,7 @@
       <div class="actions" style="display:flex;gap:8px;margin:10px 0 4px"><button type="button" class="btn btn-sec" id="ocrCancel" style="flex:1">Annulla</button>
       <button type="button" class="btn btn-teal" id="ocrGo" style="flex:1.6">${pairedBox && (useF ? F : S) == null ? 'OK' : 'Conferma e calcola'}</button></div>
       ${lastPhoto ? '<button type="button" class="btn btn-sec" id="ocrRecrop" style="width:100%;margin:4px 0">✂ Ritaglia di nuovo</button>' : ''}
+      ${lastPhoto && FG ? '<button type="button" class="btn btn-sec" id="ocrRotate" style="width:100%;margin:4px 0">↻ Ruota foto e rileggi</button>' : ''}
       ${lastPhoto && AI ? (() => { const c = AI.cfgOf(prefs), why = !c.vision ? c.label + ' non legge le foto: scegli Gemini, OpenRouter, Qwen o xAI in Setup' : (!AI.hasKey(c.provider) ? 'Manca la chiave API (Setup → Intelligenza artificiale)' : '');
         return `<button type="button" class="btn btn-sec ai-photo ${why ? 'off' : ''}" id="ocrAi" data-why="${esc(why)}" style="width:100%;margin:4px 0;min-height:52px">✨ Leggi foto con AI</button>${why ? `<p class="meta ai-why" id="ocrAiWhy">${esc(why)}</p>` : ''}`; })() : ''}
       <label>Serie</label><select id="ocrSeries">${seriesOpts}</select>
@@ -2907,6 +2911,7 @@
     refreshGSave(); checkPlaus();
     if (plan.action === 'block' && S != null) warn(esc(plan.note));
     $('ocrCancel').onclick = () => { $('modalRoot').innerHTML = ''; lastPhoto = null; try { if (window.RettificaAndroid && RettificaAndroid.ocrCancel) RettificaAndroid.ocrCancel(); } catch (e) {} if (pendingJob) { pendingJob = null; toast('Nuovo lavoro annullato'); } };
+    if ($('ocrRotate')) $('ocrRotate').onclick = () => { haptic(12); rotateReread(); };
     if ($('ocrRecrop')) $('ocrRecrop').onclick = () => { $('modalRoot').innerHTML = ''; if (lastPhoto) openCrop(lastPhoto, lastPhoto.box); };
     $('ocrGo').onclick = () => {
       const t = target();
@@ -2932,7 +2937,7 @@
         }
         note = `Nuova serie Base ${fmtMm3(ser.base)} · gioco ${g.min}–${g.max} creata dalla foto`;
         saveData(state);
-      } else if (!$('ocrGSave').classList.contains('hidden') && $('ocrApSer').checked) { // Beta 0.7.2: the user chose «Aggiorna anche la serie»
+      } else if (!$('ocrGSave').classList.contains('hidden') && $('ocrApSer').checked) { // Beta 0.8.0: the user chose «Aggiorna anche la serie»
         note = `Base ${fmtMm3(ser.base)}: gioco della serie aggiornato ${ser.giocoMin}–${ser.giocoMax} → ${g.min}–${g.max} µm (era ${ser.giocoMin}–${ser.giocoMax})`;
         ser.giocoPrev = (ser.giocoPrev || []).concat([{ ts: new Date().toISOString(), min: ser.giocoMin, max: ser.giocoMax }]).slice(-10);
         ser.giocoMin = g.min; ser.giocoMax = g.max;
@@ -3004,6 +3009,7 @@
   }
   const OCR_MSG = { cancel: 'Foto annullata', image: 'Foto non leggibile', ocr: 'Testo non letto, riprova', gallery: 'Galleria non disponibile' };
   window.__onOcrResult = function (res) {
+    if (ocrAuto && (!res || res.ok === false || res.error)) { if (res && res.code === 'cancel') ocrAuto = null; else { autoNext(); return; } }
     if (!res || res.ok === false || res.error) {
       const code = res && res.code;
       if (code === 'camera') { showCameraProblem(); return; } // gallery can still finish «Nuovo lavoro»
@@ -3012,10 +3018,180 @@
       if (code === 'cancel') { toast(res.error && res.error.length <= 30 ? res.error : 'Foto annullata'); return; }
       toast(OCR_MSG[code] || 'Lettura foto non riuscita', 'warn'); return;
     }
+    if (FG && !res._noRotate) { // Beta 0.8.0: drawing-requirements sheet (or a photo to rotate) – PC screens are never touched
+      const pc = typeof parseElencoBlocks === 'function' && res.blocks ? parseElencoBlocks(res.blocks) : (typeof parseElencoText === 'function' ? parseElencoText(res.fullText || '') : null);
+      if (!(pc && (pc.S1A != null || pc.F1A != null || pc.G1A != null)) && sheetOrRotate(res)) return;
+    }
+    ocrAuto = null;
     if (typeof parseElencoBlocks === 'function' && res.blocks) openOcrConfirm(parseElencoBlocks(res.blocks));
     else applyOcrText(res.fullText || '');
   };
-  if ($('fotoHint')) $('fotoHint').textContent = hasNativeOcr() ? 'Foto più precisa: da vicino solo le righe F1A · S1A · G1A, dritto davanti allo schermo (📷 → Scatta foto o Dalla galleria; tieni premuto 📷 per la galleria). Conferma sempre.' : '';
+  if ($('fotoHint')) $('fotoHint').textContent = hasNativeOcr() ? 'Foto più precisa: da vicino solo le righe F1A · S1A · G1A, dritto davanti allo schermo (📷 → Scatta foto o Dalla galleria; tieni premuto 📷 per la galleria). Anche il foglio «Requisiti Disegno» si legge da foto. Conferma sempre.' : '';
+
+  // ── Beta 0.8.0: «Requisiti Disegno» sheet photos (any series / layout / rotation) ──
+  const FG = window.FoglioParse || null;
+  let ocrAuto = null; // automatic rotation tries after a photo that is neither a PC screen nor a readable sheet
+  const hasNativeRot = () => { try { return !!(window.RettificaAndroid && RettificaAndroid.hasOcrRot && RettificaAndroid.hasOcrRot()); } catch (e) { return false; } };
+  /** One OCR read of the photo: native ML Kit (optionally rotated first), or the test hook. */
+  function ocrRead(b, rot) {
+    rot = rot || 0;
+    if (hasNativeCrop()) { try { if (rot && hasNativeRot()) RettificaAndroid.ocrCropRot(b.l, b.t, b.r, b.b, rot); else RettificaAndroid.ocrCrop(b.l, b.t, b.r, b.b); return true; } catch (e) {} }
+    if (typeof window.__ocrCropHook === 'function') { window.__ocrCropHook(b, rot); return true; }
+    return false;
+  }
+  function rotImg(dataUrl, deg) {
+    return new Promise((resolve) => { const im = new Image(); im.onload = () => { try {
+      const sw = deg % 180 !== 0, W = im.naturalWidth, H = im.naturalHeight, cv = document.createElement('canvas'); cv.width = sw ? H : W; cv.height = sw ? W : H;
+      const cx = cv.getContext('2d'); cx.translate(cv.width / 2, cv.height / 2); cx.rotate(deg * Math.PI / 180); cx.drawImage(im, -W / 2, -H / 2);
+      resolve({ img: cv.toDataURL('image/jpeg', 0.9), w: cv.width, h: cv.height }); } catch (e) { resolve(null); } }; im.onerror = () => resolve(null); im.src = dataUrl; });
+  }
+  /** Absolute rotation (degrees clockwise) of the kept photo; the preview used for AI / crop is rotated the same way. */
+  async function setPhotoRot(deg) {
+    const p = lastPhoto; if (!p) return false;
+    deg = ((deg % 360) + 360) % 360; p.img0 = p.img0 || p.img; p.w0 = p.w0 || p.w; p.h0 = p.h0 || p.h;
+    const r = deg ? await rotImg(p.img0, deg) : { img: p.img0, w: p.w0, h: p.h0 };
+    if (!r) return false; Object.assign(p, { img: r.img, w: r.w, h: r.h, rot: deg, box: FULL_BOX() }); return true;
+  }
+  async function rotateReread() {
+    if (!lastPhoto) { toast('Foto non più disponibile: rifai la foto', 'warn'); return; }
+    const deg = ((lastPhoto.rot || 0) + 90) % 360; await setPhotoRot(deg); $('modalRoot').innerHTML = ''; ocrAuto = null;
+    if (window.RETTIFICA_WEB) { webPhotoData(lastPhoto.img, lastPhoto.w, lastPhoto.h, true); return; }
+    toast('Rileggo la foto ruotata…'); if (!ocrRead(FULL_BOX(), deg)) toast('Rotazione non disponibile', 'warn');
+  }
+  const sheetOf = (res) => (res.blocks && res.blocks.length ? FG.parseFoglioBlocks(res.blocks) : FG.parseFoglioText(res.fullText || ''));
+  /** Called for every OCR result without PC-screen values: sheet? → form; unknown → try the other orientations; else old path. */
+  function sheetOrRotate(res) {
+    if (!FG) return false;
+    const blocks = res.blocks || [], sc = FG.foglioScore(blocks.length ? blocks : (res.fullText || ''));
+    if (sc.isFoglio) {
+      const ocrAuto0 = !!ocrAuto, rot = ocrAuto ? ocrAuto.cur : (lastPhoto && lastPhoto.rot) || 0, sheet = sheetOf(res); ocrAuto = null;
+      pendingInt = false; pendingFem = false;
+      if (lastPhoto && rot && !lastPhoto.rot && ocrAuto0) setPhotoRot(rot); // the native re-read was rotated: keep the rotated preview too
+      if (lastPhoto && !lastPhoto.rot && sheet.rotation) setPhotoRot(sheet.rotation); // geometry said the photo is sideways: keep an upright copy for the AI
+      openSheetConfirm(sheet); return true;
+    }
+    if (ocrAuto) { // a try just came back without a sheet: next orientation
+      if (sc.score > ocrAuto.bestScore) { ocrAuto.bestScore = sc.score; }
+      return autoNext();
+    }
+    if (lastPhoto && !lastPhoto.rot && !pendingInt && !pendingFem && (hasNativeCrop() || window.__ocrCropHook) && (hasNativeRot() || window.__ocrCropHook)) {
+      const hint = FG.orientationHint(blocks);
+      ocrAuto = { base: res, order: hint === 'sideways' ? [270, 90, 180] : [180, 90, 270], i: 0, cur: 0, bestScore: sc.score };
+      toast('Provo a ruotare la foto…'); return autoNext();
+    }
+    return false;
+  }
+  function autoNext() {
+    const a = ocrAuto; if (!a) return false;
+    if (a.i >= a.order.length) { const base = a.base; ocrAuto = null; window.__onOcrResult(Object.assign({}, base, { _noRotate: true })); return true; }
+    a.cur = a.order[a.i++];
+    if (!ocrRead(FULL_BOX(), a.cur)) { const base = a.base; ocrAuto = null; window.__onOcrResult(Object.assign({}, base, { _noRotate: true })); }
+    return true;
+  }
+  function sheetNum(id) { const el = $(id); if (!el) return null; const t = String(el.value || '').trim().replace(/\s+/g, '').replace(',', '.'); if (!t) return null; const n = Number(t); return Number.isFinite(n) ? n : null; }
+  function openSheetConfirm(sheet, opt) {
+    clearPhotoPurpose();
+    const fm = FG.foglioToForm(sheet), v = (x) => (x == null ? '' : esc(String(x).replace('.', ',')));
+    const mNow = myMachine(), jNow = pendingJob ? { machineName: pendingJob.machineName } : (jobsOn ? activeJob() : null);
+    const near = fm.base != null ? state.series.find((s) => Math.abs(Number(s.base) - fm.base) < 0.0005) : null;
+    const NEW = '__new';
+    const part = (k, label, p, instr) => `<div class="sh-part" id="shP${k}"><h3>${label}</h3>
+      <div><label for="sh${k}Name">Nome sul foglio</label><input id="sh${k}Name" value="${esc(p ? p.name : '')}" autocomplete="off"/></div>
+      <div class="sh-3"><div><label for="sh${k}Nom">Nominale Ø mm</label><input id="sh${k}Nom" inputmode="decimal" value="${v(p && p.nominal)}"/></div>
+      <div><label for="sh${k}Up">Limite sup. mm</label><input id="sh${k}Up" inputmode="decimal" value="${v(p && p.upper)}"/></div>
+      <div><label for="sh${k}Lo">Limite inf. mm</label><input id="sh${k}Lo" inputmode="decimal" value="${v(p && p.lower)}"/></div></div>
+      <div><label for="sh${k}In">Strumento</label><input id="sh${k}In" value="${esc(instr || '')}" autocomplete="off"/></div></div>`;
+    const seriesOpts = (near ? '' : `<option value="${NEW}" selected>＋ Nuova serie «${esc(fm.name || 'dal foglio')}»</option>`) + state.series.map((s) => `<option value="${esc(s.id)}" ${near && near.id === s.id ? 'selected' : ''}>${esc(s.name || 'Base ' + fmtMm3(s.base))} · Base ${fmtMm3(s.base)} · gioco ${s.giocoMin}–${s.giocoMax}</option>`).join('');
+    const cfgAi = AI ? AI.cfgOf(prefs) : null, whyAi = !AI ? 'AI non disponibile' : (!cfgAi.vision ? cfgAi.label + ' non legge le foto: scegli Gemini, OpenRouter, Qwen o xAI in Setup' : (!AI.hasKey(cfgAi.provider) ? 'Manca la chiave API (Setup → Intelligenza artificiale)' : ''));
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal ocr-confirm sheet-confirm" id="sheetConfirm">
+      <h2>${pendingJob ? 'Nuovo lavoro · ' : ''}Foglio disegno · conferma</h2>
+      <div class="ocr-sum" id="shSum">
+        <div>Macchina <b>${esc((pendingJob && pendingJob.machineName) || (mNow && mNow.name) || '—')}</b> · Lavoro <b>${esc(jNow ? (jNow.name || jNow.machineName || '—') : 'nessuno')}</b></div>
+        <div>Letto ${sheet.source === 'ai' ? 'con <b>AI</b>' : sheet.source === 'testo' ? 'dal <b>testo</b>' : 'con <b>lettura offline</b>'}${sheet.rotation ? ' · foto girata di ' + sheet.rotation + '°' : ''}</div>
+        <div id="shFormula">${fm.formula ? 'Formula del foglio: <b>' + esc(fm.formula) + '</b> (foro − maschio)' : 'Formula non letta'}</div>
+        <div class="meta">Diametri in mm · giochi in µm (0,01 mm = 10 µm).</div></div>
+      ${fm.warnings.length ? `<div class="photo-note warn" id="shNotes">${fm.warnings.map(esc).join('<br>')}</div>` : ''}
+      ${part('F', 'Foro / femmina', fm.F, fm.instrF)}${part('S', 'Maschio', fm.S, fm.instrS)}
+      <button type="button" class="btn btn-sec sh-swap" id="shSwap">⇄ Scambia foro e maschio</button>
+      <label>Gioco di accoppiamento µm (foro − maschio)</label>
+      <div class="field-row"><div><input id="shGmin" inputmode="decimal" aria-label="Gioco minimo µm" value="${v(fm.giocoMin)}" placeholder="min µm"/></div><div><input id="shGmax" inputmode="decimal" aria-label="Gioco massimo µm" value="${v(fm.giocoMax)}" placeholder="max µm"/></div></div>
+      <div class="meta" id="shGnote"></div>
+      <label class="chk-big" id="shFormaRow"><input type="checkbox" id="shNoForma" ${fm.forma ? '' : 'checked'}/><span>Senza ovalità/conicità (nascondi campi e promemoria)</span></label>
+      <label for="shName">Nome serie</label><input id="shName" value="${esc(fm.name)}" autocomplete="off"/>
+      <label for="shSeries">Serie</label><select id="shSeries">${seriesOpts}</select>
+      <div id="shApplyBox" class="hidden"><div class="meta" id="shApplyTxt"></div>
+        <div class="apply-choice" id="shApply"><label id="shApJobL" class="on"><input type="radio" name="shAp" id="shApJob" value="job" checked/><span>Applica solo a questo lavoro</span></label>
+        <label id="shApSerL"><input type="radio" name="shAp" id="shApSer" value="serie"/><span>Aggiorna anche la serie</span></label></div></div>
+      <div id="shPlan" class="meta"></div>
+      <label for="shNotesTxt">Note (altre quote, strumenti)</label><textarea id="shNotesTxt" rows="3">${esc(FG.formNotes(fm))}</textarea>
+      <label class="chk-big" id="shCheckRow"><input type="checkbox" id="shChecked"/><span>Ho controllato i valori sul foglio${fm.ai || sheet.source === 'ai' ? ' (letti con AI)' : ''}</span></label>
+      <div id="shErr" class="form-err hidden"></div>
+      <div class="actions" style="display:flex;gap:8px;margin:10px 0 4px"><button type="button" class="btn btn-sec" id="shCancel" style="flex:1">Annulla</button>
+      <button type="button" class="btn btn-teal" id="shGo" style="flex:1.6">Conferma</button></div>
+      ${lastPhoto ? '<button type="button" class="btn btn-sec" id="shRotate" style="width:100%;margin:4px 0;min-height:52px">↻ Ruota foto e rileggi</button>' : ''}
+      ${lastPhoto && AI ? `<button type="button" class="btn btn-sec ai-photo ${whyAi ? 'off' : ''}" id="shAi" data-why="${esc(whyAi)}" style="width:100%;margin:4px 0;min-height:52px">✨ Leggi foto con AI</button>${whyAi ? `<p class="meta ai-why" id="shAiWhy">${esc(whyAi)}</p>` : ''}` : ''}
+      </div></div>`;
+    const err = (t) => { const e = $('shErr'); e.textContent = t || ''; e.classList.toggle('hidden', !t); };
+    const readForm = () => {
+      const S = { name: $('shSName').value.trim(), nom: sheetNum('shSNom'), up: sheetNum('shSUp'), lo: sheetNum('shSLo'), instr: $('shSIn').value.trim() };
+      const F = { name: $('shFName').value.trim(), nom: sheetNum('shFNom'), up: sheetNum('shFUp'), lo: sheetNum('shFLo'), instr: $('shFIn').value.trim() };
+      const base = S.nom != null ? S.nom : (F.nom != null ? F.nom : null);
+      let tol = null; [S, F].forEach((p) => { if (tol == null && p.nom != null && p.up != null && p.lo != null && Math.abs(p.up - p.lo) > 1e-9) tol = round4(Math.max(Math.abs(p.up - p.nom), Math.abs(p.nom - p.lo))); });
+      return { S, F, base, tol: tol != null ? tol : (fm.tol != null ? fm.tol : 0.1), gmin: sheetNum('shGmin'), gmax: sheetNum('shGmax'), noForma: $('shNoForma').checked, name: $('shName').value.trim(), notes: $('shNotesTxt').value.trim() };
+    };
+    const target = () => { const id = $('shSeries').value; return id === NEW ? null : seriesById(id); };
+    const refresh = () => {
+      const r = readForm(), t = target(), box = $('shApplyBox'), gn = $('shGnote'), pl = $('shPlan');
+      gn.textContent = r.gmin != null && r.gmax != null ? `Gioco ${String(r.gmin).replace('.', ',')}–${String(r.gmax).replace('.', ',')} µm = ${fmtMm3(r.gmin / 1000)}–${fmtMm3(r.gmax / 1000)} mm` : 'Scrivi minimo e massimo in µm.';
+      box.classList.add('hidden');
+      if (!t) { pl.textContent = r.base != null ? `Verrà creata la serie «${r.name || 'Base ' + fmtMm3(r.base)}» · Base ${fmtMm3(r.base)} mm · gioco ${r.gmin != null ? r.gmin + '–' + r.gmax + ' µm' : '—'}${r.noForma ? ' · senza ovalità/conicità' : ''}` : 'Scrivi il nominale.'; return; }
+      const diff = r.gmin != null && (Number(t.giocoMin) !== r.gmin || Number(t.giocoMax) !== r.gmax) || (!!r.noForma) !== (t.forma === false);
+      pl.textContent = `Serie ${t.name || 'Base ' + fmtMm3(t.base)} · Base ${fmtMm3(t.base)} mm${Math.abs(t.base - (r.base == null ? t.base : r.base)) > 0.0005 ? ' (il foglio dice ' + fmtMm3(r.base) + ')' : ''}`;
+      if (diff) { box.classList.remove('hidden'); $('shApplyTxt').textContent = `Il foglio dice gioco ${r.gmin != null ? r.gmin + '–' + r.gmax : '—'} µm${r.noForma ? ', senza ovalità/conicità' : ''}; la serie ha ${t.giocoMin}–${t.giocoMax} µm${t.forma === false ? ', senza ovalità/conicità' : ''}. Scegli:`; }
+    };
+    document.querySelectorAll('#sheetConfirm input, #sheetConfirm select, #sheetConfirm textarea').forEach((i) => { i.addEventListener('input', refresh); i.addEventListener('change', refresh); });
+    ['shApJob', 'shApSer'].forEach((id) => $(id).addEventListener('change', () => { $('shApJobL').classList.toggle('on', $('shApJob').checked); $('shApSerL').classList.toggle('on', $('shApSer').checked); }));
+    $('shSwap').onclick = () => { haptic(12); ['Name', 'Nom', 'Up', 'Lo', 'In'].forEach((s) => { const a = $('shF' + s), b = $('shS' + s), t = a.value; a.value = b.value; b.value = t; }); refresh(); };
+    refresh();
+    const close = () => { $('modalRoot').innerHTML = ''; };
+    $('shCancel').onclick = () => { close(); lastPhoto = null; try { if (window.RettificaAndroid && RettificaAndroid.ocrCancel) RettificaAndroid.ocrCancel(); } catch (e) {} if (pendingJob) { pendingJob = null; toast('Nuovo lavoro annullato'); } };
+    if ($('shRotate')) $('shRotate').onclick = () => { haptic(12); rotateReread(); };
+    if ($('shAi')) $('shAi').onclick = async () => {
+      const btn = $('shAi'); if (btn.classList.contains('off')) { toast(btn.dataset.why || 'Non disponibile', 'warn'); return; }
+      btn.classList.add('off'); btn.textContent = '✨ Leggo con AI…'; haptic(12);
+      const r = await AI.readPhoto(prefs, await aiPhotoData(), { mode: 'foglio' });
+      if (!$('shAi')) return;
+      if (!r.ok || r.kind !== 'foglio') { btn.classList.remove('off'); btn.textContent = '✨ Leggi foto con AI'; err('⚠ ' + (r.error || 'Non sembra un foglio «Requisiti Disegno».') + ' Restano i valori di prima.'); return; }
+      openSheetConfirm(r.sheet); toast('Letto con AI: controlla i valori');
+    };
+    $('shGo').onclick = () => {
+      const r = readForm(), t = target();
+      if (!$('shChecked').checked) { err('Controlla i valori sul foglio e spunta «Ho controllato i valori». L\'app non calcola su valori indovinati.'); haptic(60); return; }
+      if (r.base == null || !(r.base > 0.5 && r.base < 2000)) { err('Scrivi il nominale del maschio o del foro (mm).'); return; }
+      if (r.gmin == null || r.gmax == null || r.gmin < 0 || r.gmax > 500 || r.gmax - r.gmin < 0.5) { err('Gioco non valido: minimo e massimo in µm (es. 10 e 30).'); return; }
+      if (r.S.nom != null && r.F.nom != null && Math.abs(r.S.nom - r.F.nom) > 0.0005 && !$('shGo').dataset.warned) { err(`Nominali diversi (maschio ${fmtMm3(r.S.nom)}, foro ${fmtMm3(r.F.nom)}): la base sarà ${fmtMm3(r.base)}. Tocca ancora Conferma se è giusto.`); $('shGo').dataset.warned = '1'; return; }
+      const gmin = round4(r.gmin), gmax = round4(r.gmax);
+      let ser = t, note = '', jobOnly = false;
+      const lim = {}; if (!r.noForma) { if (sheet.oval && sheet.oval.limUm != null) { lim.ovalOk = sheet.oval.limUm; lim.ovalMax = Math.max(sheet.oval.limUm, 3); } if (sheet.taper && sheet.taper.limUm != null) { lim.conOk = sheet.taper.limUm; lim.conMax = Math.max(sheet.taper.limUm, 3); } }
+      if (!ser) {
+        ser = { id: uid(), machineId: myMachine() ? myMachine().id : null, name: r.name || 'Base ' + fmtMm3(r.base), lotto: r.name || '', notes: r.notes, base: round4(r.base), tolleranza: r.tol, giocoMin: gmin, giocoMax: gmax, history: [], stock: {} };
+        if (r.noForma) ser.forma = false; if (Object.keys(lim).length) ser.lim = lim;
+        state.series.push(ser); note = `Nuova serie ${ser.name} · gioco ${gmin}–${gmax} µm`;
+      } else if (!$('shApplyBox').classList.contains('hidden') && $('shApSer').checked) {
+        ser.giocoPrev = (ser.giocoPrev || []).concat([{ ts: new Date().toISOString(), min: ser.giocoMin, max: ser.giocoMax }]).slice(-10);
+        note = `Serie ${ser.name || 'Base ' + fmtMm3(ser.base)} aggiornata: gioco ${ser.giocoMin}–${ser.giocoMax} → ${gmin}–${gmax} µm`;
+        ser.giocoMin = gmin; ser.giocoMax = gmax; if (r.noForma) ser.forma = false; else delete ser.forma; if (Object.keys(lim).length) ser.lim = Object.assign({}, ser.lim, lim);
+        if (!ser.name || /^Base /.test(ser.name)) ser.name = r.name || ser.name;
+        if (r.notes && !String(ser.notes || '').includes(r.notes)) ser.notes = (ser.notes ? ser.notes + '\n' : '') + r.notes;
+      } else if (!$('shApplyBox').classList.contains('hidden')) jobOnly = true;
+      saveData(state);
+      if (pendingJob) { const j = startJob({ machineName: pendingJob.machineName, series: ser, codice: '', lotto: '' }); pendingJob = null; note = (note ? note + ' · ' : '') + 'Lavoro: ' + j.machineName; }
+      setContext(null, ser.id, false);
+      if (jobOnly) { const jj = activeJob(); if (jj) { jj.giocoOv = { seriesId: ser.id, min: gmin, max: gmax }; saveData(state); note = `Gioco ${gmin}–${gmax} µm solo per questo lavoro (la serie resta ${ser.giocoMin}–${ser.giocoMax})`; } else note = `Gioco ${gmin}–${gmax} µm: serve un lavoro attivo per applicarlo solo a questo lavoro`; }
+      close(); lastPhoto = null; newMeasure(); showPage('calc');
+      toast((note || `Serie ${ser.name || 'Base ' + fmtMm3(ser.base)}`) + ' · scrivi la misura');
+    };
+  }
 
   function shareFile(filename, content, mime) {
     try { if (window.RettificaAndroid && RettificaAndroid.shareText) { RettificaAndroid.shareText(filename, content); return; } } catch (e) {}
@@ -3284,8 +3460,8 @@
     }; im.onerror = () => toast('Foto non leggibile', 'warn'); im.src = rd.result; };
     rd.readAsDataURL(f);
   }
-  async function webPhotoData(img, w, h) {
-    lastPhoto = { img, w, h, box: FULL_BOX() };
+  async function webPhotoData(img, w, h, keep) {
+    if (!keep || !lastPhoto) lastPhoto = { img, w, h, box: FULL_BOX() };
     const empty = (msg) => ({ S1A: null, F1A: null, G1A: null, rows: {}, header: {}, notes: [msg], lowConfidence: [] });
     const cfg = AI.cfgOf(prefs);
     if (!cfg.vision || !AI.hasKey(cfg.provider)) {
@@ -3294,6 +3470,7 @@
     }
     toast('✨ Leggo la foto con AI…');
     const r = await AI.readPhoto(prefs, img);
+    if (r.ok && r.kind === 'foglio') { pendingInt = false; pendingFem = false; openSheetConfirm(r.sheet); toast('Foglio disegno letto con AI: controlla i valori'); return; }
     if (r.ok) { openOcrConfirm(r.parsed); toast('Letto con AI: controlla i valori'); return; }
     toast(r.error, 'warn'); openOcrConfirm(empty(r.error + ' Scrivi i valori a mano o riprova.'));
   }
@@ -3303,11 +3480,13 @@
     const r = await AI.readPhoto(prefs, await aiPhotoData());
     if (!$('ocrAi')) return;
     if (!r.ok) { btn.classList.remove('off'); btn.textContent = '✨ Leggi foto con AI'; if (w) { w.innerHTML = '⚠ ' + esc(r.error) + ' Restano i valori della lettura normale.'; w.classList.remove('hidden'); } return; }
+    if (r.kind === 'foglio') { openSheetConfirm(r.sheet); toast('Foglio disegno riconosciuto: controlla i valori'); return; }
     openOcrConfirm(Object.assign(r.parsed, { _lavoro: parsed._lavoro }));
     const n = $('ocrParseNote'); if (n) n.classList.add('ai');
     toast('Letto con AI: controlla i valori');
   }
   window.__rettifica = {
+    openSheetConfirm: (x) => openSheetConfirm(x), get lastPhoto() { return lastPhoto; },
     man, renderMan: () => renderMan(),
     openHistModal: (a, b) => openHistModal(a, b), openMachineDialog: () => openMachineDialog(), openSeriesModal: (id) => openSeriesModal(id), saveCurrent: (x) => saveCurrent(x), refreshDisplay: () => refreshDisplay(), setDigits: (d) => { measureDigits = d; refreshDisplay(); },
     webPhotoData: (i, w, h) => webPhotoData(i, w, h), runCalc, showPage, setContext, openAssistant, chatSend: (t) => chatSend(t), get chatMsgs() { return chatMsgs; }, openAiSettings, aiCtx, get state() { return state; }, get prefs() { return prefs; },

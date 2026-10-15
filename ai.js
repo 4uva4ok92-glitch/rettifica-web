@@ -116,6 +116,18 @@
     + '"codice":string|null,"lotto":string|null,"note":string|null}. '
     + 'F e S in mm (diametro, es. 18.0098). G in mm con il segno (es. -0.0081). giocoMinMm/giocoMaxMm = limiti della riga G in mm (es. -0.008 e -0.011). Punto decimale.';
 
+  /** Beta 0.8.0: «Requisiti Disegno» sheet (any series, any layout, any rotation). */
+  const SHEET_BODY = 'Foglio «Requisiti Disegno»: tabella con colonne Requisiti Disegno (nominale ± tolleranza) / Limite superiore / Limite inferiore / Strumentazione di misura / Frequenza. '
+    + 'La foto può essere ruotata (anche di 90°): leggila comunque nel verso giusto. Leggi SOLO quello che vedi, non calcolare e non inventare. '
+    + 'Una voce in «righe» per ogni riga della tabella, nell\'ordine, con questa forma (null se non leggibile): '
+    + '{"nome":string,"tipoRiga":"parte"|"quota"|"accoppiamento"|"ovalita"|"conicita"|"altro","nominale":number|null,"tolPiu":number|null,"tolMeno":number|null,"limSup":number|null,"limInf":number|null,"strumento":string|null,"formula":string|null}. '
+    + 'parte = un pezzo con diametro (es. «Corpo Ø10» → nome "Corpo", nominale 10); quota = un\'altra quota del disegno (es. «1,4 ±0,05» → nominale 1.4, tolPiu 0.05, tolMeno 0.05, limSup 1.45, limInf 1.35); '
+    + 'accoppiamento = riga del gioco (limSup e limInf in mm come scritti, es. 0.03 e 0.01; formula come scritta, es. "Corpo-Spillo"). '
+    + 'Se una cella di limite è unita su entrambe le colonne, metti lo stesso valore in limSup e limInf. Numeri col punto decimale. strumento = come scritto (es. Altimetro, Bowers, Micrometro).';
+  const SHEET_PROMPT = 'Questa è la foto di un ' + SHEET_BODY + ' Rispondi SOLO con JSON valido: {"tipo":"foglio","righe":[…],"orientamentoGradi":0|90|180|270}.';
+  const AUTO_PROMPT = 'Prima decidi che foto è. A) Se è lo schermo di misura «Elenco caratteristiche» di una rettifica (righe F1A, S1A, G1A…): ' + VISION_PROMPT.replace(/^Questa è la foto dello schermo di misura «Elenco caratteristiche» di una rettifica\. /, '').replace('Rispondi SOLO con JSON valido, senza testo prima o dopo, con questa forma (null se non leggibile): {', 'Rispondi con JSON {"tipo":"schermo",')
+    + ' B) Se è un ' + SHEET_BODY + ' Rispondi con JSON {"tipo":"foglio","righe":[…],"orientamentoGradi":0|90|180|270}. Rispondi SOLO con il JSON, senza testo prima o dopo.';
+
   function num(v) {
     if (v == null || v === '') return null;
     const n = typeof v === 'number' ? v : Number(String(v).trim().replace(/[−–]/g, '-').replace(/\s/g, '').replace(',', '.'));
@@ -254,17 +266,26 @@
     return postRetry(cfg, body, 'chat', onStatus);
   }
   ask.backoff = [2000, 5000];
-  function readPhoto(prefs, dataUrl) {
-    const cfg = cfgOf(prefs);
+  /** mode: 'auto' (default: the model tells screen from sheet), 'schermo' (old prompt), 'foglio' (sheet only). */
+  function readPhoto(prefs, dataUrl, opt) {
+    const cfg = cfgOf(prefs), mode = (opt && opt.mode) || 'auto';
     if (!cfg.vision || !cfg.visionModel) return Promise.resolve({ ok: false, code: 'novision', error: errText('novision') });
     if (!dataUrl) return Promise.resolve({ ok: false, code: 'nophoto', error: errText('nophoto') });
+    const prompt = mode === 'foglio' ? SHEET_PROMPT : mode === 'schermo' ? VISION_PROMPT : AUTO_PROMPT;
     const vb = { model: cfg.visionModel, temperature: 0, max_tokens: 3000,
-      messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: dataUrl } }, { type: 'text', text: VISION_PROMPT }] }] };
+      messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: dataUrl } }, { type: 'text', text: prompt }] }] };
     if (cfg.provider === 'gemini') vb.reasoning_effort = 'low';
     return postRetry(cfg, vb, 'photo')
-      .then((r) => { if (!r.ok) return r; const p = visionToParsed(extractJson(r.text)); return p ? { ok: true, parsed: p } : { ok: false, code: 'badjson', error: errText('badjson') }; });
+      .then((r) => {
+        if (!r.ok) return r;
+        const j = extractJson(r.text), FP = root.FoglioParse || (typeof require !== 'undefined' ? require('./foglio-parse.js') : null);
+        if (j && FP && mode !== 'schermo' && (j.tipo === 'foglio' || (mode === 'foglio' && Array.isArray(j.righe)))) {
+          const sh = FP.foglioFromAi(j); return sh ? { ok: true, kind: 'foglio', sheet: sh, rot: Number(j.orientamentoGradi) || 0 } : { ok: false, code: 'badjson', error: errText('badjson') };
+        }
+        const p = visionToParsed(j); return p ? { ok: true, kind: 'schermo', parsed: p } : { ok: false, code: 'badjson', error: errText('badjson') };
+      });
   }
-  const api = { md, apiErr, postRetry, FALLBACK, pasteKey, openLink, looksLikeKey, KEY_STEPS, PROVIDERS, DEFAULT_PROVIDER, DEFAULTS, WEB_KEY, REGOLE, REMINDER, cfgOf, hasKey, setKey, keyHint, buildContext, systemPrompt, foreignNumbers, extractJson, visionToParsed, errText, ask, readPhoto, VISION_PROMPT };
+  const api = { md, apiErr, postRetry, FALLBACK, pasteKey, openLink, looksLikeKey, KEY_STEPS, PROVIDERS, DEFAULT_PROVIDER, DEFAULTS, WEB_KEY, REGOLE, REMINDER, cfgOf, hasKey, setKey, keyHint, buildContext, systemPrompt, foreignNumbers, extractJson, visionToParsed, errText, ask, readPhoto, VISION_PROMPT, SHEET_PROMPT, AUTO_PROMPT };
   root.RettificaAI = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
