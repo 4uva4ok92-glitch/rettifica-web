@@ -1861,8 +1861,57 @@ function presetCorpoSpillo10() {
     notes: 'Maschio = spillo (micrometro), femmina = corpo (Bowers). Gioco = F − S. Femmine numerate in µm sopra 10,000 (+7 = 10,007). Altre quote del disegno, fuori dall\'accoppiamento: 1,4 ± 0,05 e 4,4 ± 0,2 (altimetro).' };
 }
 
+
+// ── Beta 0.8.1: Aiuto (contatti + messaggio pre-compilato). Pure helpers; the app never sends anything by itself. ──
+const HELP_MSGS = [
+  { id: 'aiuto', label: 'Serve aiuto', tpl: 'Ho bisogno d’aiuto sulla macchina {macchina} – lavoro {serie}.' },
+  { id: 'fuori', label: 'Pezzo fuori quota', tpl: 'Pezzo fuori quota sulla macchina {macchina} – lavoro {serie}.' },
+  { id: 'ferma', label: 'Macchina ferma', tpl: 'La macchina {macchina} è ferma – lavoro {serie}.' },
+  { id: 'controparte', label: 'Mi serve una controparte', tpl: 'Mi serve una controparte per la macchina {macchina} – lavoro {serie}.' },
+];
+/** Keep «+» and digits only. */
+function phoneClean(raw) {
+  let s = String(raw == null ? '' : raw).trim().replace(/[^\d+]/g, '');
+  s = s.replace(/(?!^)\+/g, ''); if (s.startsWith('00')) s = '+' + s.slice(2);
+  return s;
+}
+function phoneValid(raw) { const d = phoneClean(raw).replace(/\D/g, ''); return d.length >= 6 && d.length <= 15; }
+/** wa.me wants the number in international format, digits only. Without a country code the default (Italy, 39) is added. */
+function waNumber(raw, cc) {
+  const c = phoneClean(raw); if (!c) return '';
+  if (c.startsWith('+')) return c.slice(1);
+  const d = c.replace(/\D/g, ''), code = String(cc || '39');
+  if (d.startsWith(code) && d.length > 10) return d; // already has the country code
+  return /^[03]/.test(d) ? code + d : d;
+}
+/** Message from a template + context {macchina, serie} (+ optional last measure text and free note). */
+function helpMessage(tpl, ctx, extra) {
+  const c = ctx || {}, e = extra || {};
+  let t = String(tpl || HELP_MSGS[0].tpl).replace(/\{macchina\}/g, c.macchina || '(non indicata)').replace(/\{serie\}/g, c.serie || '(non scelto)');
+  if (e.measure) t += ' Ultima misura: ' + e.measure + '.';
+  if (e.note && String(e.note).trim()) t += ' ' + String(e.note).trim();
+  return t;
+}
+function helpLinks(raw, text, cc) {
+  const c = phoneClean(raw), body = encodeURIComponent(String(text || ''));
+  return { wa: 'https://wa.me/' + waNumber(raw, cc) + '?text=' + body, sms: 'sms:' + c + '?body=' + body, tel: 'tel:' + c };
+}
+/** Contacts: at most one «di turno». */
+function setOnShift(list, id) { return (list || []).map((x) => Object.assign({}, x, { onShift: x.id === id ? !x.onShift : false })); }
+function shiftContact(list) { return (list || []).find((x) => x.onShift) || null; }
+/** Merge imported contacts, skipping the same phone number. */
+function mergeContacts(list, incoming) {
+  const out = (list || []).slice(), seen = new Set(out.map((x) => phoneClean(x.phone)));
+  let added = 0, dup = 0;
+  (Array.isArray(incoming) ? incoming : []).forEach((x) => { if (!x || typeof x !== 'object' || !String(x.name || '').trim() || !phoneValid(x.phone)) return;
+    const k = phoneClean(x.phone); if (seen.has(k)) { dup++; return; } seen.add(k);
+    out.push({ id: String(x.id || 'ct_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)), name: String(x.name).slice(0, 60), role: String(x.role || '').slice(0, 60), phone: String(x.phone).slice(0, 30), onShift: false }); added++; });
+  return { list: out, added, dup };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
 module.exports = {
+  HELP_MSGS, phoneClean, phoneValid, waNumber, helpMessage, helpLinks, setOnShift, shiftContact, mergeContacts,
   seriesObjective, applyObjective, fixedFemale, interpretNearBase, presetCorpoSpillo10,
   parseGiocoSheet, parseTolMm, rangeFromNominal, manualTarget, manualStatus,
   interpretG, CAL_DEFAULT, machineCal, calRules, tocchiFor, fmtTocchi, corrWordsDiam, LIM_DEFAULT, jobLimits, qualityLines, historySnap, editHistoryRecord, importDuplicates,

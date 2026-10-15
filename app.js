@@ -1,4 +1,4 @@
-/* Rettifica Beta v0.8.0 (base: Rettifica OmT v2.0.8) */
+/* Rettifica Beta v0.8.1 (base: Rettifica OmT v2.0.8) */
 (function () {
   const STORAGE_KEY = 'rweb_v1';
   const PREFS_KEY = 'rweb_v1_prefs';
@@ -6,7 +6,7 @@
   const CLEAN_KEY = 'rweb_clean_206';       // v2.0.6 one-time clean start done
   const BACKUP_KEY = 'rweb_backup_pre206';
   const BACKUPS_KEY = 'rweb_backups';           // Beta 0.1.0: last 5 automatic backups (before migration / import / wipe)
-  const APP_VERSION = '0.8.0';
+  const APP_VERSION = '0.8.1';
   /** Beta 0.1.0: automatic local backup; also kept as the «hidden restore» backup (Setup). */
   function autoBackup(why, rawData, rawPrefs) {
     try {
@@ -141,7 +141,7 @@
     try { const raw = localStorage.getItem(STORAGE_KEY); if (!raw) { const d = defaultData(); d.v194 = true; d.preset072 = true; d.appVersion = APP_VERSION; saveData(d); return d; }
       const parsed = JSON.parse(raw);
       const d = migrate(JSON.parse(raw));
-      // Beta 0.8.0: on update add the series «Corpo/Spillo Ø10» once, only if no series with base 10 exists (never touches other data)
+      // Beta 0.8.1: on update add the series «Corpo/Spillo Ø10» once, only if no series with base 10 exists (never touches other data)
       if (!d.preset072) { d.preset072 = true; d.series = d.series || [];
         if (!d.series.some((x) => Math.abs(Number(x.base) - 10) < 0.0005)) d.series.push(Object.assign({ id: 'corpo10_' + Date.now().toString(36), machineId: (d.machines && d.machines[0] && d.machines[0].id) || null, history: [], stock: {} }, presetCorpoSpillo10())); }
       // Beta 0.1.0: back up BEFORE a migration or an app update changes the saved data
@@ -516,7 +516,7 @@
     const prevActive = document.querySelector('.page.active');
     document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
     document.querySelectorAll('.nv').forEach((b) => {
-      const map = { macchine: 'setup', serie: 'setup', train: 'setup', guida: 'setup', femmina: 'calc', interno: 'calc', manuale: 'calc' };
+      const map = { macchine: 'setup', serie: 'setup', train: 'setup', guida: 'setup', chat: 'setup', femmina: 'calc', interno: 'calc', manuale: 'calc' };
       b.classList.toggle('on', b.dataset.page === name || b.dataset.page === map[name]);
     });
     const page = $('page-' + name); if (page) page.classList.add('active');
@@ -531,8 +531,9 @@
     if (name === 'train') renderTrain();
     if (name === 'femmina') renderFemPage();
     if (name === 'interno') renderIntPage();
-    if (name === 'manuale') { if (prevActive !== page) manOnOpen(); renderMan(); } // Beta 0.8.0: draft back, current measure empty
+    if (name === 'manuale') { if (prevActive !== page) manOnOpen(); renderMan(); } // Beta 0.8.1: draft back, current measure empty
     if (name === 'chat') renderChat();
+    if (name === 'aiuto') renderAiuto();
     if (name !== 'calc' || $('calcResultView').classList.contains('hidden')) $('actBar').classList.add('hidden');
     else $('actBar').classList.remove('hidden');
     if (name !== 'calc' && !undoFn) hideUndo(); // v2.0.3: a delete undo stays for its 8 s across pages
@@ -565,7 +566,7 @@
     $('prefixMenu').innerHTML = '<div class="pm-h">Intero · resta fisso</div>' + [bi - 1, bi, bi + 1].map((p) =>
       `<button type="button" data-pref="${p}" class="${p === cur ? 'on' : ''}">${p},</button>`).join('');
   }
-  /** Beta 0.8.0: big live preview of the measure the app will use, with machine, job, base and gioco nearby. */
+  /** Beta 0.8.1: big live preview of the measure the app will use, with machine, job, base and gioco nearby. */
   function renderLivePrev(series, p) {
     const el = $('livePreview'), cx = $('liveCtx'); if (!el) return;
     const m = myMachine(), j = jobsOn ? activeJob() : null;
@@ -664,7 +665,7 @@
     const gOv = opts && opts.gioco && opts.gioco.min != null && opts.gioco.max != null ? opts.gioco : jOv;
     const gMin = gOv ? gOv.min : series.giocoMin, gMax = gOv ? gOv.max : series.giocoMax;
     const mode = lavoroMode();
-    const acc = applyObjective(calcAccoppiamento(S, series.base, gMin, gMax, mode), seriesObjective(Object.assign({}, series, { giocoMin: gMin, giocoMax: gMax }))); // Beta 0.8.0: only series with an objective change the recommendation
+    const acc = applyObjective(calcAccoppiamento(S, series.base, gMin, gMax, mode), seriesObjective(Object.assign({}, series, { giocoMin: gMin, giocoMax: gMax }))); // Beta 0.8.1: only series with an objective change the recommendation
     // Beta 0.2.0: when the user manages the pieces on the table, classify and recommend available + valid first
     const stockCls = classifyStock(acc, series.stock || {});
     const stockRec = stockCls.managed
@@ -677,7 +678,7 @@
       giocoMin: gMin, giocoMax: gMax, giocoSrc: gOv ? (gOv.src || 'foto') : 'serie',
       selected: stockRec.recommended[0] != null ? stockRec.recommended[0] : null, oval: null, con: null, conEnd: null, taper: { dav: null, fondo: null }, status: 'ok',
       wantPezzo: null, corrDone: false, savedId: null };
-    const fxF = mode !== 'femmina' && series.fixedF != null ? Number(series.fixedF) : null; // Beta 0.8.0: femmina fissa
+    const fxF = mode !== 'femmina' && series.fixedF != null ? Number(series.fixedF) : null; // Beta 0.8.1: femmina fissa
     if (fxF != null && Number.isFinite(fxF)) { lastCalc.fixed = Object.assign({ F: fxF }, fixedFemale(fxF, S, series.base, gMin, gMax)); lastCalc.selected = lastCalc.fixed.n; }
     $('vaBeneBox').classList.add('hidden');
     if ($('fInput')) $('fInput').value = '';
@@ -698,7 +699,7 @@
     if (lastCalc.acc.recommended[0] != null) return lastCalc.acc.recommended[0];
     return Math.round(lastCalc.acc.ideal);
   }
-  // ── Beta 0.8.0: per-machine calibration (µm per tocco, diametro/raggio, verso del +, stato). Default = identical to before. ──
+  // ── Beta 0.8.1: per-machine calibration (µm per tocco, diametro/raggio, verso del +, stato). Default = identical to before. ──
   function taperOpts(m) { const L = limOf(); return { invert: calOf(m).taper === 'invertito', okUm: L.conOk, maxUm: L.conMax }; }
   function calOf(m) { return machineCal(m || myMachine()); }
   function calT(o, diffKey, m) { // tocchi from the µm change (configuration only)
@@ -850,7 +851,7 @@
       if (fx) parts.push(`<div class="fixed-box ${fx.ok ? 'ok' : 'no'}" id="fixedBox">Femmina fissa ${esc(fmtMm4(fx.F))} mm (${sg(fx.n)}) · gioco F − S <b>${esc(fmtUm(fx.gioco))} µm</b> → <b>${fx.ok ? '✓ OK' : '✗ NO'}</b> <small>(${gcR.min}–${gcR.max} µm)</small></div>`);
       if (a.obiettivo != null) parts.push(`<div class="obj-line" id="objLine">Consigliata <b>${a.consigliata == null ? '—' : sg(a.consigliata)}</b> (gioco obiettivo ${esc(fmtUm(a.obiettivo))} µm) · consigliate <b>${a.fascia.length ? sg(a.fascia[0]) + '…' + sg(a.fascia[a.fascia.length - 1]) : '—'}</b> (gioco ${esc(fmtUm(a.fasciaLo))}–${esc(fmtUm(a.fasciaHi))}) · valide <b>${a.valid.length ? sg(a.valid[0]) + '…' + sg(a.valid[a.valid.length - 1]) : 'nessuna'}</b> (gioco ${gcR.min}–${gcR.max})</div>`);
       on.innerHTML = parts.join(''); on.classList.toggle('hidden', !parts.length); }
-    const noForm = series.forma === false; // Beta 0.8.0: series without ovalità/conicità
+    const noForm = series.forma === false; // Beta 0.8.1: series without ovalità/conicità
     ['taperCard', 'formBox'].forEach((id) => { if ($(id)) $(id).classList.toggle('noform', noForm); });
     document.body.classList.toggle('no-forma', noForm);
     const pn = $('resPhotoNote'); if (pn) { pn.textContent = lastCalc.photoNote || ''; pn.classList.toggle('hidden', !lastCalc.photoNote); }
@@ -1356,7 +1357,7 @@
   $('btnIntOpen').addEventListener('click', openInt); $('btnIntOpen2').addEventListener('click', openInt);
   $('intBack').addEventListener('click', () => showPage('calc'));
   function intShift() { const t0 = (state.turno && state.turno.startedAt) || ''; return (state.interni || []).filter((r) => String(r.ts || '') >= t0).length; }
-  // ── Beta 0.8.0: Rettifica manuale (everything by hand; no series, no photo). Math in calc.js: manualTarget / manualStatus ──
+  // ── Beta 0.8.1: Rettifica manuale (everything by hand; no series, no photo). Math in calc.js: manualTarget / manualStatus ──
   function calLegend() { const c = calOf(); return '1 tocco = ' + fmtUm(c.umPerTocco) + ' µm sul ' + c.scala; }
   const man = { mode: 'maschio', mk: 'mis', last: null };
   function manNum(id) { const v = $(id) ? parseMmNumber($(id).value) : null; return v == null ? null : v; }
@@ -1366,7 +1367,7 @@
     if (man.mk === 'mis') { const v = manNum('manMate'); if (v != null) mate = { lo: v, hi: v, src: 'misurata' }; }
     else { const n = manNum('manMateNomV'); if (n != null) { const r = rangeFromNominal(n, parseTolMm($('manMateT1').value), parseTolMm($('manMateT2').value)); mate = Object.assign(r, { src: 'nominale', nom: n }); } }
     let gMin = parseGiocoSheet($('manGmin').value), gMax = parseGiocoSheet($('manGmax').value), gSwap = false;
-    if (gMin != null && gMax != null && gMin > gMax) { [gMin, gMax] = [gMax, gMin]; gSwap = true; } // Beta 0.8.0: same as Calcolo, min/max never inverted
+    if (gMin != null && gMax != null && gMin > gMax) { [gMin, gMax] = [gMax, gMin]; gSwap = true; } // Beta 0.8.1: same as Calcolo, min/max never inverted
     const on = manNum('manOwnNom'), draw = on != null ? rangeFromNominal(on, parseTolMm($('manOwnT1').value), parseTolMm($('manOwnT2').value)) : null;
     const t = manualTarget(mode, mate, gMin, gMax, draw);
     const cur = manNum('manCur'), cal = calOf();
@@ -1419,7 +1420,7 @@
       <span><b class="cond">${r.mode === 'femmina' ? 'Foro' : 'Maschio'} da ${esc(fmtMm4(r.target.lo))} a ${esc(fmtMm4(r.target.hi))} mm</b>${r.cur != null ? ' · misura ' + esc(fmtMm4(r.cur)) + ' mm ' + (r.state === 'ok' ? '<b style="color:var(--green)">✓ in quota</b>' : r.state === 'no' ? '<b style="color:#ff8a8a">non recuperabile</b>' : '<b style="color:var(--amber)">da togliere ' + esc(fmtUm(r.removeUm)) + ' µm</b>') : ''}<small> gioco ${esc(fmtUm(r.giocoMin))}–${esc(fmtUm(r.giocoMax))} µm${r.machineName ? ' · ' + esc(r.machineName) : ''}</small></span></div>`).join('')
       : '<p class="meta">Nessuna rettifica manuale salvata (Calcolo → ✍ Manuale).</p>';
   }
-  // ── Beta 0.8.0: last manual draft in prefs (never the current measure: each piece starts empty) ──
+  // ── Beta 0.8.1: last manual draft in prefs (never the current measure: each piece starts empty) ──
   const MAN_DRAFT_IDS = ['manMate', 'manMateNomV', 'manMateT1', 'manMateT2', 'manGmin', 'manGmax', 'manOwnNom', 'manOwnT1', 'manOwnT2'];
   function manSaveDraft() {
     const f = {}; MAN_DRAFT_IDS.forEach((id) => { const v = $(id) ? String($(id).value || '') : ''; if (v) f[id] = v.slice(0, 24); });
@@ -1630,7 +1631,7 @@
     const gioco = giocoOf(n, acc);
     const L0 = limOf(series);
     const nf = series.forma === false;
-    const status = (st === 'no' || (!nf && formStatus(lastCalc.con, L0.conOk, L0.conMax) === 'no') || (!nf && formStatus(lastCalc.oval, L0.ovalOk, L0.ovalMax) === 'no')) ? 'scarto' : 'buono'; // Beta 0.8.0: job limits
+    const status = (st === 'no' || (!nf && formStatus(lastCalc.con, L0.conOk, L0.conMax) === 'no') || (!nf && formStatus(lastCalc.oval, L0.ovalOk, L0.ovalMax) === 'no')) ? 'scarto' : 'buono'; // Beta 0.8.1: job limits
     const id = uid(), ts = new Date().toISOString();
     series.history = series.history || [];
     series.history.push({ id, ts, S: lastCalc.S, chosen: n, gioco: lastCalc.fixed ? lastCalc.fixed.gioco : gioco, fixedF: lastCalc.fixed ? lastCalc.fixed.F : undefined, oval: lastCalc.oval != null ? lastCalc.oval : null,
@@ -2812,7 +2813,7 @@
     const gMax0 = plan.gmax != null ? plan.gmax : (ser0 ? ser0.giocoMax : '');
     // idea 7: paired photo → verdict straight from the G row
     let pairedBox = '';
-    const gi = interpretG(G, paired ? F : null, paired ? S : null); // Beta 0.8.0: G with its own sign, gioco = F − S, never flipped silently
+    const gi = interpretG(G, paired ? F : null, paired ? S : null); // Beta 0.8.1: G with its own sign, gioco = F − S, never flipped silently
     if (paired && gUm != null && fromPhoto && !useF && gi.giocoUm != null) {
       const gap = gi.giocoUm, ok = !gi.interferenza && gap >= parsed.giocoMin - 0.05 && gap <= parsed.giocoMax + 0.05;
       pairedBox = `<div class="paired-verdict ${ok ? 'ok' : 'no'}">Pezzo già accoppiato · gioco di accoppiamento ${esc((gap > 0 ? '+' : gap < 0 ? '−' : '') + fmtUm(Math.abs(gap)))} µm → <b>${gi.interferenza ? 'INTERFERENZA' : ok ? 'GIOCO CONFORME' : 'FUORI GIOCO'}</b> <span>(${parsed.giocoMin}–${parsed.giocoMax} µm)</span><small class="pv-g">${esc(gi.note)}</small></div>`;
@@ -2937,7 +2938,7 @@
         }
         note = `Nuova serie Base ${fmtMm3(ser.base)} · gioco ${g.min}–${g.max} creata dalla foto`;
         saveData(state);
-      } else if (!$('ocrGSave').classList.contains('hidden') && $('ocrApSer').checked) { // Beta 0.8.0: the user chose «Aggiorna anche la serie»
+      } else if (!$('ocrGSave').classList.contains('hidden') && $('ocrApSer').checked) { // Beta 0.8.1: the user chose «Aggiorna anche la serie»
         note = `Base ${fmtMm3(ser.base)}: gioco della serie aggiornato ${ser.giocoMin}–${ser.giocoMax} → ${g.min}–${g.max} µm (era ${ser.giocoMin}–${ser.giocoMax})`;
         ser.giocoPrev = (ser.giocoPrev || []).concat([{ ts: new Date().toISOString(), min: ser.giocoMin, max: ser.giocoMax }]).slice(-10);
         ser.giocoMin = g.min; ser.giocoMax = g.max;
@@ -3018,7 +3019,7 @@
       if (code === 'cancel') { toast(res.error && res.error.length <= 30 ? res.error : 'Foto annullata'); return; }
       toast(OCR_MSG[code] || 'Lettura foto non riuscita', 'warn'); return;
     }
-    if (FG && !res._noRotate) { // Beta 0.8.0: drawing-requirements sheet (or a photo to rotate) – PC screens are never touched
+    if (FG && !res._noRotate) { // Beta 0.8.1: drawing-requirements sheet (or a photo to rotate) – PC screens are never touched
       const pc = typeof parseElencoBlocks === 'function' && res.blocks ? parseElencoBlocks(res.blocks) : (typeof parseElencoText === 'function' ? parseElencoText(res.fullText || '') : null);
       if (!(pc && (pc.S1A != null || pc.F1A != null || pc.G1A != null)) && sheetOrRotate(res)) return;
     }
@@ -3028,7 +3029,7 @@
   };
   if ($('fotoHint')) $('fotoHint').textContent = hasNativeOcr() ? 'Foto più precisa: da vicino solo le righe F1A · S1A · G1A, dritto davanti allo schermo (📷 → Scatta foto o Dalla galleria; tieni premuto 📷 per la galleria). Anche il foglio «Requisiti Disegno» si legge da foto. Conferma sempre.' : '';
 
-  // ── Beta 0.8.0: «Requisiti Disegno» sheet photos (any series / layout / rotation) ──
+  // ── Beta 0.8.1: «Requisiti Disegno» sheet photos (any series / layout / rotation) ──
   const FG = window.FoglioParse || null;
   let ocrAuto = null; // automatic rotation tries after a photo that is neither a PC screen nor a readable sheet
   const hasNativeRot = () => { try { return !!(window.RettificaAndroid && RettificaAndroid.hasOcrRot && RettificaAndroid.hasOcrRot()); } catch (e) { return false; } };
@@ -3485,7 +3486,132 @@
     const n = $('ocrParseNote'); if (n) n.classList.add('ai');
     toast('Letto con AI: controlla i valori');
   }
+  // ── Beta 0.8.1: Aiuto – contacts + «Chiedi aiuto» (WhatsApp / SMS / Chiama). Numbers stay on this device (own key,
+  //    never in exports/backups/CSV); the app only OPENS WhatsApp/SMS/phone with the text: the user taps Send. ──
+  const CONTACTS_KEY = 'rweb_contacts';
+  let contacts = (() => { try { const a = JSON.parse(localStorage.getItem(CONTACTS_KEY) || '[]'); return Array.isArray(a) ? a.filter((c) => c && typeof c === 'object' && c.name).map((c) => ({ id: String(c.id || uid()), name: String(c.name).slice(0, 60), role: String(c.role || '').slice(0, 60), phone: String(c.phone || '').slice(0, 30), onShift: !!c.onShift })) : []; } catch (e) { return []; } })();
+  function saveContacts() { try { localStorage.setItem(CONTACTS_KEY, JSON.stringify(contacts)); } catch (e) {} }
+  /** Open WhatsApp (wa.me), the SMS app (sms:) or the dialer (tel:) – nothing is sent by the app itself. */
+  function openExt(url) {
+    const b = window.RettificaAndroid;
+    if (b && b.openExternal) { try { b.openExternal(url); return true; } catch (e) {} }
+    if (/^(tel|sms):/i.test(url)) { try { window.location.href = url; return true; } catch (e) { return false; } }
+    try { window.open(url, '_blank', 'noopener'); return true; } catch (e) { return false; }
+  }
+  window.__openedExt = window.__openedExt || [];
+  const openExtTracked = (u) => { window.__openedExt.push(u); return window.__noExt ? true : openExt(u); };
+  function helpCtx() {
+    const { machine, series } = currentContext(), aj = jobsOn ? activeJob() : null;
+    const macchina = (aj && aj.machineName) || (machine && machine.name) || '';
+    const serie = series ? (series.name && !/^Base /.test(series.name) ? series.name : 'Base ' + fmtMm3(series.base)) : '';
+    let measure = '';
+    if (lastCalc && lastCalc.S != null) measure = (lastCalc.display || fmtMmS(lastCalc.S)) + ' mm';
+    else if (series && series.history && series.history.length) { const h = series.history[series.history.length - 1]; const v = h && (h.S != null ? h.S : h.F); if (v != null && isFinite(v)) measure = fmtMmS(v) + ' mm'; }
+    return { macchina, serie, measure };
+  }
+  function renderAiuto() {
+    const list = $('ctList'); if (!list) return;
+    const c = helpCtx(), sh = contacts.find((x) => x.onShift);
+    $('helpSub').innerHTML = c.macchina || c.serie ? `Macchina <b>${esc(c.macchina || '—')}</b> · lavoro <b>${esc(c.serie || '—')}</b>` : 'Nessun lavoro scelto: puoi scrivere tu la nota.';
+    list.innerHTML = contacts.length ? contacts.map((x) => `<div class="ct-card${x.onShift ? ' shift' : ''}" data-id="${esc(x.id)}">
+      <div class="ct-main"><b class="ct-name">${esc(x.name)}</b>${x.onShift ? '<span class="ct-badge">DI TURNO</span>' : ''}<span class="ct-role">${esc(x.role || '—')}</span><span class="ct-phone">${esc(x.phone)}</span></div>
+      <div class="ct-btns"><button type="button" class="btn ${x.onShift ? 'btn-teal' : 'btn-sec'}" data-act="shift">${x.onShift ? '✓ Di turno' : 'Metti di turno'}</button>
+      <button type="button" class="btn btn-sec" data-act="edit">✎ Modifica</button><button type="button" class="btn btn-sec" data-act="del" aria-label="Elimina ${esc(x.name)}">🗑</button></div></div>`).join('')
+      : '<p class="meta ct-empty">Nessun contatto. Aggiungi il responsabile di turno, il capoturno, la manutenzione…</p>';
+    list.querySelectorAll('.ct-card').forEach((card) => card.querySelectorAll('button').forEach((bt) => { bt.onclick = () => { haptic(12); const id = card.dataset.id, a = bt.dataset.act;
+      if (a === 'shift') { contacts = setOnShift(contacts, id); saveContacts(); renderAiuto(); const x = contacts.find((y) => y.id === id); toast(x && x.onShift ? x.name + ' è di turno' : 'Nessuno di turno'); }
+      else if (a === 'edit') openContactForm(id); else if (a === 'del') confirmDeleteContact(id); }; }));
+    $('helpAsk').classList.toggle('dim', !contacts.length);
+    $('helpAskSub').textContent = contacts.length ? (sh ? 'Scrive a ' + sh.name + ' (di turno)' : 'Scegli a chi scrivere') : 'Prima aggiungi un contatto';
+  }
+  function openContactForm(id) {
+    const x = contacts.find((c) => c.id === id) || { name: '', role: '', phone: '', onShift: !contacts.some((c) => c.onShift) && !contacts.length };
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal ct-form" id="ctForm"><h2>${id ? 'Modifica contatto' : 'Nuovo contatto'}</h2>
+      <label for="ctName">Nome</label><input id="ctName" value="${esc(x.name)}" autocomplete="off" placeholder="es. Marco Rossi"/>
+      <label for="ctRole">Ruolo</label><input id="ctRole" list="ctRoles" value="${esc(x.role)}" autocomplete="off" placeholder="es. responsabile di turno"/>
+      <datalist id="ctRoles"><option value="Responsabile di turno"></option><option value="Capoturno"></option><option value="Manutenzione"></option><option value="Qualità"></option><option value="Collega"></option><option value="Capo reparto"></option></datalist>
+      <label for="ctPhone">Telefono</label><input id="ctPhone" type="tel" inputmode="tel" value="${esc(x.phone)}" autocomplete="off" placeholder="es. 333 123 4567 o +39 333…"/>
+      <label class="chk-big"><input type="checkbox" id="ctShift" ${x.onShift ? 'checked' : ''}/><span>È di turno adesso</span></label>
+      <div id="ctErr" class="form-err hidden"></div>
+      <div class="actions" style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn btn-sec" id="ctCancel" style="flex:1;min-height:56px">Annulla</button><button type="button" class="btn btn-teal" id="ctSave" style="flex:1.4;min-height:56px">✓ Salva</button></div></div></div>`;
+    const close = () => { $('modalRoot').innerHTML = ''; };
+    $('ctCancel').onclick = close; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') close(); };
+    $('ctSave').onclick = () => {
+      const name = $('ctName').value.replace(/\s+/g, ' ').trim(), role = $('ctRole').value.replace(/\s+/g, ' ').trim(), phone = $('ctPhone').value.trim(), sh = $('ctShift').checked;
+      const er = (t) => { const e = $('ctErr'); e.textContent = t; e.classList.remove('hidden'); haptic(60); };
+      if (!name) { er('Scrivi il nome.'); return; }
+      if (!phoneValid(phone)) { er('Numero non valido: servono da 6 a 15 cifre (es. 333 123 4567).'); return; }
+      if (id) { const c = contacts.find((y) => y.id === id); Object.assign(c, { name, role, phone }); } else contacts.push({ id: uid(), name, role, phone, onShift: false });
+      const cid = id || contacts[contacts.length - 1].id;
+      if (sh) contacts = contacts.map((y) => Object.assign({}, y, { onShift: y.id === cid })); else if (id) contacts = contacts.map((y) => (y.id === cid ? Object.assign({}, y, { onShift: false }) : y));
+      saveContacts(); close(); renderAiuto(); toast('Contatto salvato');
+    };
+    setTimeout(() => { try { $('ctName').focus(); } catch (e) {} }, 50);
+  }
+  function confirmDeleteContact(id) {
+    const x = contacts.find((c) => c.id === id); if (!x) return;
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal del-confirm" id="ctDel"><h2>Eliminare il contatto?</h2><p class="meta"><b>${esc(x.name)}</b> · ${esc(x.phone)}</p>
+      <div class="actions" style="display:flex;gap:8px;margin-top:12px"><button type="button" class="btn btn-sec" id="ctDelNo" style="flex:1;min-height:56px">Annulla</button><button type="button" class="btn btn-danger" id="ctDelYes" style="flex:1.3;min-height:56px">🗑 Elimina</button></div></div></div>`;
+    const close = () => { $('modalRoot').innerHTML = ''; };
+    $('ctDelNo').onclick = close; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') close(); };
+    $('ctDelYes').onclick = () => { contacts = contacts.filter((c) => c.id !== id); saveContacts(); close(); renderAiuto(); toast('Contatto eliminato'); };
+  }
+  function openHelp() {
+    if (!contacts.length) { toast('Prima aggiungi un contatto', 'warn'); openContactForm(null); return; }
+    const ctx = helpCtx(), sh = shiftContact(contacts) || contacts[0];
+    let sel = sh.id, msgId = 'aiuto', edited = false;
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal help-modal" id="helpModal"><h2>🆘 Chiedi aiuto</h2>
+      <div class="meta">A chi scrivere</div><div class="hp-cts" id="hpCts">${contacts.map((x) => `<label class="hp-ct${x.id === sel ? ' on' : ''}" data-id="${esc(x.id)}"><input type="radio" name="hpC" value="${esc(x.id)}" ${x.id === sel ? 'checked' : ''}/><span><b>${esc(x.name)}</b>${x.onShift ? ' <i class="ct-badge">DI TURNO</i>' : ''}<small>${esc(x.role || '—')} · ${esc(x.phone)}</small></span></label>`).join('')}</div>
+      <div class="meta">Messaggio rapido</div><div class="hp-quick" id="hpQuick">${HELP_MSGS.map((m) => `<button type="button" class="chip${m.id === msgId ? ' on' : ''}" data-hq="${m.id}">${esc(m.label)}</button>`).join('')}</div>
+      <label class="chk-big"><input type="checkbox" id="hpMeasChk" ${ctx.measure ? '' : 'disabled'}/><span>Aggiungi l'ultima misura${ctx.measure ? ': <b>' + esc(ctx.measure) + '</b>' : ' (nessuna misura)'}</span></label>
+      <label for="hpNote">Nota libera (facoltativa)</label><input id="hpNote" placeholder="es. vieni al banco 3" autocomplete="off"/>
+      <label for="hpText">Testo del messaggio (puoi modificarlo)</label><textarea id="hpText" rows="4"></textarea>
+      <button type="button" class="btn btn-sec hidden" id="hpRegen" style="width:100%;min-height:44px;margin:4px 0">↺ Rigenera il testo</button>
+      <div class="hp-send"><button type="button" class="btn hp-wa" id="hpWa">WhatsApp</button><button type="button" class="btn hp-sms" id="hpSms">SMS</button><button type="button" class="btn hp-call" id="hpCall">📞 Chiama</button></div>
+      <p class="meta hp-note">L'app non invia nulla da sola: si apre WhatsApp, SMS o il telefono e tocchi tu <b>Invia</b> / <b>Chiama</b>.</p>
+      <button type="button" class="btn btn-sec" id="hpClose" style="width:100%;min-height:52px;margin-top:6px">Chiudi</button></div></div>`;
+    const close = () => { $('modalRoot').innerHTML = ''; };
+    const compose = () => { const m = HELP_MSGS.find((x) => x.id === msgId) || HELP_MSGS[0]; return helpMessage(m.tpl, ctx, { measure: $('hpMeasChk').checked ? ctx.measure : '', note: $('hpNote').value }); };
+    const refill = () => { if (!edited) $('hpText').value = compose(); $('hpRegen').classList.toggle('hidden', !edited); };
+    document.querySelectorAll('#hpCts .hp-ct').forEach((l) => l.addEventListener('click', () => { sel = l.dataset.id; document.querySelectorAll('#hpCts .hp-ct').forEach((x) => x.classList.toggle('on', x === l)); }));
+    document.querySelectorAll('#hpQuick [data-hq]').forEach((b) => { b.onclick = () => { haptic(10); msgId = b.dataset.hq; edited = false; document.querySelectorAll('#hpQuick .chip').forEach((x) => x.classList.toggle('on', x === b)); refill(); }; });
+    $('hpMeasChk').addEventListener('change', refill); $('hpNote').addEventListener('input', refill);
+    $('hpText').addEventListener('input', () => { edited = true; $('hpRegen').classList.remove('hidden'); });
+    $('hpRegen').onclick = () => { edited = false; refill(); };
+    refill();
+    const go = (kind) => {
+      const c = contacts.find((x) => x.id === sel); if (!c) { toast('Scegli a chi scrivere', 'warn'); return; }
+      const text = $('hpText').value.trim(); if (!text && kind !== 'tel') { toast('Scrivi il messaggio', 'warn'); return; }
+      const L = helpLinks(c.phone, text); haptic(20);
+      const ok = openExtTracked(L[kind]);
+      toast(!ok ? 'Non riesco ad aprire l’app' : kind === 'wa' ? 'Si apre WhatsApp: tocca Invia' : kind === 'sms' ? 'Si apre SMS: tocca Invia' : 'Si apre il telefono: tocca Chiama', ok ? '' : 'warn');
+    };
+    $('hpWa').onclick = () => go('wa'); $('hpSms').onclick = () => go('sms'); $('hpCall').onclick = () => go('tel');
+    $('hpClose').onclick = close; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') close(); };
+  }
+  function openContactsExport() {
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal del-confirm" id="ctExpWarn"><h2>⚠ Esportare i contatti?</h2>
+      <p>Il file contiene <b>nomi e numeri di telefono</b>. Condividilo solo con persone di fiducia. I contatti <b>non</b> sono mai nel backup normale.</p>
+      <div class="actions" style="display:flex;gap:8px;margin-top:12px"><button type="button" class="btn btn-sec" id="ctExpNo" style="flex:1;min-height:56px">Annulla</button><button type="button" class="btn btn-teal" id="ctExpYes" style="flex:1.3;min-height:56px">Esporta comunque</button></div></div></div>`;
+    const close = () => { $('modalRoot').innerHTML = ''; };
+    $('ctExpNo').onclick = close; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') close(); };
+    $('ctExpYes').onclick = () => { close(); shareFile('rettifica-contatti-' + todayKey() + '.json', JSON.stringify({ tipo: 'contatti', contatti: contacts.map((x) => ({ name: x.name, role: x.role, phone: x.phone })) }, null, 2), 'application/json'); };
+  }
+  if ($('helpAsk')) {
+    $('helpAsk').addEventListener('click', () => { haptic(15); openHelp(); });
+    $('ctAdd').addEventListener('click', () => { haptic(10); openContactForm(null); });
+    $('ctExport').addEventListener('click', () => { haptic(10); if (!contacts.length) { toast('Nessun contatto da esportare', 'warn'); return; } openContactsExport(); });
+    $('ctImport').addEventListener('click', () => $('ctImportFile').click());
+    $('ctImportFile').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0]; if (!f) return; const rd = new FileReader();
+      rd.onload = () => { try { const j = JSON.parse(String(rd.result || '')); const r = mergeContacts(contacts, Array.isArray(j) ? j : j.contatti); contacts = r.list; saveContacts(); renderAiuto(); toast(`Contatti importati: ${r.added}${r.dup ? ' · già presenti ' + r.dup : ''}`); } catch (er) { toast('File contatti non valido', 'warn'); } e.target.value = ''; };
+      rd.readAsText(f);
+    });
+    if ($('chatBack')) $('chatBack').addEventListener('click', () => { haptic(10); showPage('setup'); });
+  }
+
   window.__rettifica = {
+    get contacts() { return contacts; }, renderAiuto: () => renderAiuto(), openHelp: () => openHelp(),
     openSheetConfirm: (x) => openSheetConfirm(x), get lastPhoto() { return lastPhoto; },
     man, renderMan: () => renderMan(),
     openHistModal: (a, b) => openHistModal(a, b), openMachineDialog: () => openMachineDialog(), openSeriesModal: (id) => openSeriesModal(id), saveCurrent: (x) => saveCurrent(x), refreshDisplay: () => refreshDisplay(), setDigits: (d) => { measureDigits = d; refreshDisplay(); },
