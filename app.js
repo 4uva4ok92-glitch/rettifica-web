@@ -1,4 +1,4 @@
-/* Rettifica Beta v0.8.1 (base: Rettifica OmT v2.0.8) */
+/* Rettifica Beta v0.9.0 (base: Rettifica OmT v2.0.8) */
 (function () {
   const STORAGE_KEY = 'rweb_v1';
   const PREFS_KEY = 'rweb_v1_prefs';
@@ -6,7 +6,7 @@
   const CLEAN_KEY = 'rweb_clean_206';       // v2.0.6 one-time clean start done
   const BACKUP_KEY = 'rweb_backup_pre206';
   const BACKUPS_KEY = 'rweb_backups';           // Beta 0.1.0: last 5 automatic backups (before migration / import / wipe)
-  const APP_VERSION = '0.8.1';
+  const APP_VERSION = '0.9.0';
   /** Beta 0.1.0: automatic local backup; also kept as the «hidden restore» backup (Setup). */
   function autoBackup(why, rawData, rawPrefs) {
     try {
@@ -31,6 +31,7 @@
   })();
   const STUDER_NOTE = 'Su Studer il tasto + fa il pezzo più piccolo, − più grande.';
   const $ = (id) => document.getElementById(id);
+  const L9 = window.Lavoro; // Beta 0.9.0 helpers (lavoro.js)
   const esc = (t) => String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   let toastTimer = null;
   function clearToast() {
@@ -217,7 +218,7 @@
     const name = String(o.machineName || (m && m.name) || 'Macchina').replace(/\s+/g, ' ').trim().slice(0, 40);
     const sameMachine = m && name.toLowerCase() === String(m.name).trim().toLowerCase();
     const knob = sameMachine ? cloneKnob(m.knob) : knobForMachineName(state, name);
-    const j = makeJob({ machineName: name, knob, series: o.series, codice: o.codice, lotto: o.lotto });
+    const j = makeJob({ machineName: name, knob, series: o.series, codice: o.codice, lotto: o.lotto, rev: o.rev, lav: o.lav });
     state.jobs = (state.jobs || []).filter((x) => x.machineName || x.seriesId || x.base != null); // v2.0.6: drop the empty first-start placeholder
     state.jobs.push(j);
     if (m) rememberMachineName(name, m.name);
@@ -257,7 +258,7 @@
     const s = seriesById(j.seriesId);
     const base = s ? s.base : j.base, gmin = s ? s.giocoMin : j.giocoMin, gmax = s ? s.giocoMax : j.giocoMax;
     const st = jobStats(j, allSeries());
-    const extra = [j.codice ? 'Cod. ' + j.codice : '', j.lotto ? 'Lotto ' + j.lotto : ''].filter(Boolean).join(' · ');
+    const extra = metaLine(jobMeta(j, s));
     const last = st.last ? `ultima ${fmtMmS(st.last.S)} mm → pezzo ${st.last.chosen} · ${fmtTime(st.last.ts)}` : 'nessuna misura salvata';
     const when = j.day !== localDayKey() ? ' · ' + j.day.split('-').reverse().slice(0, 2).join('/') : '';
     return `<button type="button" class="job-card ${active ? 'on' : ''}" data-job="${esc(j.id)}" ${archived ? 'data-arch="1"' : ''}>
@@ -425,6 +426,7 @@
       <h2>Lavori di oggi</h2>
       <button type="button" class="btn-job wide" id="jsNew"><span class="ji">📷</span><span><b>Nuovo lavoro</b><small>📷 Foto del foglio → dati del lavoro</small></span></button>
       <button type="button" class="btn btn-sec" id="jsMach" style="width:100%;min-height:52px;margin-top:8px">✎ Macchina: ${esc((myMachine() || {}).name || '—')} · rinomina / taratura</button>
+      <div class="js-tools"><button type="button" class="btn btn-sec" id="jsData">✎ Dati lavoro</button><button type="button" class="btn btn-sec" id="jsRecv">📥 Ricevi lavoro</button><button type="button" class="btn btn-sec" id="jsSend">📤 Invia lavoro</button></div>
       <div class="job-list">${list.map((j) => jobRowHtml(j, j.id === prefs.jobId)).join('')}</div>
       ${arch.length ? `<details class="adv"><summary>Giorni precedenti (${(state.jobsArchive || []).length})</summary>
         <p class="meta" style="margin:4px 0 8px">Tocca per riprenderlo oggi (stessa macchina e serie).</p>
@@ -435,6 +437,7 @@
     $('modalBg').onclick = (ev) => { if (ev.target.id === 'modalBg') close(); };
     $('jsNew').onclick = () => { close(); openNewJob(); };
     $('jsMach').onclick = () => { close(); openMachineDialog(); };
+    $('jsData').onclick = () => { close(); openJobData(); }; $('jsRecv').onclick = () => { close(); openReceiveMenu(); }; $('jsSend').onclick = () => { close(); openSendJob(); };
     $('modalRoot').querySelectorAll('[data-jdel]').forEach((b) => { b.onclick = (ev) => { ev.stopPropagation(); haptic(15); openJobDelete(b.dataset.jdel); }; });
     $('modalRoot').querySelectorAll('[data-job]').forEach((b) => {
       b.onclick = () => {
@@ -516,14 +519,15 @@
     const prevActive = document.querySelector('.page.active');
     document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
     document.querySelectorAll('.nv').forEach((b) => {
-      const map = { macchine: 'setup', serie: 'setup', train: 'setup', guida: 'setup', chat: 'setup', femmina: 'calc', interno: 'calc', manuale: 'calc' };
+      const map = { macchine: 'setup', serie: 'setup', train: 'setup', guida: 'setup', chat: 'setup', quaderno: 'setup', femmina: 'calc', interno: 'calc', manuale: 'calc' };
       b.classList.toggle('on', b.dataset.page === name || b.dataset.page === map[name]);
     });
     const page = $('page-' + name); if (page) page.classList.add('active');
     document.body.dataset.page = name; // v2.0.6: the undo bar leaves the ← of «Adatta alla femmina» free
     if (!prevActive || prevActive !== page) $('mainWrap').scrollTop = 0; // v1.9.4: new page opens at the top
     if (name === 'calc') { renderEmpty(); updateChip(); updatePrefix(); refreshDisplay(); renderRecent(); }
-    if (name === 'setup') fillSetupSelects();
+    if (name === 'setup') { fillSetupSelects(); refreshSetup090(); }
+    if (name === 'quaderno') renderQuaderno();
     if (name === 'macchine') renderMachines();
     if (name === 'serie') renderSeries();
     if (name === 'storico') { histShown = 50; renderFemList(); renderIntList(); renderManList(); renderStorico(); renderAndamento(); renderArchivio(); }
@@ -545,7 +549,7 @@
     const { machine, series } = currentContext();
     renderLavoro();
     $('machCode').textContent = machine ? machine.name : '—';
-    updateJobsPill();
+    updateJobsPill(); renderJobStrip();
     if (series) {
       $('chipTitle').textContent = 'Base ' + fmtMm3(series.base);
       const sub = $('chipSub'); if (sub) sub.textContent = (machine ? machine.name : '') + ' · gioco ' + series.giocoMin + '–' + series.giocoMax + ' µm';
@@ -1636,7 +1640,7 @@
     series.history = series.history || [];
     series.history.push({ id, ts, S: lastCalc.S, chosen: n, gioco: lastCalc.fixed ? lastCalc.fixed.gioco : gioco, fixedF: lastCalc.fixed ? lastCalc.fixed.F : undefined, oval: lastCalc.oval != null ? lastCalc.oval : null,
       snap: historySnap(series, lastCalc.giocoMin, lastCalc.giocoMax, calOf(machineById(lastCalc.machineId) || myMachine())),
-      con: lastCalc.con, conEnd: lastCalc.con > 0 ? (lastCalc.conEnd || null) : null, status, lavoro: lastCalc.mode || 'maschio', machineId: lastCalc.machineId, machineName: (myMachine() || {}).name || '', jobId: prefs.jobId || null });
+      con: lastCalc.con, conEnd: lastCalc.con > 0 ? (lastCalc.conEnd || null) : null, status, lavoro: lastCalc.mode || 'maschio', machineId: lastCalc.machineId, machineName: (myMachine() || {}).name || '', jobId: prefs.jobId || null, meta: metaSnap() });
     if (series.history.length > HIST_MAX) series.history = series.history.slice(-HIST_MAX);
     const stockTaken = stockTake(series.stock, n); // Beta 0.2.0: only on Salva; Annulla gives it back (undoSave)
     state.turno = state.turno || { saves: [], note: '', startedAt: ts };
@@ -1645,7 +1649,7 @@
     const aj = activeJob();
     state.turno.saves.push({ id, ts, seriesId: series.id, seriesName: series.name, chosen: n, status,
       S: lastCalc.S, gioco, correction: corrected, jobId: prefs.jobId || null, lavoro: lastCalc.mode || 'maschio',
-      machineName: (aj && aj.machineName) || (myMachine() || {}).name || '' });
+      machineName: (aj && aj.machineName) || (myMachine() || {}).name || '', meta: metaSnap() });
     captureJob(true);
     prefs.lastMeasureBySeries = prefs.lastMeasureBySeries || {};
     const prevLast = prefs.lastMeasureBySeries[series.id] || null;
@@ -1663,7 +1667,7 @@
     if (prefs.voiceAuto) speakIt('Salvato ' + n);
     // v1.9.7: straight to a fresh measure (cleared keypad, ovalità/conicità back to «non misurata»)
     newMeasure(); clearToast();
-    renderFatti(); renderRiepilogo();
+    renderFatti(); renderRiepilogo(); dressAfterSave(); // Beta 0.9.0: promemoria diamantatura
     showUndo(fmtSaveMsg(n, gioco, status));
   }
 
@@ -2100,8 +2104,9 @@
     const fm = $('filterMachineSerie'); if (fm) fm.classList.add('hidden');
     const list = state.series; const { series: cur } = currentContext();
     $('seriesList').innerHTML = list.map((s) => {
-      return `<div class="item ${cur && cur.id === s.id ? 'on' : ''}"><h3>Base ${fmtMm3(s.base)}${s.lotto ? ' · ' + esc(s.lotto) : ''}</h3><div class="meta">gioco ${s.giocoMin}–${s.giocoMax} µm · tol ±${esc(fmtMm3(seriesTol(s)))}${cur && cur.id === s.id ? ' · <b style="color:var(--orange)">in uso</b>' : ''}</div>
-        <div class="actions"><button type="button" class="btn btn-sec" data-edit-s="${esc(s.id)}" style="flex:1">Modifica</button>
+      const sm = metaLine({ codice: s.codice, rev: s.rev, lav: s.lav, lotto: '' });
+      return `<div class="item ${cur && cur.id === s.id ? 'on' : ''}"><h3>Base ${fmtMm3(s.base)}${s.lotto ? ' · ' + esc(s.lotto) : ''}${lockedNow(s) ? ' <span class="lock-ic" title="Bloccata dal PIN">🔒</span>' : ''}</h3><div class="meta">gioco ${s.giocoMin}–${s.giocoMax} µm · tol ±${esc(fmtMm3(seriesTol(s)))}${cur && cur.id === s.id ? ' · <b style="color:var(--orange)">in uso</b>' : ''}</div>${sm ? `<div class="meta">${esc(sm)}</div>` : ''}
+        <div class="actions"><button type="button" class="btn btn-sec" data-edit-s="${esc(s.id)}" style="flex:1">Modifica</button><button type="button" class="btn btn-sec" data-pkg-s="${esc(s.id)}" aria-label="Pacchetto: invia o esporta" style="flex:0 0 auto;min-width:56px">📦</button>
         <button type="button" class="btn btn-sec" data-dup-s="${esc(s.id)}" style="flex:1">Duplica</button>
         <button type="button" class="btn btn-teal" data-use-s="${esc(s.id)}" style="flex:1">Usa</button>
         <button type="button" class="btn btn-danger s-del" data-del-s="${esc(s.id)}" aria-label="Elimina serie Base ${esc(fmtMm3(s.base))}">${TRASH}</button></div></div>`;
@@ -2109,15 +2114,17 @@
   }
   $('seriesList').addEventListener('click', (e) => {
     const ed = e.target.closest('[data-edit-s]'), del = e.target.closest('[data-del-s]');
-    const use = e.target.closest('[data-use-s]'), dup = e.target.closest('[data-dup-s]');
-    if (ed) openSeriesModal(ed.dataset.editS);
+    const use = e.target.closest('[data-use-s]'), dup = e.target.closest('[data-dup-s]'), pk = e.target.closest('[data-pkg-s]');
+    if (pk) { openSendJob(pk.dataset.pkgS); return; }
+    if (ed) { unlockedSess.clear(); openSeriesModal(ed.dataset.editS); }
     if (dup) { const src = seriesById(dup.dataset.dupS); if (!src) return;
-      const copy = Object.assign({}, src, { id: uid(), name: 'Base ' + fmtMm3(src.base) + ' (copia)', history: [], stock: {} });
+      const copy = Object.assign({}, src, { id: uid(), name: 'Base ' + fmtMm3(src.base) + ' (copia)', history: [], stock: {} }); delete copy.fromPackage;
       state.series.push(copy); saveData(state); openSeriesModal(copy.id); }
     if (del) { haptic(15); openSeriesDelete(del.dataset.delS); }
     if (use) { const s = seriesById(use.dataset.useS); if (s) { setContext(null, s.id, true); showPage('calc'); newMeasure(); } }
   });
   $('btnAddSeries').addEventListener('click', () => openSeriesModal(null));
+  const unlockedSess = new Set(); // series unlocked with the PIN while the editor is open
   function openSeriesModal(id) {
     const s = id ? seriesById(id) : { lotto: '', base: '', tolleranza: 0.1, giocoMin: 10, giocoMax: 13, notes: '', history: [], stock: {} };
     if (!s) return;
@@ -2137,16 +2144,26 @@
       <div><label class="chk-big" style="margin-top:22px"><input type="checkbox" id="sForma" ${s.forma === false ? '' : 'checked'}/><span>Controlla ovalità/conicità</span></label></div></div>
       ${id ? '<p class="meta" id="sHistNote">Le misure già salvate tengono le quote di quando sono state fatte: modificare qui non le ricalcola.</p>' : ''}
       <label>Lotto / codice</label><input id="sLotto" value="${esc(s.lotto || '')}"/>
+      <div class="field-row"><div><label>Codice disegno</label><input id="sCod" value="${esc(s.codice || '')}" maxlength="40" placeholder="es. 12345-A"/></div><div><label>Revisione</label><input id="sRev" value="${esc(s.rev || '')}" maxlength="12" placeholder="es. B"/></div></div>
+      <label>Lavorazione / operazione</label><input id="sLav" value="${esc(s.lav || '')}" maxlength="40" placeholder="es. 0522"/>
       <label>Note</label><textarea id="sNotes">${esc(s.notes || '')}</textarea>
       <div id="sErr" class="form-err hidden"></div>
       <div class="actions" style="margin-top:10px"><button type="button" class="btn btn-sec" id="sCancel" style="flex:1">Annulla</button>
       <button type="button" class="btn btn-teal" id="sSave" style="flex:1">Salva</button></div>
       ${id ? `<button type="button" class="btn btn-danger del-btn" id="sDelete">${TRASH}<span>Elimina serie</span></button>` : ''}</div></div>`;
-    $('sCancel').onclick = () => { $('modalRoot').innerHTML = ''; };
+    $('sCancel').onclick = () => { unlockedSess.clear(); $('modalRoot').innerHTML = ''; };
     if ($('sPreset10')) $('sPreset10').onclick = () => { const p = presetCorpoSpillo10(); $('sBase').value = '10,000'; $('sTol').value = '0,1'; $('sGmin').value = p.giocoMin; $('sGmax').value = p.giocoMax;
       $('sObj').value = p.obiettivo; $('sFLo').value = p.fasciaLo; $('sFHi').value = p.fasciaHi; $('sForma').checked = false; $('sLotto').value = p.lotto; $('sNotes').value = p.notes; haptic(15); toast('Preset Corpo/Spillo Ø10: controlla e Salva'); };
     if ($('sDelete')) $('sDelete').onclick = () => { haptic(15); openSeriesDelete(id); };
+    // Beta 0.9.0: locked series (PIN) – fields read-only until the PIN is typed (protection against mistakes)
+    const lockedUI = !!(id && lockedNow(s) && !unlockedSess.has(id));
+    if (lockedUI) {
+      ['sBase', 'sTol', 'sGmin', 'sGmax', 'sConOk', 'sConMax', 'sOvOk', 'sOvMax', 'sObj', 'sFLo', 'sFHi', 'sFixF', 'sForma', 'sLotto', 'sCod', 'sRev', 'sLav'].forEach((x) => { if ($(x)) $(x).disabled = true; }); $('sSave').disabled = true;
+      $('modalRoot').querySelector('.modal h2').insertAdjacentHTML('afterend', '<div class="lock-bar" id="sLockBar">🔒 Serie bloccata dal PIN: protegge tolleranze e gioco dagli errori.<button type="button" class="btn btn-teal" id="sUnlock">Sblocca con PIN</button></div>');
+      $('sUnlock').onclick = async () => { if (await askPin('🔒 Sblocca la serie', 'Base ' + fmtMm3(s.base))) unlockedSess.add(id); openSeriesModal(id); };
+    }
     $('sSave').onclick = () => {
+      if (lockedUI) return;
       const v = validateSeriesInput({ base: $('sBase').value, tol: $('sTol').value, gmin: $('sGmin').value, gmax: $('sGmax').value });
       if (!v.ok) { const er = $('sErr'); er.textContent = v.error; er.classList.remove('hidden'); haptic(60); return; }
       const nv = (id2) => { const x = Number(String($(id2).value).replace(',', '.')); return Number.isFinite(x) && x >= 0 && x <= 50 ? x : null; };
@@ -2156,11 +2173,11 @@
       const on = (id3) => { const t = String($(id3).value).trim(); if (!t) return null; const x = Number(t.replace(',', '.')); return Number.isFinite(x) && x >= 0 && x <= 100 ? x : NaN; };
       const obiettivo = on('sObj'), fasciaLo = on('sFLo'), fasciaHi = on('sFHi'), fxT = String($('sFixF').value).trim(), fixedF = fxT ? parseMmNumber(fxT) : null;
       if ([obiettivo, fasciaLo, fasciaHi].some((x) => Number.isNaN(x)) || (fxT && fixedF == null)) { const er = $('sErr'); er.textContent = 'Obiettivo / fascia in µm (es. 20 e 20–25), femmina fissa in mm (es. 10,009)'; er.classList.remove('hidden'); haptic(60); return; }
-      const payload = Object.assign({ lim, obiettivo, fasciaLo, fasciaHi, fixedF: fixedF != null ? round4(fixedF) : null, forma: $('sForma').checked ? true : false, machineId: mid, name: 'Base ' + fmtMm3(v.value.base), lotto: $('sLotto').value.trim(), notes: $('sNotes').value }, v.value);
+      const payload = Object.assign({ lim, obiettivo, fasciaLo, fasciaHi, fixedF: fixedF != null ? round4(fixedF) : null, forma: $('sForma').checked ? true : false, machineId: mid, name: 'Base ' + fmtMm3(v.value.base), lotto: $('sLotto').value.trim(), codice: $('sCod').value.trim().slice(0, 40), rev: $('sRev').value.trim().slice(0, 12), lav: $('sLav').value.trim().slice(0, 40), notes: $('sNotes').value }, v.value);
       let sid = id;
       if (id) Object.assign(seriesById(id), payload);
       else { sid = uid(); state.series.push(Object.assign({ id: sid, history: [], stock: {} }, payload)); }
-      saveData(state); $('modalRoot').innerHTML = '';
+      saveData(state); unlockedSess.clear(); $('modalRoot').innerHTML = '';
       if (!id && !seriesById(prefs.seriesId)) setContext(null, sid, false);
       if (lastCalc && lastCalc.seriesId === sid) { lastCalc = null; showInputView(); }
       if ($('page-serie').classList.contains('active')) renderSeries();
@@ -2301,12 +2318,19 @@
       <div><div class="meta">Correzioni</div><b>${sum.correzioni}</b></div>
       <div style="grid-column:1/-1"><div class="meta">Utilizzo</div><b>${formatMostUsed(sum.mostUsed)}</b></div></div>
       ${sum.byMachine.length ? `<div class="meta" style="margin-top:8px">Pezzi fatti per macchina</div><div class="rp-mac">${sum.byMachine.map((m) => `<div>${esc(fmtMachineLine(m))}</div>`).join('')}</div>` : ''}
-      <div class="meta" style="margin-top:8px">${sum.bySeries.map((s) => esc(s.name) + ': ' + s.count).join(' · ') || ''}</div>`;
+      <div class="meta" style="margin-top:8px">${sum.bySeries.map((s) => esc(s.name) + ': ' + s.count).join(' · ') || ''}</div>
+      ${(() => { const l = turnoLavori((state.turno && state.turno.saves) || []); return l.length ? `<div class="meta" style="margin-top:8px">Lavori</div><div class="rp-mac" id="rpLavori">${l.map((x) => `<div>${esc(x)}</div>`).join('')}</div>` : ''; })()}`;
+  }
+  /** Beta 0.9.0: distinct «Cod. · rev · Lav. · Lotto» lines of the jobs worked in a list of saves */
+  function turnoLavori(saves) {
+    const out = [];
+    (saves || []).forEach((sv) => { const l = metaLine(sv.meta || jobMeta(sv.jobId ? findJob(sv.jobId) : null, seriesAny(sv.seriesId))); if (l && !out.includes(l)) out.push(l); });
+    return out;
   }
   function shiftText() {
     ensurePezzi();
     const sum = shiftSum();
-    let t = 'Rettifica Beta — riepilogo turno\nPezzi fatti: ' + sum.total + ' · Buoni: ' + sum.buoni + ' · Scarti: ' + sum.scarti + '\n';
+    let t = 'Rettifica Beta — riepilogo turno\n' + turnoLavori((state.turno && state.turno.saves) || []).map((l) => 'Lavoro: ' + l + '\n').join('') + 'Pezzi fatti: ' + sum.total + ' · Buoni: ' + sum.buoni + ' · Scarti: ' + sum.scarti + '\n';
     sum.byMachine.forEach((m) => { t += '  ' + fmtMachineLine(m) + '\n'; });
     t += 'Correzioni: ' + sum.correzioni + ' · Portati via: ' + sum.pezziPortati + '\n';
     t += formatMostUsed(sum.mostUsed) + '\n';
@@ -2355,7 +2379,7 @@
     // v2.0.0: archived saves keep their machine name, so «Pezzi fatti» per machine survives the archive
     const savesArch = ((state.turno && state.turno.saves) || []).map((s) => Object.assign({}, s, { machineName: saveMachineName(s) }));
     const closedAt = new Date().toISOString();
-    state.turniArchivio.unshift({ id: uid(), closedAt, summary: Object.assign({}, sum, { femmine: fd0 }), saves: savesArch });
+    state.turniArchivio.unshift({ id: uid(), closedAt, summary: Object.assign({}, sum, { femmine: fd0, lavori: turnoLavori(savesArch) }), saves: savesArch });
     state.turno = { startedAt: closedAt, note: '', saves: [], checks: [], correzioni: 0, prevClosed: { at: closedAt, total: f0.total, femmine: fd0 } };
     state.pezzi.entries = []; saveData(state); lastSaveRec = null; hideUndo(); renderTurno(); renderPezzi(); renderRiepilogo();
     toast('✓ Turno chiuso e archiviato (' + f0.total + (f0.total === 1 ? ' pezzo' : ' pezzi') + ')'); window.scrollTo(0, 0);
@@ -2408,6 +2432,7 @@
       const mname = h.machineName || (m ? m.name : '');
       return `<div class="item"><div><strong>${esc(mname)}</strong> · Base ${fmtMm3(h.series.base)}${h.series.deletedAt ? ' <span class="meta">(serie eliminata)</span>' : ''}</div>
         <div class="meta">${h.ts ? new Date(h.ts).toLocaleString('it-IT') : ''}</div>
+        ${(() => { const ml = metaLine(rowMeta(h, h.series)); return ml ? `<div class="meta hist-meta">${esc(ml)}</div>` : ''; })()}
         <div>S ${esc(fmtMmS(h.S))} → pezzo <b>${esc(String(h.chosen))}</b> · gioco ${fmtUm(h.gioco)} µm${h.con != null ? ` · conicità ${fmtUm(h.con)} µm${h.conEnd ? ' ' + (h.conEnd === 'fondo' ? 'in fondo' : 'davanti') : ''}` : ''}
           ${h.status === 'scarto' ? ' · <span class="scarto-badge">scarto</span>' : ''}</div>
         <div class="actions"><button type="button" class="btn btn-sec" data-edit-h="${h.series.id}|${h.id}" style="flex:1">Modifica</button>
@@ -2453,7 +2478,7 @@
     $('archivioList').innerHTML = list.length ? list.map((t) =>
       `<div class="item"><b>${new Date(t.closedAt).toLocaleString('it-IT')}</b>
         <div class="meta">${t.summary.total} pezzi fatti · buoni ${t.summary.buoni} · scarti ${t.summary.scarti} · portati ${t.summary.pezziPortati}</div>
-        ${(t.summary.byMachine || []).length ? `<div class="meta">${t.summary.byMachine.map((m) => esc(m.name + ' · ' + m.total)).join(' · ')}</div>` : ''}</div>`
+        ${(t.summary.byMachine || []).length ? `<div class="meta">${t.summary.byMachine.map((m) => esc(m.name + ' · ' + m.total)).join(' · ')}</div>` : ''}${(t.summary.lavori || []).length ? `<div class="meta">${t.summary.lavori.map(esc).join(' | ')}</div>` : ''}</div>`
     ).join('') : '<div class="empty">Nessun turno chiuso</div>';
   }
 
@@ -2735,8 +2760,9 @@
         state.series.push(ser); note = 'Nuova serie Base ' + fmtMm3(ser.base);
       } else if (pl.action === 'use') {
         ser = pl.series;
+        if (lockedNow(ser)) { if (pl.gioco || pl.tol != null) toast('Serie bloccata dal PIN: quote non cambiate', 'warn'); } else {
         if (pl.gioco) { ser.giocoMin = pl.gioco.min; ser.giocoMax = pl.gioco.max; }
-        if (pl.tol != null) ser.tolleranza = pl.tol;
+        if (pl.tol != null) ser.tolleranza = pl.tol; }
       }
       const name = r.machineName || (pendingJob && pendingJob.machineName) || (myMachine() || {}).name || 'Macchina';
       pendingJob = null; lastPhoto = null;
@@ -2930,7 +2956,7 @@
       let ser = t.ser, note = '';
       if (t.isNew) {
         const dup = state.series.find((s) => Math.abs(s.base - t.base) < 0.0005);
-        if (dup) { ser = dup; ser.giocoMin = g.min; ser.giocoMax = g.max; }
+        if (dup) { ser = dup; if (!lockedNow(dup)) { ser.giocoMin = g.min; ser.giocoMax = g.max; } }
         else {
           ser = { id: uid(), machineId: myMachine() ? myMachine().id : null, name: 'Base ' + fmtMm3(t.base), lotto: $('ocrLotto').value.trim(), notes: 'Creata dalla foto',
             base: round4(t.base), tolleranza: t.tol, giocoMin: g.min, giocoMax: g.max, history: [], stock: {} };
@@ -2938,7 +2964,7 @@
         }
         note = `Nuova serie Base ${fmtMm3(ser.base)} · gioco ${g.min}–${g.max} creata dalla foto`;
         saveData(state);
-      } else if (!$('ocrGSave').classList.contains('hidden') && $('ocrApSer').checked) { // Beta 0.8.1: the user chose «Aggiorna anche la serie»
+      } else if (!$('ocrGSave').classList.contains('hidden') && $('ocrApSer').checked && !lockedNow(ser)) { // Beta 0.8.1: the user chose «Aggiorna anche la serie»
         note = `Base ${fmtMm3(ser.base)}: gioco della serie aggiornato ${ser.giocoMin}–${ser.giocoMax} → ${g.min}–${g.max} µm (era ${ser.giocoMin}–${ser.giocoMax})`;
         ser.giocoPrev = (ser.giocoPrev || []).concat([{ ts: new Date().toISOString(), min: ser.giocoMin, max: ser.giocoMax }]).slice(-10);
         ser.giocoMin = g.min; ser.giocoMax = g.max;
@@ -3178,7 +3204,7 @@
         ser = { id: uid(), machineId: myMachine() ? myMachine().id : null, name: r.name || 'Base ' + fmtMm3(r.base), lotto: r.name || '', notes: r.notes, base: round4(r.base), tolleranza: r.tol, giocoMin: gmin, giocoMax: gmax, history: [], stock: {} };
         if (r.noForma) ser.forma = false; if (Object.keys(lim).length) ser.lim = lim;
         state.series.push(ser); note = `Nuova serie ${ser.name} · gioco ${gmin}–${gmax} µm`;
-      } else if (!$('shApplyBox').classList.contains('hidden') && $('shApSer').checked) {
+      } else if (!$('shApplyBox').classList.contains('hidden') && $('shApSer').checked && !lockedNow(ser)) {
         ser.giocoPrev = (ser.giocoPrev || []).concat([{ ts: new Date().toISOString(), min: ser.giocoMin, max: ser.giocoMax }]).slice(-10);
         note = `Serie ${ser.name || 'Base ' + fmtMm3(ser.base)} aggiornata: gioco ${ser.giocoMin}–${ser.giocoMax} → ${gmin}–${gmax} µm`;
         ser.giocoMin = gmin; ser.giocoMax = gmax; if (r.noForma) ser.forma = false; else delete ser.forma; if (Object.keys(lim).length) ser.lim = Object.assign({}, ser.lim, lim);
@@ -3209,7 +3235,8 @@
     allSeries().forEach((s) => (s.history || []).forEach((h) => {
       const m = machineById(h.machineId);
       rows.push({ ts: h.ts, machine: h.machineName || (m ? m.name : ''), base: s.base, lotto: s.lotto || '', S: h.S,
-        d: h.S != null ? round1((h.S - s.base) * 1000) : null, chosen: h.chosen, gioco: h.gioco, oval: h.oval, con: h.con, conEnd: h.conEnd || null, status: h.status || '', lavoro: h.lavoro || 'maschio' });
+        d: h.S != null ? round1((h.S - s.base) * 1000) : null, chosen: h.chosen, gioco: h.gioco, oval: h.oval, con: h.con, conEnd: h.conEnd || null, status: h.status || '', lavoro: h.lavoro || 'maschio',
+        codice: rowMeta(h, s).codice, rev: rowMeta(h, s).rev, lav: rowMeta(h, s).lav, lot: rowMeta(h, s).lotto, serie: s.lotto || ('Base ' + fmtMm3(s.base)), tol: (h.snap && h.snap.tolMm != null) ? h.snap.tolMm : seriesTol(s), gmin: h.snap ? h.snap.giocoMin : s.giocoMin, gmax: h.snap ? h.snap.giocoMax : s.giocoMax });
     }));
     femRows().forEach((r) => rows.push(r)); // v2.0.5 female pieces (page Femmina)
     intRows().forEach((r) => rows.push(r)); // Beta 0.3.0 interno (bore)
@@ -3262,7 +3289,7 @@
   }
   $('btnReset').addEventListener('click', () => {
     $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal del-confirm" id="wipeConfirm"><h2>Azzera tutto?</h2>
-      <p class="del-p">Cancella <b>basi e serie, lavori, macchina, storico, conteggi del turno, magazzino, taratura e femmine</b>. Restano solo le preferenze (tema, voce).</p>
+      <p class="del-p">Cancella <b>basi e serie, lavori, macchina, storico, conteggi del turno, magazzino, taratura, femmine e quaderno macchina</b>. Restano solo le preferenze (tema, voce).</p>
       <p class="meta">Prima l'app salva un backup automatico (recuperabile da Setup).</p>
       <div class="actions" style="display:flex;gap:8px;margin-top:12px"><button type="button" class="btn btn-sec" id="wipeNo" style="flex:1;min-height:56px">Annulla</button>
       <button type="button" class="btn btn-danger" id="wipeYes" style="flex:1.3;min-height:56px">🗑 Azzera tutto</button></div></div></div>`;
@@ -3610,6 +3637,495 @@
     if ($('chatBack')) $('chatBack').addEventListener('click', () => { haptic(10); showPage('setup'); });
   }
 
+  // ══════════════════════════════════════════════════════════════════════════════════════════════
+  // Beta 0.9.0 – Pacchetto serie / Lavoro ricevuto, blocco PIN, promemoria diamantatura, Quaderno macchina,
+  // checklist per lavoro, report per lotto/turno. Nothing here touches the pairing math.
+  // ══════════════════════════════════════════════════════════════════════════════════════════════
+  function mKey() { return L9.machineKey((myMachine() || {}).name); }
+  function nameOfHist(h, s) { return h.machineName || (machineById(h.machineId || (s && s.machineId)) || {}).name || ''; }
+  function nowIso() { return new Date().toISOString(); }
+  function dmHm(ts) { const d = new Date(ts), p = (n) => String(n).padStart(2, '0'); return p(d.getDate()) + '/' + p(d.getMonth() + 1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()); }
+  /** code / revision / lavorazione / lotto of a job (job fields first, then the series') */
+  function jobMeta(j, s) { return { lotto: (j && j.lotto) || '', codice: (j && j.codice) || (s && s.codice) || '', rev: (j && j.rev) || (s && s.rev) || '', lav: (j && j.lav) || (s && s.lav) || '' }; }
+  function metaLine(m) { return [m.codice ? 'Cod. ' + m.codice : '', m.rev ? 'rev ' + m.rev : '', m.lav ? 'Lav. ' + m.lav : '', m.lotto ? 'Lotto ' + m.lotto : ''].filter(Boolean).join(' · '); }
+  function curMeta() { return jobMeta(jobsOn ? activeJob() : null, currentContext().series); }
+  function metaSnap() { const m = curMeta(); return (m.lotto || m.codice || m.rev || m.lav) ? m : null; }
+  function rowMeta(h, s) { return h.meta || jobMeta(h.jobId ? findJob(h.jobId) : null, s); }
+  function infoModal(title, html, okTxt) {
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal ask-big" id="infoModal" role="dialog" aria-modal="true"><h2>${esc(title)}</h2><div class="ask-body">${html}</div>
+      <div class="ask-btns"><button type="button" class="btn btn-orange" id="infoOk" style="flex:1">${esc(okTxt || 'OK')}</button></div></div></div>`;
+    $('infoOk').onclick = () => { $('modalRoot').innerHTML = ''; }; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') $('modalRoot').innerHTML = ''; };
+  }
+  /** hand a file to the share sheet (Android bridge) / Web Share / download. Returns 'native' | 'share' | 'download' | 'cancel'. */
+  async function shareOut(filename, content, mime, caption, b64) {
+    try {
+      if (window.RettificaAndroid) {
+        if (b64 != null && RettificaAndroid.shareFileBase64) { RettificaAndroid.shareFileBase64(filename, b64, mime); return 'native'; }
+        if (b64 == null && RettificaAndroid.shareFile) { RettificaAndroid.shareFile(filename, content, mime, caption || ''); return 'native'; }
+        if (b64 == null && RettificaAndroid.shareText) { RettificaAndroid.shareText(filename, content); return 'native'; }
+      }
+    } catch (e) {}
+    const blob = b64 != null ? new Blob([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))], { type: mime }) : new Blob([content], { type: mime });
+    try {
+      const file = typeof File !== 'undefined' ? new File([blob], filename, { type: mime }) : null;
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: filename, text: caption || '' }); return 'share'; }
+    } catch (e) { if (e && e.name === 'AbortError') return 'cancel'; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    toast('File creato: ' + filename); return 'download';
+  }
+
+  /* ───────── PIN: blocco quote (protezione contro gli ERRORI, non sicurezza) ───────── */
+  function lockOn() { return !!(prefs.pin && prefs.pin.hash); }
+  function lockedNow(s) { return !!(s && s.locked && lockOn()); }
+  function askPin(title, hint) {
+    return new Promise((resolve) => {
+      $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal ask-big" id="pinAsk" role="dialog" aria-modal="true"><h2>${esc(title || '🔒 Scrivi il PIN')}</h2>
+        <div class="ask-body">${hint ? `<p class="meta">${esc(hint)}</p>` : ''}<input id="pinIn" class="big-input pin-in" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="PIN"/>
+        <div id="pinErr" class="form-err hidden"></div><p class="meta" style="margin-top:8px"><button type="button" class="linkish" id="pinForgot">PIN dimenticato?</button></p></div>
+        <div class="ask-btns"><button type="button" class="btn btn-sec" id="pinNo">Annulla</button><button type="button" class="btn btn-orange" id="pinYes">Sblocca</button></div></div></div>`;
+      const done = (v) => { $('modalRoot').innerHTML = ''; resolve(v); };
+      const go = () => { if (L9.pinCheck(prefs.pin, $('pinIn').value)) { haptic(20); done(true); } else { const e = $('pinErr'); e.textContent = 'PIN sbagliato'; e.classList.remove('hidden'); haptic(60); $('pinIn').value = ''; } };
+      $('pinYes').onclick = go; $('pinNo').onclick = () => done(false); $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') done(false); };
+      $('pinIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+      $('pinForgot').onclick = () => { const e = $('pinErr'); e.innerHTML = 'Il PIN protegge dagli errori, non è una cassaforte. Per toglierlo: fai un backup (Setup → Esporta), poi Setup → Azzera tutto, poi Importa il backup: le serie tornano modificabili.'; e.classList.remove('hidden'); };
+      setTimeout(() => { try { $('pinIn').focus(); } catch (x) {} }, 50);
+    });
+  }
+  function openPinSetup() {
+    const on = lockOn(), nLocked = state.series.filter((s) => s.locked).length;
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="pinModal"><h2>🔒 Blocco quote</h2>
+      <p class="meta">Con un PIN le serie ricevute dal pacchetto (e quelle che scegli) non si possono più modificare per sbaglio: tolleranze, gioco, base. <b>È una protezione contro gli errori, non una sicurezza</b>: chi cancella i dati o l'app toglie anche il PIN.</p>
+      <p class="meta" id="pinState">${on ? '🔒 PIN attivo · ' + nLocked + (nLocked === 1 ? ' serie bloccata' : ' serie bloccate') : 'PIN non impostato'}</p>
+      ${on ? '<label>PIN attuale</label><input id="pinCur" class="big-input pin-in" type="password" inputmode="numeric" maxlength="8" autocomplete="off"/>' : ''}
+      <label>${on ? 'Nuovo PIN (lascia vuoto per togliere il PIN)' : 'Scegli un PIN (4–8 cifre)'}</label><input id="pinNew" class="big-input pin-in" type="password" inputmode="numeric" maxlength="8" autocomplete="off"/>
+      <label>Ripeti il PIN</label><input id="pinNew2" class="big-input pin-in" type="password" inputmode="numeric" maxlength="8" autocomplete="off"/>
+      <label class="chk-big"><input type="checkbox" id="pinAll"/><span>Blocca anche le serie già presenti</span></label>
+      <div id="pinErr2" class="form-err hidden"></div>
+      <div class="actions" style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn btn-sec" id="pinCancel" style="flex:1">Chiudi</button><button type="button" class="btn btn-teal" id="pinSave" style="flex:1">${on ? 'Salva' : 'Imposta PIN'}</button></div></div></div>`;
+    const err = (t) => { const e = $('pinErr2'); e.textContent = t; e.classList.remove('hidden'); haptic(60); };
+    $('pinCancel').onclick = () => { $('modalRoot').innerHTML = ''; }; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') $('modalRoot').innerHTML = ''; };
+    $('pinSave').onclick = () => {
+      const n1 = $('pinNew').value, n2 = $('pinNew2').value;
+      if (on && !L9.pinCheck(prefs.pin, $('pinCur').value)) return err('PIN attuale sbagliato');
+      if (on && !n1) { // remove
+        delete prefs.pin; state.series.forEach((s) => { delete s.locked; }); savePrefs(prefs); saveData(state); $('modalRoot').innerHTML = ''; toast('PIN tolto · serie sbloccate'); renderSeriesIfOpen(); return;
+      }
+      if (!L9.pinValid(n1)) return err('Il PIN deve avere da 4 a 8 cifre');
+      if (n1 !== n2) return err('I due PIN sono diversi');
+      prefs.pin = L9.pinMake(n1); savePrefs(prefs);
+      if ($('pinAll').checked) state.series.forEach((s) => { s.locked = true; });
+      saveData(state); $('modalRoot').innerHTML = ''; toast('PIN impostato'); renderSeriesIfOpen();
+    };
+  }
+  function renderSeriesIfOpen() { if ($('page-serie').classList.contains('active')) renderSeries(); }
+
+  /* ───────── Dati lavoro (numero lotto, codice, revisione, lavorazione) + intestazione ───────── */
+  function renderJobStrip() {
+    const el = $('jobStrip'); if (!el) return;
+    const j = jobsOn ? activeJob() : null, s = currentContext().series;
+    if (!j || !s) { el.classList.add('hidden'); renderDress(); return; }
+    el.classList.remove('hidden');
+    const ml = metaLine(jobMeta(j, s));
+    $('jsMeta').innerHTML = ml ? esc(ml) : '＋ Lotto · codice · lavorazione';
+    $('jsMeta').classList.toggle('empty', !ml);
+    const ck = checkStateOf(j, s), ph = ck.inizio.complete || !ck.inizio.total ? 'fine' : 'inizio', c = ck[ph];
+    $('jsChkT').textContent = (ph === 'inizio' ? 'Inizio ' : 'Fine ') + c.done + '/' + c.total;
+    $('jsChk').classList.toggle('done', c.complete); $('jsChk').classList.toggle('hidden', !ck.inizio.total && !ck.fine.total);
+    renderDress();
+  }
+  function openJobData() {
+    const j = activeJob(); if (!j) { toast('Prima scegli un lavoro', 'warn'); return; }
+    const s = currentContext().series || {};
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="jdModal"><h2>Dati del lavoro</h2>
+      <p class="meta">Compaiono in alto in Calcolo, nello Storico, nel CSV e nel riepilogo turno.</p>
+      <label>Numero lotto</label><input id="jdLotto" class="big-input" value="${esc(j.lotto || '')}" maxlength="40" autocomplete="off" placeholder="es. 24-1187"/>
+      <label>Codice (disegno / articolo)</label><input id="jdCod" class="big-input" value="${esc(j.codice || '')}" maxlength="40" autocomplete="off" placeholder="${esc(s.codice || 'es. 12345-A')}"/>
+      <div class="field-row"><div><label>Revisione</label><input id="jdRev" class="big-input" value="${esc(j.rev || '')}" maxlength="12" autocomplete="off" placeholder="${esc(s.rev || 'es. B')}"/></div>
+      <div><label>Lavorazione</label><input id="jdLav" class="big-input" value="${esc(j.lav || '')}" maxlength="40" autocomplete="off" placeholder="${esc(s.lav || 'es. 0522')}"/></div></div>
+      <div class="actions" style="display:flex;gap:8px;margin-top:12px"><button type="button" class="btn btn-sec" id="jdCancel" style="flex:1">Annulla</button><button type="button" class="btn btn-teal" id="jdSave" style="flex:1">Salva</button></div></div></div>`;
+    $('jdCancel').onclick = () => { $('modalRoot').innerHTML = ''; }; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') $('modalRoot').innerHTML = ''; };
+    $('jdSave').onclick = () => {
+      const v = (id) => $(id).value.replace(/\s+/g, ' ').trim();
+      j.lotto = v('jdLotto').slice(0, 40); j.codice = v('jdCod').slice(0, 40); j.rev = v('jdRev').slice(0, 12); j.lav = v('jdLav').slice(0, 40); j.updatedAt = nowIso();
+      saveData(state); $('modalRoot').innerHTML = ''; renderJobStrip(); toast('Dati lavoro salvati');
+    };
+  }
+  $('jsMeta').addEventListener('click', () => { haptic(10); openJobData(); });
+  $('jsChk').addEventListener('click', () => { haptic(10); const ck = checkStateOf(activeJob(), currentContext().series); openChecklist(ck.inizio.complete || !ck.inizio.total ? 'fine' : 'inizio'); });
+
+  /* ───────── Checklist per lavoro ───────── */
+  /** make sure the job has its checklist state (items copied from the series / the user's default / the built-in list) */
+  function ensureJobCheck(j, s) {
+    if (!j) return null;
+    const cl = L9.checklistFor(s, prefs.checkDefault);
+    if (!j.check) j.check = { inizio: L9.checkNew(cl.inizio), fine: L9.checkNew(cl.fine) };
+    return j.check;
+  }
+  function checkStateOf(j, s) {
+    const c = ensureJobCheck(j, s) || { inizio: { items: [] }, fine: { items: [] } };
+    return { inizio: L9.checkCount(c.inizio), fine: L9.checkCount(c.fine) };
+  }
+  let ckPhase = 'inizio';
+  function openChecklist(phase) {
+    const j = activeJob(); if (!j) { toast('Prima scegli un lavoro', 'warn'); return; }
+    const s = currentContext().series; ensureJobCheck(j, s); ckPhase = phase || ckPhase;
+    const cnt = (ph) => L9.checkCount(j.check[ph]);
+    const st = j.check[ckPhase], c = cnt(ckPhase);
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal ck-modal" id="ckModal"><h2>📋 Checklist</h2>
+      <div class="man-seg sm ck-tabs" id="ckTabs"><button type="button" data-ph="inizio" class="${ckPhase === 'inizio' ? 'on' : ''}">Inizio lavoro <small>${cnt('inizio').done}/${cnt('inizio').total}</small></button><button type="button" data-ph="fine" class="${ckPhase === 'fine' ? 'on' : ''}">Fine lavoro <small>${cnt('fine').done}/${cnt('fine').total}</small></button></div>
+      <div class="ck-list" id="ckItems">${st.items.length ? st.items.map((t, i) => `<button type="button" class="ck-item ${st.done[i] ? 'on' : ''}" data-i="${i}" aria-pressed="${st.done[i] ? 'true' : 'false'}"><span class="ck-box">${st.done[i] ? '✓' : ''}</span><span class="ck-t">${esc(t)}</span></button>`).join('') : '<p class="meta">Nessuna voce: tocca «Modifica voci».</p>'}</div>
+      <div class="meta" id="ckState">${c.complete ? '✓ Completata' + (st.at ? ' alle ' + esc(fmtTime(st.at)) : '') : c.done + ' di ' + c.total + ' fatte'}</div>
+      <button type="button" class="btn btn-teal ck-all" id="ckAll" ${st.items.length ? '' : 'disabled'}>✓ Tutto ok <small>(tieni premuto)</small></button>
+      <div class="actions" style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn btn-sec" id="ckEdit" style="flex:1">✎ Modifica voci</button><button type="button" class="btn btn-sec" id="ckClose" style="flex:1">Chiudi</button></div></div></div>`;
+    const redraw = () => { saveData(state); openChecklist(ckPhase); renderJobStrip(); };
+    $('ckClose').onclick = () => { $('modalRoot').innerHTML = ''; renderJobStrip(); }; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') { $('modalRoot').innerHTML = ''; renderJobStrip(); } };
+    $('ckTabs').querySelectorAll('[data-ph]').forEach((b) => { b.onclick = () => { ckPhase = b.dataset.ph; openChecklist(ckPhase); }; });
+    $('ckItems').querySelectorAll('.ck-item').forEach((b) => { b.onclick = () => { haptic(15); L9.checkToggle(st, Number(b.dataset.i), nowIso()); redraw(); }; });
+    // long press = «tutto ok»; a short tap only explains
+    let tmr = null, fired = false; const all = $('ckAll');
+    const start = () => { fired = false; clearTimeout(tmr); tmr = setTimeout(() => { fired = true; haptic(50); L9.checkAll(st, nowIso()); redraw(); toast('Tutto ok · checklist completa'); }, 600); };
+    const stop = () => { clearTimeout(tmr); tmr = null; };
+    all.addEventListener('pointerdown', start); ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => all.addEventListener(ev, stop));
+    all.addEventListener('click', () => { if (!fired) toast('Tieni premuto per spuntare tutto'); });
+    $('ckEdit').onclick = () => openChecklistEdit();
+  }
+  function openChecklistEdit() {
+    const j = activeJob(), s = currentContext().series; if (!j || !s) return;
+    const cl = L9.checklistFor(s, prefs.checkDefault);
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal ck-modal" id="ckeModal"><h2>✎ Voci della checklist</h2>
+      <p class="meta">Una voce per riga, massimo ${L9.MAX_CHECK_ITEMS} per parte. Valgono per questa serie (e per i lavori nuovi).</p>
+      <label>Inizio lavoro</label><textarea id="ckeInizio" class="neu" rows="5">${esc(cl.inizio.join('\n'))}</textarea>
+      <label>Fine lavoro</label><textarea id="ckeFine" class="neu" rows="3">${esc(cl.fine.join('\n'))}</textarea>
+      <label class="chk-big"><input type="checkbox" id="ckeDef"/><span>Usa queste voci anche per le altre serie</span></label>
+      <div id="ckeErr" class="form-err hidden"></div>
+      <div class="actions" style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn btn-sec" id="ckeCancel" style="flex:1">Annulla</button><button type="button" class="btn btn-teal" id="ckeSave" style="flex:1">Salva</button></div></div></div>`;
+    $('ckeCancel').onclick = () => openChecklist(ckPhase);
+    $('ckeSave').onclick = () => {
+      const raw = { inizio: $('ckeInizio').value, fine: $('ckeFine').value }, n = (t) => String(t).split(/\r?\n/).map((x) => x.trim()).filter(Boolean).length;
+      if (n(raw.inizio) > L9.MAX_CHECK_ITEMS || n(raw.fine) > L9.MAX_CHECK_ITEMS) { const e = $('ckeErr'); e.textContent = 'Massimo ' + L9.MAX_CHECK_ITEMS + ' voci per parte'; e.classList.remove('hidden'); haptic(60); return; }
+      const nc = L9.normalizeChecklist(raw) || { inizio: [], fine: [] };
+      s.checklist = { inizio: nc.inizio, fine: nc.fine };
+      if ($('ckeDef').checked) { prefs.checkDefault = { inizio: nc.inizio.slice(), fine: nc.fine.slice() }; savePrefs(prefs); }
+      // keep the ticks of the entries that did not change
+      ['inizio', 'fine'].forEach((ph) => { const old = j.check && j.check[ph], nw = L9.checkNew(nc[ph]); if (old) nw.items.forEach((t, i) => { const k = old.items.indexOf(t); if (k >= 0 && old.done[k]) nw.done[i] = true; }); if (nw.items.length && nw.done.every(Boolean)) nw.at = nowIso(); j.check = j.check || {}; j.check[ph] = nw; });
+      saveData(state); toast('Checklist salvata'); openChecklist(ckPhase);
+    };
+  }
+
+  /* ───────── Promemoria diamantatura + Quaderno macchina ───────── */
+  function renderDress() {
+    const b = $('dressBanner'), n = $('dressNote'); if (!b || !n) return;
+    const info = L9.dressInfo(state, mKey(), nameOfHist);
+    if (info.on && info.due) {
+      b.innerHTML = `<div class="db-t">🔔 Promemoria: diamantatura – ${info.count} pezzi dall'ultima</div><div class="db-b"><button type="button" class="btn btn-teal" id="dbDone">💎 Fatta</button><button type="button" class="btn btn-sec" id="dbSnooze">⏱ Rimanda di ${info.snoozeStep} pezzi</button></div>`;
+      b.classList.remove('hidden');
+    } else { b.classList.add('hidden'); b.innerHTML = ''; }
+    n.classList.toggle('hidden', !info.after);
+    n.innerHTML = info.after ? `<span>✋ Primo pezzo dopo diamantatura: controlla con calma</span><button type="button" class="dn-x" id="dnX" aria-label="Chiudi">✕</button>` : '';
+    fitPads();
+  }
+  $('dressBanner').addEventListener('click', (e) => {
+    if (e.target.closest('#dbDone')) { haptic(30); L9.addEvent(state, { type: 'diamantatura', machine: (myMachine() || {}).name, nameOf: nameOfHist }); saveData(state); renderDress(); toast('Diamantatura registrata'); }
+    if (e.target.closest('#dbSnooze')) { haptic(15); const c = L9.snoozeDress(state, mKey(), null, nameOfHist); saveData(state); renderDress(); toast('Te lo ricordo tra ' + c.snoozeStep + ' pezzi'); }
+  });
+  $('dressNote').addEventListener('click', (e) => { if (e.target.closest('#dnX')) { L9.cfgOf(state, mKey()).after = false; saveData(state); renderDress(); } });
+  /** after a saved piece: the first piece after a dressing clears the «controlla con calma» note */
+  function dressAfterSave() { const c = L9.cfgOf(state, mKey()); if (c.after) { c.after = false; saveData(state); } renderDress(); }
+
+  let qdSel = null;
+  function qdMachines() {
+    const seen = new Map(), add = (n) => { const k = L9.machineKey(n); if (n && !seen.has(k)) seen.set(k, String(n).trim()); };
+    add((myMachine() || {}).name); (state.quaderno || []).forEach((e) => add(e.machine)); (state.jobs || []).concat(state.jobsArchive || []).forEach((j) => add(j.machineName));
+    return [...seen.entries()].map(([k, n]) => ({ k, n }));
+  }
+  function renderQuaderno() {
+    const list = qdMachines(), cur = L9.machineKey((myMachine() || {}).name);
+    if (!qdSel || !list.some((m) => m.k === qdSel)) qdSel = cur;
+    const key = qdSel, mname = (list.find((m) => m.k === key) || { n: '' }).n;
+    const info = L9.dressInfo(state, key, nameOfHist), cfg = L9.cfgOf(state, key), evs = L9.eventsOf(state, key);
+    $('qdSel').innerHTML = list.length ? list.map((m) => `<option value="${esc(m.k)}" ${m.k === key ? 'selected' : ''}>${esc(m.n)}</option>`).join('') : '<option value="">(macchina senza nome)</option>';
+    $('qdEvery').value = info.every || ''; $('qdStep').value = cfg.snoozeStep || 10;
+    document.querySelectorAll('#qdPre [data-n]').forEach((b) => b.classList.toggle('on', Number(b.dataset.n) === info.every));
+    $('qdCount').innerHTML = info.on
+      ? `<b class="cond" style="font-size:26px">${info.count}</b> / ${info.every} pezzi dall'ultima diamantatura${info.lastTs ? `<div class="meta">ultima: ${esc(dmHm(info.lastTs))}</div>` : '<div class="meta">nessuna diamantatura registrata: il conteggio parte da quando hai acceso il promemoria</div>'}${info.due ? '<div class="qd-due">🔔 Promemoria: è ora della diamantatura</div>' : ''}`
+      : '<span class="meta">Promemoria spento. Scegli ogni quanti pezzi (es. 50): ti ricorda la diamantatura, senza bloccare nulla.</span>';
+    $('qdList').innerHTML = evs.length ? evs.map((e) => { const t = L9.EVENT_TYPES[e.type] || L9.EVENT_TYPES.nota;
+      return `<div class="qd-ev" data-id="${esc(e.id)}"><div class="qd-ic">${t.icon}</div><div class="qd-bd"><b>${esc(t.label)}</b> <span class="meta">${esc(dmHm(e.ts))}</span>${e.pz != null ? `<div class="meta">${e.pz} ${e.pz === 1 ? 'pezzo' : 'pezzi'} dalla voce precedente</div>` : ''}${e.note ? `<div class="qd-note">${esc(e.note)}</div>` : ''}</div><button type="button" class="job-del" data-evdel="${esc(e.id)}" aria-label="Elimina voce">${TRASH}</button></div>`; }).join('') : '<div class="empty">Nessuna voce: registra la prima con i pulsanti sopra</div>';
+    $('qdHead').textContent = mname ? 'Macchina: ' + mname : 'Macchina';
+  }
+  function openEventModal(type) {
+    const t = L9.EVENT_TYPES[type] || L9.EVENT_TYPES.nota;
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="evModal"><h2>${t.icon} ${esc(t.label)}</h2>
+      <label>Nota ${type === 'nota' ? '' : '(facoltativa)'}</label><textarea id="evNote" class="neu" rows="3" maxlength="300" placeholder="${type === 'manopola' ? 'es. conicità: 2 tacche verso di me' : type === 'mola' ? 'es. mola nuova, codice…' : ''}"></textarea>
+      <div id="evErr" class="form-err hidden"></div>
+      <div class="actions" style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn btn-sec" id="evCancel" style="flex:1">Annulla</button><button type="button" class="btn btn-teal" id="evSave" style="flex:1">✓ Registra</button></div></div></div>`;
+    $('evCancel').onclick = () => { $('modalRoot').innerHTML = ''; }; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') $('modalRoot').innerHTML = ''; };
+    $('evSave').onclick = () => {
+      const note = $('evNote').value.trim();
+      if (type === 'nota' && !note) { const e = $('evErr'); e.textContent = 'Scrivi la nota'; e.classList.remove('hidden'); return; }
+      const mn = (qdMachines().find((m) => m.k === qdSel) || {}).n || (myMachine() || {}).name || '';
+      L9.addEvent(state, { type, machine: mn, note, nameOf: nameOfHist }); saveData(state); $('modalRoot').innerHTML = ''; haptic(30); toast(t.label + ' registrata'); renderQuaderno(); renderDress();
+    };
+  }
+  $('qdSel').addEventListener('change', () => { qdSel = $('qdSel').value; renderQuaderno(); });
+  $('qdBtns').addEventListener('click', (e) => { const b = e.target.closest('[data-ev]'); if (b) { haptic(15); openEventModal(b.dataset.ev); } });
+  function qdSetEvery(n) {
+    const key = qdSel || mKey(); L9.setDressEvery(state, key, n, nowIso());
+    const step = parseInt($('qdStep').value, 10); if (step > 0) L9.cfgOf(state, key).snoozeStep = Math.min(999, step);
+    saveData(state); renderQuaderno(); renderDress();
+  }
+  $('qdPre').addEventListener('click', (e) => { const b = e.target.closest('[data-n]'); if (b) { haptic(10); $('qdEvery').value = b.dataset.n === '0' ? '' : b.dataset.n; qdSetEvery(Number(b.dataset.n)); toast(Number(b.dataset.n) ? 'Promemoria ogni ' + b.dataset.n + ' pezzi' : 'Promemoria spento'); } });
+  $('qdSet').addEventListener('click', () => { const n = parseInt($('qdEvery').value, 10) || 0; qdSetEvery(n); toast(n ? 'Promemoria ogni ' + n + ' pezzi' : 'Promemoria spento'); });
+  $('qdList').addEventListener('click', async (e) => {
+    const d = e.target.closest('[data-evdel]'); if (!d) return;
+    if (await askBig({ title: 'Eliminare questa voce?', ok: '🗑 Elimina', danger: true })) { L9.removeEvent(state, d.dataset.evdel); saveData(state); renderQuaderno(); renderDress(); }
+  });
+  $('qdBack').addEventListener('click', () => showPage('setup'));
+
+  /* ───────── Pacchetto: Lavoro ricevuto / Invia lavoro ───────── */
+  function fmtT3(x) { return fmtMm3(x); }
+  function pkgSeriesHtml(ps) {
+    const rows = [['Nome', ps.nome || '—'], ['Base', fmtT3(ps.base) + ' mm ± ' + fmtT3(ps.tolleranza)], ['Gioco', ps.giocoMin + '–' + ps.giocoMax + ' µm']];
+    if (ps.obiettivo != null) rows.push(['Consigliata', 'gioco obiettivo ' + fmtUm(ps.obiettivo) + ' µm' + (ps.fasciaLo != null ? ' · fascia ' + fmtUm(ps.fasciaLo) + '–' + fmtUm(ps.fasciaHi) : '')]);
+    else if (ps.fasciaLo != null) rows.push(['Consigliata', 'fascia ' + fmtUm(ps.fasciaLo) + '–' + fmtUm(ps.fasciaHi) + ' µm']);
+    rows.push(['Ovalità/conicità', ps.forma === false ? 'non richieste' : 'controllate' + (ps.lim ? ` (conicità ok ≤ ${fmtUm(ps.lim.conOk)}, max ${fmtUm(ps.lim.conMax)} µm)` : '')]);
+    if (ps.fixedF != null) rows.push(['Femmina fissa', fmtMm4(ps.fixedF) + ' mm']);
+    return `<div class="pk-ser">${rows.map((r) => `<div class="pk-r"><span>${esc(r[0])}</span><b>${esc(r[1])}</b></div>`).join('')}${ps.note ? `<div class="pk-note">${esc(ps.note)}</div>` : ''}</div>`;
+  }
+  async function receivePackage(text, source) {
+    const r = await L9.parseAny(text);
+    if (!r.ok) { infoModal('Pacchetto non letto', `<p>${esc(r.error)}</p>`); return false; }
+    const v = L9.validatePackage(r.obj);
+    if (!v.ok) { infoModal('Pacchetto non valido', `<p>${v.errors.map(esc).join('<br/>')}</p>`); return false; }
+    openReceived(v, source); return true;
+  }
+  function openReceived(v, source) {
+    const p = v.pkg, one = p.serie.length === 1, m = myMachine() || {};
+    const matches = p.serie.map((ps) => L9.findMatch(state.series, ps));
+    const anyMatch = matches.some(Boolean);
+    const already = state.series.some((s) => s.fromPackage && p.check && s.fromPackage.check === p.check);
+    const j = p.job, cl = p.checklist;
+    const metaRows = [['Codice', j.codice], ['Revisione', j.rev], ['Lavorazione', j.lavorazione], ['Numero lotto', j.lotto]];
+    const integ = p.checkState === 'ok' ? '<div class="pk-ok">✓ Controllo integrità OK (il file è completo)</div>' : p.checkState === 'mismatch' ? '<div class="pk-warn">⚠ Il codice di controllo non corrisponde: controlla bene i numeri</div>' : '<div class="meta">Pacchetto senza codice di controllo.</div>';
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal pk-recv" id="rcvModal" role="dialog" aria-modal="true"><h2>📥 ${one ? 'Lavoro ricevuto' : 'Serie ricevute (' + p.serie.length + ')'}</h2>
+      <p class="meta">Controlla i dati: l'app non li usa finché non tocchi <b>${one ? 'Accetta e inizia' : 'Importa le serie'}</b>.${source ? '' : ''}</p>
+      ${one || j.lotto || j.codice ? `<div class="pk-meta">${metaRows.map((r) => `<div><span>${r[0]}</span><b id="rcv${r[0].replace(/\W/g, '')}">${esc(r[1] || '—')}</b></div>`).join('')}</div>` : ''}
+      ${p.serie.map((ps, i) => (p.serie.length > 1 ? `<h3 class="pk-h">${esc(ps.nome || 'Base ' + fmtT3(ps.base))}${ps.codice ? ' · ' + esc(ps.codice) : ''}</h3>` : '') + pkgSeriesHtml(ps)).join('')}
+      ${j.note ? `<div class="pk-cl" id="rcvNote"><b>💬 Nota del responsabile</b><div class="pk-note">${esc(j.note)}</div></div>` : ''}
+      ${cl ? `<div class="pk-cl"><b>📋 Checklist</b><div class="meta">Inizio: ${cl.inizio.map(esc).join(' · ') || '—'}</div><div class="meta">Fine: ${cl.fine.map(esc).join(' · ') || '—'}</div></div>` : ''}
+      ${integ}${already ? '<div class="pk-warn" id="rcvAlready">⚠ Hai già importato questo pacchetto.</div>' : ''}
+      ${v.warnings.map((w) => `<div class="pk-warn">⚠ ${esc(w)}</div>`).join('')}
+      ${anyMatch ? `<div class="pk-choice" id="rcvChoiceBox"><b>Esiste già una serie con lo stesso ${matches.find(Boolean).how === 'codice' ? 'codice' : 'nome e base'}</b>
+        <label class="pk-rad"><input type="radio" name="rcvChoice" id="rcvUpd" value="update" checked/><span>Aggiorna la serie esistente <small>(le misure salvate restano)</small></span></label>
+        <label class="pk-rad"><input type="radio" name="rcvChoice" id="rcvNew" value="new"/><span>Crea una nuova serie</span></label>
+        <div class="pk-diff" id="rcvDiff">${matches.map((mm, i) => { if (!mm) return ''; const d = L9.diffSeries(mm.series, p.serie[i]); return `<div class="meta">«${esc(mm.series.lotto || 'Base ' + fmtT3(mm.series.base))}»: ${d.length ? '' : 'nessuna differenza'}</div>` + d.map((x) => `<div class="pk-d"><span>${esc(x.label)}</span><s>${esc(x.from)}</s> → <b>${esc(x.to)}</b></div>`).join(''); }).join('')}</div></div>` : ''}
+      ${lockOn() ? '<div class="meta" id="rcvLockNote">🔒 Le serie importate saranno bloccate dal tuo PIN.</div>' : ''}
+      ${one ? `<label for="rcvMachine">Macchina</label><input id="rcvMachine" class="big-input cond" value="${esc(m.name || '')}" maxlength="40" autocomplete="off" placeholder="es. S33 O060"/>` : ''}
+      <div id="rcvErr" class="form-err hidden"></div>
+      <div class="pk-bar"><button type="button" class="btn btn-orange pk-go" id="rcvGo">${one ? '✅ Accetta e inizia' : '✅ Importa le serie'}</button>
+      <div class="actions" style="display:flex;gap:8px;margin-top:8px">${one ? '<button type="button" class="btn btn-sec" id="rcvSave" style="flex:1">Salva solo la serie</button>' : ''}<button type="button" class="btn btn-sec" id="rcvNo" style="flex:1">Rifiuta</button></div></div></div></div>`;
+    const close = () => { $('modalRoot').innerHTML = ''; };
+    $('rcvNo').onclick = close;
+    const go = (start) => {
+      const choice = anyMatch ? ($('rcvNew').checked ? 'new' : 'update') : 'new';
+      let machineName = '';
+      if (start) { machineName = $('rcvMachine').value.replace(/\s+/g, ' ').trim(); if (!machineName) { const e = $('rcvErr'); e.textContent = 'Scrivi il nome della macchina'; e.classList.remove('hidden'); haptic(60); return; } }
+      const res = acceptPackage(v, { choice, start, machineName });
+      close(); if (res && res.msg) toast(res.msg);
+      if (start && res && res.checkInizio) setTimeout(() => openChecklist('inizio'), 250);
+    };
+    $('rcvGo').onclick = () => go(one);
+    if ($('rcvSave')) $('rcvSave').onclick = () => go(false);
+  }
+  /** Create / update the series from the package and (single series, start=true) start the job. */
+  function acceptPackage(v, o) {
+    const p = v.pkg, now = nowIso(); const made = [];
+    p.serie.forEach((ps) => {
+      const match = o.choice === 'update' ? L9.findMatch(state.series, ps) : null;
+      const s = match ? match.series : { id: uid(), machineId: myMachine() ? myMachine().id : null, history: [], stock: {} };
+      L9.applyToSeries(s, ps, { name: 'Base ' + fmtMm3(ps.base), locked: lockOn(), check: p.check, now, checklist: p.serie.length === 1 ? p.checklist : null });
+      if (!match) state.series.push(s);
+      made.push({ s, updated: !!match });
+    });
+    saveData(state);
+    let msg = made.length === 1 ? (made[0].updated ? 'Serie aggiornata' : 'Serie creata') + ' · Base ' + fmtMm3(made[0].s.base) : made.length + ' serie importate';
+    let checkInizio = false;
+    if (o.start && made.length === 1) {
+      const s = made[0].s, jb = p.job;
+      const job = startJob({ machineName: o.machineName, series: s, codice: jb.codice, lotto: jb.lotto, rev: jb.rev, lav: jb.lavorazione });
+      job.pkg = { check: p.check, at: now }; if (jb.note) job.pkgNote = jb.note;
+      ensureJobCheck(job, s); checkInizio = job.check.inizio.items.length > 0;
+      saveData(state); newMeasure(); showPage('calc'); msg = 'Lavoro iniziato · ' + metaLine(jobMeta(job, s) ) || msg;
+    } else { fillSetupSelects(); renderSeriesIfOpen(); updateChip(); }
+    return { msg, checkInizio, made };
+  }
+  function openReceiveMenu() {
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="rmModal"><h2>📥 Ricevi lavoro</h2>
+      <p class="meta">Il responsabile ti manda un <b>pacchetto</b> (file, QR o codice). Apri qui sotto il modo in cui l'hai ricevuto.</p>
+      <button type="button" class="btn-job wide" id="rmFile"><span class="ji">📂</span><span><b>Apri un file</b><small>.rettifica o .json ricevuto (WhatsApp, email…)</small></span></button>
+      <button type="button" class="btn-job wide" id="rmQr" style="margin-top:8px"><span class="ji">▦</span><span><b>Leggi un QR da foto</b><small>scatta il QR o scegli la foto</small></span></button>
+      <button type="button" class="btn-job wide" id="rmPaste" style="margin-top:8px"><span class="ji">📋</span><span><b>Incolla il codice</b><small>testo che inizia con RTF…</small></span></button>
+      <div class="actions" style="display:flex;margin-top:12px"><button type="button" class="btn btn-sec" id="rmClose" style="flex:1">Chiudi</button></div></div></div>`;
+    $('rmClose').onclick = () => { $('modalRoot').innerHTML = ''; }; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') $('modalRoot').innerHTML = ''; };
+    $('rmFile').onclick = () => { $('pkFile').value = ''; $('pkFile').click(); };
+    $('rmQr').onclick = () => { $('pkQrFile').value = ''; $('pkQrFile').click(); };
+    $('rmPaste').onclick = () => openPasteCode();
+  }
+  function openPasteCode() {
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="pasteModal"><h2>📋 Incolla il codice</h2>
+      <p class="meta">Incolla il codice del pacchetto (inizia con <b>RTF1.</b> o <b>RTF2.</b>) o l'intero messaggio che hai ricevuto.</p>
+      <textarea id="pasteTxt" class="neu" rows="6" placeholder="RTF2.…"></textarea><div id="pasteErr" class="form-err hidden"></div>
+      <div class="actions" style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn btn-sec" id="pasteNo" style="flex:1">Annulla</button><button type="button" class="btn btn-teal" id="pasteGo" style="flex:1">Leggi</button></div></div></div>`;
+    $('pasteNo').onclick = () => { $('modalRoot').innerHTML = ''; };
+    $('pasteGo').onclick = async () => { const t = $('pasteTxt').value; const r = await L9.parseAny(t); if (!r.ok) { const e = $('pasteErr'); e.textContent = r.error; e.classList.remove('hidden'); return; } await receivePackage(t, 'paste'); };
+  }
+  $('pkFile').addEventListener('change', async (e) => { const f = e.target.files && e.target.files[0]; try { if (f) await receivePackage(await f.text(), 'file'); } finally { e.target.value = ''; } });
+  /** decode a QR from a photo (jsQR) – tries a few sizes */
+  async function qrFromBlob(blob) {
+    if (typeof window.jsQR !== 'function') throw new Error('noqr');
+    const bmp = await createImageBitmap(blob);
+    for (const maxSide of [1400, 900, 2000, 600]) {
+      const sc = Math.min(1, maxSide / Math.max(bmp.width, bmp.height)), w = Math.max(1, Math.round(bmp.width * sc)), h = Math.max(1, Math.round(bmp.height * sc));
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(bmp, 0, 0, w, h);
+      const r = window.jsQR(cx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'attemptBoth' }); if (r && r.data) return r.data;
+    }
+    return null;
+  }
+  $('pkQrFile').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    try {
+      if (!f) return;
+      let txt = null; try { txt = await qrFromBlob(f); } catch (err) { infoModal('QR non letto', '<p>Lettura del QR non disponibile su questo telefono. Usa il file o incolla il codice.</p>'); return; }
+      if (!txt) { infoModal('QR non trovato', '<p>Non riesco a leggere un QR in questa foto. Avvicinati, tieni il QR dritto e intero, senza riflessi; oppure usa il file o il codice.</p>'); return; }
+      await receivePackage(txt, 'qr');
+    } finally { e.target.value = ''; }
+  });
+  // ── entry points: Android intent (file / share / text), PWA file handler ──
+  window.__pkgCheck = function () {
+    try { if (!(window.RettificaAndroid && RettificaAndroid.takePackage)) return; const raw = RettificaAndroid.takePackage(); if (!raw) return; const o = JSON.parse(raw); if (o && o.text) receivePackage(o.text, 'intent'); } catch (e) {}
+  };
+  if ('launchQueue' in window) { try { window.launchQueue.setConsumer(async (lp) => { for (const h of lp.files || []) { try { const f = await h.getFile(); await receivePackage(await f.text(), 'file'); } catch (e) {} } }); } catch (e) {} }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') window.__pkgCheck(); });
+
+  function sendCtx() {
+    const j = jobsOn ? activeJob() : null, cur = currentContext().series;
+    return { j, cur };
+  }
+  function openSendJob(seriesId) {
+    const { j, cur } = sendCtx(); const list = state.series;
+    if (!list.length) { toast('Prima crea una serie', 'warn'); return; }
+    let sid = seriesId || (cur && cur.id) || list[0].id;
+    const fill = () => {
+      const s = seriesById($('sjSeries').value) || list[0], same = j && cur && s.id === cur.id;
+      $('sjLotto').value = same ? (j.lotto || '') : ''; $('sjCod').value = same ? (j.codice || s.codice || '') : (s.codice || ''); $('sjRev').value = same ? (j.rev || s.rev || '') : (s.rev || ''); $('sjLav').value = same ? (j.lav || s.lav || '') : (s.lav || '');
+      $('sjChk').checked = !!s.checklist;
+    };
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="sdModal"><h2>📤 Invia lavoro</h2>
+      <p class="meta">Crea il pacchetto e lo condividi con WhatsApp, email… (o QR). L'app <b>non invia niente da sola</b>: scegli tu l'app e la persona. Non contiene numeri di telefono né dati personali.</p>
+      <label>Serie</label><select id="sjSeries" class="neu">${list.map((s) => `<option value="${esc(s.id)}" ${s.id === sid ? 'selected' : ''}>${esc((s.lotto ? s.lotto + ' · ' : '') + 'Base ' + fmtMm3(s.base) + ' · gioco ' + s.giocoMin + '–' + s.giocoMax)}</option>`).join('')}</select>
+      <label>Numero lotto</label><input id="sjLotto" class="big-input" maxlength="40" autocomplete="off"/>
+      <label>Codice (disegno / articolo)</label><input id="sjCod" class="big-input" maxlength="40" autocomplete="off"/>
+      <div class="field-row"><div><label>Revisione</label><input id="sjRev" class="big-input" maxlength="12" autocomplete="off"/></div><div><label>Lavorazione</label><input id="sjLav" class="big-input" maxlength="40" autocomplete="off" placeholder="es. 0522"/></div></div>
+      <label>Nota per l'operatore (facoltativa)</label><textarea id="sjNote" class="neu" rows="2" maxlength="300"></textarea>
+      <label class="chk-big"><input type="checkbox" id="sjChk"/><span>Includi la checklist</span></label>
+      <div id="sjErr" class="form-err hidden"></div>
+      <button type="button" class="btn btn-orange pk-go" id="sjShare">📤 Invia (WhatsApp, email…)</button>
+      <div class="actions" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button type="button" class="btn btn-sec" id="sjQr" style="flex:1">▦ Mostra QR</button><button type="button" class="btn btn-sec" id="sjCopy" style="flex:1">📋 Copia codice</button></div>
+      <div class="actions" style="display:flex;gap:8px;margin-top:8px"><button type="button" class="btn btn-sec" id="sjSave" style="flex:1">💾 Salva file</button><button type="button" class="btn btn-sec" id="sjClose" style="flex:1">Chiudi</button></div></div></div>`;
+    fill(); $('sjSeries').onchange = fill;
+    $('sjClose').onclick = () => { $('modalRoot').innerHTML = ''; }; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') $('modalRoot').innerHTML = ''; };
+    const build = () => {
+      const s = seriesById($('sjSeries').value), v = (id) => $(id).value.replace(/\s+/g, ' ').trim();
+      const clb = $('sjChk').checked ? L9.checklistFor(s, prefs.checkDefault) : null;
+      return L9.buildPackage({ series: s, job: { lotto: v('sjLotto'), codice: v('sjCod'), rev: v('sjRev'), lav: v('sjLav'), note: $('sjNote').value }, checklist: clb, appVersion: APP_VERSION, now: nowIso() });
+    };
+    $('sjShare').onclick = async () => { const pkg = build(); haptic(20); await shareOut(L9.packageFileName(pkg), JSON.stringify(pkg, null, 1), 'application/json', L9.packageCaption(pkg)); };
+    $('sjSave').onclick = async () => { const pkg = build(); const fn = L9.packageFileName(pkg), txt = JSON.stringify(pkg, null, 1); try { if (window.RettificaAndroid) { await shareOut(fn, txt, 'application/json', L9.packageCaption(pkg)); return; } } catch (e) {} const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = fn; document.body.appendChild(a); a.click(); a.remove(); toast('File creato: ' + fn); };
+    $('sjCopy').onclick = async () => {
+      const code = await L9.encodeCode(build()); let ok = false;
+      try { if (window.RettificaAndroid && RettificaAndroid.copyText) { RettificaAndroid.copyText(code); ok = true; } else if (navigator.clipboard) { await navigator.clipboard.writeText(code); ok = true; } } catch (e) {}
+      toast(ok ? 'Codice copiato' : 'Copia non riuscita', ok ? '' : 'warn'); window.__lastCode = code;
+    };
+    $('sjQr').onclick = async () => {
+      const pkg = build(), code = await L9.encodeCode(pkg);
+      if (code.length > 2400) { const e = $('sjErr'); e.textContent = 'Pacchetto troppo grande per un QR (' + code.length + ' caratteri): togli la checklist o accorcia le note, oppure usa il file.'; e.classList.remove('hidden'); return; }
+      let img = '';
+      try { const q = window.qrcode(0, 'L'); q.addData(code); q.make(); const n = q.getModuleCount(); img = q.createDataURL(Math.max(3, Math.floor(300 / (n + 8))), 16); } catch (er) { const e = $('sjErr'); e.textContent = 'QR non creato: usa il file o il codice'; e.classList.remove('hidden'); return; }
+      $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal ask-big" id="qrModal"><h2>▦ QR del lavoro</h2><div class="ask-body" style="text-align:center"><img id="qrImg" alt="QR del pacchetto" src="${img}" style="width:min(86vw,320px);image-rendering:pixelated;background:#fff;border-radius:8px"/>
+        <p class="meta">Sull'altro telefono: <b>Setup → Ricevi lavoro → Leggi un QR da foto</b>. Tieni il QR intero e dritto.</p></div><div class="ask-btns"><button type="button" class="btn btn-orange" id="qrClose" style="flex:1">Chiudi</button></div></div></div>`;
+      $('qrClose').onclick = () => { $('modalRoot').innerHTML = ''; }; window.__lastCode = code;
+    };
+  }
+
+  /* ───────── Report per lotto / turno (CSV a colonne fisse + PDF di una pagina) ───────── */
+  function reportRows(pred) {
+    const rows = [];
+    allSeries().forEach((s) => (s.history || []).forEach((h) => {
+      const m = rowMeta(h, s), sn = h.snap || {}, base = sn.base != null ? sn.base : s.base;
+      const r = { ts: h.ts, machine: nameOfHist(h, s), serie: s.lotto || ('Base ' + fmtMm3(s.base)), codice: m.codice, rev: m.rev, lav: m.lav, lotto: m.lotto, base, tol: sn.tolMm != null ? sn.tolMm : seriesTol(s),
+        gmin: sn.giocoMin != null ? sn.giocoMin : s.giocoMin, gmax: sn.giocoMax != null ? sn.giocoMax : s.giocoMax, lavoro: h.lavoro || 'maschio', S: h.S, d: h.S != null ? round1((h.S - base) * 1000) : null,
+        chosen: h.chosen, gioco: h.gioco, con: h.con, conEnd: h.conEnd, status: h.status || '' };
+      if (!pred || pred(r, h)) rows.push(r);
+    }));
+    return rows.sort((a, b) => String(a.ts || '').localeCompare(String(b.ts || '')));
+  }
+  function reportLotti() { return [...new Set(reportRows().map((r) => r.lotto).filter(Boolean))]; }
+  function reportScopeRows(scope, lotto) {
+    if (scope === 'turno') { const t0 = (state.turno && state.turno.startedAt) || ''; return { rows: reportRows((r) => String(r.ts || '') >= t0), label: 'Turno in corso' }; }
+    if (scope === 'oggi') return { rows: reportRows((r) => r.ts && localDayKey(r.ts) === localDayKey()), label: 'Oggi' };
+    if (scope === 'lotto') return { rows: reportRows((r) => L9.machineKey(r.lotto) === L9.machineKey(lotto) && r.lotto), label: 'Lotto ' + lotto };
+    return { rows: reportRows(), label: 'Tutte le misure' };
+  }
+  function uniq(a) { return [...new Set(a.filter(Boolean))]; }
+  function reportModel(scope, lotto) {
+    const { rows, label } = reportScopeRows(scope, lotto), st = L9.reportStats(rows);
+    const quad = ((state.quaderno || []).filter((e) => e.type === 'diamantatura' && (!st.first || (e.ts >= st.first && e.ts <= (st.last || e.ts)))));
+    const j = jobsOn ? activeJob() : null, ck = j && j.check ? { a: L9.checkCount(j.check.inizio), b: L9.checkCount(j.check.fine) } : null;
+    const p2 = (ts) => ts ? dmHm(ts) : '—';
+    const info = [['Perimetro', label], ['Periodo', st.n ? p2(st.first) + ' – ' + p2(st.last) : '—'], ['Macchina', uniq(rows.map((r) => r.machine)).join(', ') || '—'],
+      ['Codice / rev.', uniq(rows.map((r) => [r.codice, r.rev && 'rev ' + r.rev].filter(Boolean).join(' '))).join(', ') || '—'], ['Lavorazione', uniq(rows.map((r) => r.lav)).join(', ') || '—'], ['Numero lotto', uniq(rows.map((r) => r.lotto)).join(', ') || '—'],
+      ['Serie', uniq(rows.map((r) => r.serie + ' (base ' + fmtMm3(r.base) + ' ± ' + fmtMm3(r.tol) + ', gioco ' + r.gmin + '–' + r.gmax + ' µm)')).join('; ') || '—']];
+    const stats = [['Pezzi', st.n], ['Buoni', st.buoni + (st.pctBuoni != null ? ' (' + String(st.pctBuoni).replace('.', ',') + '%)' : '')], ['Scarti', st.scarti], ['Gioco misurato', st.gMin != null ? fmtUm(st.gMin) + '–' + fmtUm(st.gMax) + ' µm (medio ' + String(st.gAvg).replace('.', ',') + ')' : '—'],
+      ['Conicità max', st.conMax != null ? fmtUm(st.conMax) + ' µm' : '—'], ['Diamantature', quad.length]];
+    const notes = []; if (ck) notes.push('Checklist del lavoro in corso: inizio ' + ck.a.done + '/' + ck.a.total + ', fine ' + ck.b.done + '/' + ck.b.total + '.');
+    if (scope === 'turno' && state.turno && state.turno.note) notes.push('Nota turno: ' + String(state.turno.note).replace(/\s+/g, ' ').slice(0, 110));
+    return { rows, label, st, model: { title: 'Rettifica – Report ' + label.toLowerCase(), sub: 'Creato il ' + new Date().toLocaleString('it-IT') + ' · v' + APP_VERSION, info, stats, notes,
+      cols: [{ h: 'Data ora', x: 40, w: 11 }, { h: 'Serie', x: 100, w: 20 }, { h: 'Lotto', x: 215, w: 11 }, { h: 'Misura mm', x: 275, w: 10 }, { h: 'Pezzo', x: 335, w: 6 }, { h: 'Gioco µm', x: 375, w: 8 }, { h: 'Conicità', x: 430, w: 8 }, { h: 'Esito', x: 485, w: 10 }],
+      rows: rows.map((r) => [dmHm(r.ts), r.serie, r.lotto, fmtMmS(r.S), r.chosen == null ? '' : r.chosen, fmtUm(r.gioco), r.con == null ? '' : fmtUm(r.con), r.status]),
+      footer: 'Rettifica Beta · misure salvate in Calcolo · nessun dato personale' } };
+  }
+  function openReport(scope0) {
+    const lotti = reportLotti(); let scope = scope0 || 'turno';
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="rpModal"><h2>📄 Report</h2>
+      <p class="meta">Riepilogo di una pagina (PDF) o tabella (CSV) di tutte le misure. Nessun dato personale. Lo condividi tu.</p>
+      <div class="rp-scope" id="rpScope">${[['turno', 'Turno in corso'], ['oggi', 'Oggi'], ['lotto', 'Un lotto'], ['tutto', 'Tutto']].map(([k, t]) => `<label class="pk-rad"><input type="radio" name="rpScope" value="${k}" ${k === scope ? 'checked' : ''}/><span>${t}</span></label>`).join('')}</div>
+      <select id="rpLotto" class="neu ${scope === 'lotto' ? '' : 'hidden'}">${lotti.length ? lotti.map((l) => `<option value="${esc(l)}">${esc(l)}</option>`).join('') : '<option value="">(nessun lotto salvato)</option>'}</select>
+      <div class="meta" id="rpInfo"></div><div id="rpErr" class="form-err hidden"></div>
+      <button type="button" class="btn btn-orange pk-go" id="rpPdf">📄 Report PDF (1 pagina)</button>
+      <div class="actions" style="display:flex;gap:8px;margin-top:8px"><button type="button" class="btn btn-sec" id="rpCsv" style="flex:1">📊 CSV</button><button type="button" class="btn btn-sec" id="rpClose" style="flex:1">Chiudi</button></div></div></div>`;
+    const cur = () => { const sc = document.querySelector('input[name="rpScope"]:checked').value; return { sc, lt: $('rpLotto').value }; };
+    const upd = () => { const { sc, lt } = cur(); $('rpLotto').classList.toggle('hidden', sc !== 'lotto'); const r = reportScopeRows(sc, lt); $('rpInfo').textContent = r.rows.length + (r.rows.length === 1 ? ' pezzo' : ' pezzi') + ' · ' + r.label; return r; };
+    document.querySelectorAll('input[name="rpScope"]').forEach((i) => { i.onchange = upd; }); $('rpLotto').onchange = upd; upd();
+    $('rpClose').onclick = () => { $('modalRoot').innerHTML = ''; }; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') $('modalRoot').innerHTML = ''; };
+    const nameFor = (sc, lt, ext) => 'rettifica-report-' + (sc === 'lotto' ? 'lotto-' + String(lt).replace(/[^A-Za-z0-9._-]+/g, '_') : sc) + '-' + todayKey() + '.' + ext;
+    const need = (r) => { if (r.rows.length) return true; const e = $('rpErr'); e.textContent = 'Nessuna misura in questo perimetro'; e.classList.remove('hidden'); return false; };
+    $('rpPdf').onclick = async () => { const { sc, lt } = cur(), rep = reportModel(sc, lt); if (!need(rep)) return; const pdf = L9.buildPdf(rep.model); await shareOut(nameFor(sc, lt, 'pdf'), null, 'application/pdf', 'Report Rettifica', L9.pdfToBase64(pdf)); };
+    $('rpCsv').onclick = async () => { const { sc, lt } = cur(), rep = reportModel(sc, lt); if (!need(rep)) return; await shareOut(nameFor(sc, lt, 'csv'), L9.reportCsv(rep.rows), 'text/csv', 'Report Rettifica'); };
+  }
+  $('btnTurnoReport').addEventListener('click', () => openReport('turno'));
+  $('btnReportStorico').addEventListener('click', () => openReport('oggi'));
+
+  // ── Setup rows + Quaderno page ──
+  $('btnRecv').addEventListener('click', openReceiveMenu);
+  $('btnSend').addEventListener('click', () => openSendJob());
+  $('btnQuaderno').addEventListener('click', () => { qdSel = null; showPage('quaderno'); });
+  $('btnPin').addEventListener('click', openPinSetup);
+  $('btnReport').addEventListener('click', () => openReport('turno'));
+  function refreshSetup090() {
+    const s = $('pinLabel'); if (s) s.textContent = lockOn() ? '🔒 PIN attivo · ' + state.series.filter((x) => x.locked).length + ' serie bloccate' : 'PIN non impostato · protegge dagli errori';
+    const q = $('qdLabel'); if (q) { const i = L9.dressInfo(state, mKey(), nameOfHist); q.textContent = i.on ? 'Promemoria diamantatura: ogni ' + i.every + ' pezzi (' + i.count + ' fatti)' : 'Diamantatura, cambio mola, note · promemoria spento'; }
+  }
+
   window.__rettifica = {
     get contacts() { return contacts; }, renderAiuto: () => renderAiuto(), openHelp: () => openHelp(),
     openSheetConfirm: (x) => openSheetConfirm(x), get lastPhoto() { return lastPhoto; },
@@ -3638,6 +4154,7 @@
     measureDigitsSet(d) { measureDigits = d; refreshDisplay(); },
     doCalcFlow, newTrainQ, saveCurrent, openMachineDialog, openSeriesSheet, exportCsv,
     openNewJob, openJobsSheet, startJob, get activeJob() { return activeJob(); }, initJobs,
+    receivePackage: (t, src) => receivePackage(t, src), openReceived: (v) => openReceived(v), acceptPackage: (v, o) => acceptPackage(v, o), openSendJob: (id) => openSendJob(id), openChecklist: (p) => openChecklist(p), openJobData: () => openJobData(), renderQuaderno: () => renderQuaderno(), renderJobStrip: () => renderJobStrip(), renderDress: () => renderDress(), openReport: (s) => openReport(s), reportModel: (s, l) => reportModel(s, l), reportRows: (p) => reportRows(p), lockedNow: (s) => lockedNow(s), lockOn: () => lockOn(), openPinSetup: () => openPinSetup(), openReceiveMenu: () => openReceiveMenu(), L9, metaLine, jobMeta, ensureJobCheck,
     setPendingJob(n) { pendingJob = n ? { machineName: n } : null; },
   };
 
@@ -3646,4 +4163,5 @@
   const ctx = currentContext();
   if (ctx.series) setContext(null, ctx.series.id, false);
   showPage('calc'); showInputView(); refreshDisplay(); renderRecent();
+  setTimeout(() => window.__pkgCheck(), 0); // Beta 0.9.0: a package opened from a file / the share sheet
 })();

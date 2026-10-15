@@ -1346,6 +1346,7 @@ function makeJob(o) {
     knob: cloneKnob(o.knob), seriesId: s ? s.id : (o.seriesId || null),
     base: s ? s.base : (o.base != null ? o.base : null), giocoMin: s ? s.giocoMin : null, giocoMax: s ? s.giocoMax : null,
     codice: String(o.codice || '').trim().slice(0, 40), lotto: String(o.lotto || '').trim().slice(0, 40),
+    rev: String(o.rev || '').trim().slice(0, 12), lav: String(o.lav || '').trim().slice(0, 40), check: o.check || null, // Beta 0.9.0: revisione, lavorazione/operazione, checklist del lavoro
     legacy: !!o.legacy,
   };
 }
@@ -1581,7 +1582,7 @@ function historyCsv(rows) {
   const dec = (x, f) => (x == null || x === '' || Number.isNaN(Number(x)) ? '' : f(Number(x)));
   // v2.0.1: conicità + side where the piece is bigger; ovalità kept only for older measures (no longer entered)
   // v2.0.4: «Lavoro» = which part was measured (maschio S / femmina F); «Pezzo» = numbered mating part (femmina / maschio)
-  const head = ['Data', 'Ora', 'Macchina', 'Base (diametro) mm', 'Lotto', 'Lavoro', 'Misura (diametro) mm', 'Scarto dalla base µm', 'Pezzo accoppiato', 'Gioco µm (femmina − maschio, positivo)', 'Conicità µm', 'Conicità più grande', 'Ovalità µm (vecchie misure)', 'Esito'];
+  const head = ['Data', 'Ora', 'Macchina', 'Base (diametro) mm', 'Lotto', 'Lavoro', 'Misura (diametro) mm', 'Scarto dalla base µm', 'Pezzo accoppiato', 'Gioco µm (femmina − maschio, positivo)', 'Conicità µm', 'Conicità più grande', 'Ovalità µm (vecchie misure)', 'Esito', 'Codice', 'Revisione', 'Lavorazione', 'Numero lotto', 'Serie', 'Tolleranza ± mm', 'Gioco min µm', 'Gioco max µm'];
   const lines = [head.join(';')];
   for (const r of rows || []) {
     const d = r.ts ? new Date(r.ts) : null;
@@ -1591,6 +1592,7 @@ function historyCsv(rows) {
       d ? pad(d.getHours()) + ':' + pad(d.getMinutes()) : '',
       q(r.machine), dec(r.base, fmtMm3), q(r.lotto), r.lavoro === 'interno' ? 'interno (foro misurato)' : r.lavoro === 'femmina' ? 'femmina (F misurata)' : 'maschio (S misurato)', dec(r.S, fmtMmS), dec(r.d, fmtUm), r.interno ? 'quota foro ' + fmtMm4(r.interno.lo) + '–' + fmtMm4(r.interno.hi) + (r.interno.action ? ' · ' + r.interno.action + ' ' + fmtUm(Math.abs(r.interno.devUm)) + ' µm' : '') : r.target != null ? 'maschio da fare ' + fmtMm4(r.target) : r.chosen == null ? '' : (r.lavoro === 'femmina' ? 'maschio ' : 'femmina ') + r.chosen,
       dec(r.gioco, fmtUm), dec(r.con, fmtUm), q(r.conEnd === 'fondo' ? 'in fondo' : r.conEnd === 'davanti' ? 'davanti' : ''), dec(r.oval, fmtUm), q(r.status || ''),
+      q(r.codice), q(r.rev), q(r.lav), q(r.lot), q(r.serie), dec(r.tol, fmtMm3), dec(r.gmin, fmtUm), dec(r.gmax, fmtUm), // Beta 0.9.0: new columns at the END (old ones unchanged)
     ].join(';'));
   }
   return '\ufeff' + lines.join('\r\n') + '\r\n';

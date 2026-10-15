@@ -10,6 +10,17 @@
  "background_color": "#121418",
  "theme_color": "#ff8a1f",
  "lang": "it",
+ "file_handlers": [
+  {
+   "action": "./",
+   "accept": {
+    "application/json": [
+     ".rettifica",
+     ".json"
+    ]
+   }
+  }
+ ],
  "icons": [
   {
    "src": "icon-192.png",

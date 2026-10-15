@@ -994,6 +994,39 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
 .tk.fa{outline:2px dashed var(--green);outline-offset:2px}
 #taperCard.noform,#formBox.noform{display:none!important}
 .preset-btn{width:100%;min-height:56px;margin-bottom:10px}
+
+/* Beta 0.9.0 */
+.job-strip{display:flex;gap:8px;margin-top:6px}.job-strip.hidden{display:none}
+.js-meta,.js-chk{min-height:40px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-size:13px;font-weight:700;padding:4px 10px;box-shadow:var(--shadow-btn)}
+.js-meta{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.js-meta.empty{color:var(--muted);font-weight:600}
+.js-chk{flex:0 0 auto;white-space:nowrap}.js-chk.done{border-color:var(--green);color:var(--green)}.js-chk.hidden{display:none}
+.dress-banner{margin-top:6px;padding:8px 12px;border-radius:14px;border:2px solid var(--amber);background:rgba(255,197,61,.12)}
+.dress-banner .db-t{font-weight:900;font-size:16px;line-height:1.2;color:var(--amber)}.dress-banner .db-b{display:flex;gap:8px;margin-top:6px}
+.dress-banner .db-b .btn{flex:1;min-height:52px;font-size:15px;white-space:nowrap;padding:0 8px}
+.dress-note{margin-top:8px;padding:8px 10px;border-radius:12px;background:rgba(25,227,208,.1);border:1px solid rgba(25,227,208,.4);font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;justify-content:space-between}
+.dress-note .dn-x{min-width:44px;min-height:44px;border:0;background:transparent;color:inherit;font-size:18px}
+.dress-banner.hidden,.dress-note.hidden{display:none}
+html[data-theme="light"] .dress-banner .db-t{color:#b45309}
+.qd-card{padding:12px 14px;margin-top:10px}.qd-pre{display:flex;gap:8px;margin-top:8px}.qd-pre button{flex:1;min-height:52px;border-radius:14px;border:2px solid rgba(255,255,255,.15);background:transparent;color:var(--text);font:inherit;font-weight:900;font-size:17px}.qd-pre button.on{border-color:var(--orange);background:rgba(255,138,31,.12);color:var(--orange)}
+.qd-count{margin-top:10px}.qd-due{margin-top:6px;color:var(--amber);font-weight:800}
+.qd-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.qd-btns button{min-height:84px;border-radius:16px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-weight:800;font-size:15px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:var(--shadow-btn)}.qd-btns button span{font-size:28px}
+.qd-ev{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:14px;margin-bottom:8px;background:var(--surface)}.qd-ic{font-size:26px}.qd-bd{flex:1;min-width:0}.qd-note{font-size:14px;white-space:pre-wrap;word-break:break-word}
+.ck-modal .ck-tabs{margin:8px 0}.ck-list{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+.ck-item{display:flex;align-items:center;gap:12px;min-height:60px;padding:8px 12px;border-radius:14px;border:2px solid rgba(255,255,255,.15);background:transparent;color:var(--text);font:inherit;font-size:16px;font-weight:700;text-align:left}
+.ck-item.on{border-color:var(--green);background:rgba(61,220,132,.1)}.ck-box{width:30px;height:30px;border-radius:8px;border:2px solid currentColor;display:grid;place-items:center;flex:none;font-weight:900;color:var(--green)}.ck-t{flex:1;min-width:0}
+.ck-all{width:100%;min-height:64px;font-size:19px;margin-top:8px;touch-action:manipulation;user-select:none;-webkit-user-select:none}.ck-all small{font-weight:600;font-size:12px;margin-left:6px}
+.pk-recv .pk-meta{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.pk-meta>div{padding:8px 10px;border-radius:12px;border:1px solid var(--line);min-width:0}.pk-meta span{display:block;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px}.pk-meta b{font-size:17px;word-break:break-word}
+.pk-ser{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:6px 0}.pk-r{display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:14px}.pk-r span{color:var(--muted);font-weight:700}.pk-r b{text-align:right;min-width:0;word-break:break-word}
+.pk-note{margin-top:6px;font-size:13px;white-space:pre-wrap;color:var(--muted)}.pk-h{margin:10px 0 2px;font-size:15px}.pk-cl{margin:8px 0}
+.pk-ok{margin:6px 0;color:var(--green);font-weight:800;font-size:14px}.pk-warn{margin:6px 0;color:var(--amber);font-weight:800;font-size:14px}
+.pk-choice{margin:10px 0;padding:8px 10px;border-radius:12px;border:2px solid var(--orange)}.pk-rad{display:flex;align-items:center;gap:10px;min-height:52px;font-size:15px;font-weight:700;margin:2px 0}.pk-rad input{width:24px;height:24px;flex:none}.pk-rad small{display:block;font-weight:600;color:var(--muted)}
+.pk-d{font-size:13px;margin:2px 0}.pk-d span{color:var(--muted);margin-right:6px}.pk-d s{opacity:.7}
+.pk-go{width:100%;min-height:64px;font-size:19px;margin-top:10px}
+.pk-bar{position:sticky;bottom:-28px;margin:0 -16px -28px;padding:6px 16px 28px;background:var(--bg2);border-top:1px solid var(--line)}
+.lock-bar{margin:8px 0;padding:10px 12px;border-radius:12px;border:2px solid var(--amber);font-weight:700;font-size:14px}.lock-bar .btn{width:100%;min-height:52px;margin-top:8px}
+.pin-in{letter-spacing:6px;text-align:center}.linkish{background:none;border:0;color:var(--orange);font:inherit;font-weight:700;text-decoration:underline;min-height:44px;padding:0 4px}
+.js-tools{display:flex;gap:6px;margin-top:8px}.js-tools .btn{flex:1;min-height:52px;font-size:13px;padding:0 4px;white-space:nowrap}
+.hist-meta{color:var(--orange)}.lock-ic{font-size:14px}.rp-scope{margin:6px 0}
 .web-install{margin:0 0 12px;padding:12px 14px}.web-install p{margin:4px 0 8px}
 </style>
 </head>
@@ -1015,6 +1048,9 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
       <span class="hidden" id="chipSub"></span>
       <span class="hidden" id="ctxChev"></span>
     </div>
+    <div class="job-strip hidden" id="jobStrip"><button type="button" class="js-meta" id="jsMeta" aria-label="Dati del lavoro: lotto, codice, lavorazione">＋ Lotto · codice · lavorazione</button><button type="button" class="js-chk" id="jsChk" aria-label="Checklist del lavoro">📋 <span id="jsChkT">Inizio 0/0</span></button></div>
+    <div class="dress-banner hidden" id="dressBanner" role="status"></div>
+    <div class="dress-note hidden" id="dressNote" role="status"></div>
     <div class="job-row hidden" id="jobRow">
       <button type="button" class="btn-job" id="btnNewJob"><span class="ji">📷</span><span><b>Nuovo lavoro</b><small>Foto foglio → dati lavoro</small></span></button>
     </div>
@@ -1199,6 +1235,7 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
       <button type="button" class="btn btn-sec" id="btnShareTxt" style="flex:1">Condividi testo</button>
       <button type="button" class="btn btn-sec" id="btnShareImg" style="flex:1">Condividi immagine</button>
     </div>
+    <div class="row-btns"><button type="button" class="btn btn-sec" id="btnTurnoReport" style="flex:1">📄 Report turno (PDF / CSV)</button></div>
     <div class="row-btns"><button type="button" class="btn btn-orange" id="btnChiudiTurno" style="flex:1">Chiudi turno</button></div>
     <label style="display:block;margin-top:10px;font-size:12px;color:var(--muted);font-weight:700">Nota turno</label>
     <textarea id="turnoNote" class="neu"></textarea>
@@ -1231,7 +1268,7 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
     <div id="andamentoBox"></div>
     <div class="sec-title">Misure salvate</div>
     <div style="display:flex;gap:8px;margin-bottom:8px"><select id="filterHistSeries" class="neu" style="flex:1"></select>
-      <button type="button" class="btn btn-sec" id="btnCsvStorico" style="min-height:48px">CSV</button></div>
+      <button type="button" class="btn btn-sec" id="btnCsvStorico" style="min-height:48px">CSV</button><button type="button" class="btn btn-sec" id="btnReportStorico" style="min-height:48px">📄 Report</button></div>
     <div id="histList"></div>
     <div class="sec-title">Femmine salvate</div>
     <div id="femList"></div>
@@ -1282,6 +1319,17 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
       </button>
     </div>
 
+    <div class="sec-title">Lavoro in squadra</div>
+    <div class="setup-group" id="grpTeam">
+      <button type="button" class="setup-row" id="btnRecv"><span class="row-ico"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 19h16"/></svg></span><span class="row-txt"><b>📥 Ricevi lavoro</b><span>Pacchetto dal responsabile: file, QR o codice</span></span><span class="chev">›</span></button>
+      <button type="button" class="setup-row" id="btnSend"><span class="row-ico"><svg viewBox="0 0 24 24"><path d="M12 21V9M8 13l4-4 4 4M4 5h16"/></svg></span><span class="row-txt"><b>📤 Invia lavoro</b><span>Crea il pacchetto e condividilo (WhatsApp, email, QR)</span></span><span class="chev">›</span></button>
+      <button type="button" class="setup-row" id="btnQuaderno"><span class="row-ico"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span><span class="row-txt"><b>📓 Quaderno macchina</b><span id="qdLabel">Diamantatura, cambio mola, note</span></span><span class="chev">›</span></button>
+      <button type="button" class="setup-row" id="btnReport"><span class="row-ico"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span class="row-txt"><b>📄 Report lotto / turno</b><span>PDF di una pagina o CSV</span></span><span class="chev">›</span></button>
+      <button type="button" class="setup-row" id="btnPin"><span class="row-ico"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><span class="row-txt"><b>🔒 Blocco quote (PIN)</b><span id="pinLabel">PIN non impostato · protegge dagli errori</span></span><span class="chev">›</span></button>
+    </div>
+    <input type="file" id="pkFile" accept=".rettifica,.json,application/json,text/plain,application/octet-stream" class="hidden"/>
+    <input type="file" id="pkQrFile" accept="image/*" class="hidden"/>
+
     <div class="sec-title hidden">Contesto di lavoro</div>
     <div class="card ctx-panel hidden" id="ctxPanel">
       <select id="selMachine" class="hidden"></select>
@@ -1320,7 +1368,7 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
     </div>
     <input type="file" id="importFile" accept="application/json,.json,text/plain" class="hidden"/>
     <button type="button" class="btn btn-danger" id="btnReset" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗑 Azzera tutto</button>
-    <p class="ver">Rettifica Beta v0.8.1 · diametri in mm · giochi e correzioni in µm</p>
+    <p class="ver">Rettifica Beta v0.9.0 · diametri in mm · giochi e correzioni in µm</p>
   </section>
 
   <section class="page" id="page-aiuto">
@@ -1333,6 +1381,20 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
     <p class="meta help-priv">📵 I numeri restano <b>solo su questo telefono</b> e non sono nel backup. L'app <b>non invia nulla da sola</b>: apre WhatsApp, SMS o il telefono e tocchi tu Invia.</p>
     <div class="ct-io"><button type="button" class="btn btn-sec" id="ctExport">Esporta contatti</button><button type="button" class="btn btn-sec" id="ctImport">Importa contatti</button></div>
     <input type="file" id="ctImportFile" accept="application/json,.json,text/plain" class="hidden"/>
+  </section>
+  <section class="page" id="page-quaderno">
+    <div class="page-head"><button type="button" class="ib" id="qdBack" aria-label="Indietro">←</button><h2>📓 Quaderno macchina</h2></div>
+    <select id="qdSel" class="neu" aria-label="Macchina"></select>
+    <p class="meta" id="qdHead" style="margin:6px 2px"></p>
+    <div class="card qd-card"><b>🔔 Promemoria diamantatura</b><p class="meta">Ogni quanti pezzi salvati ti ricordo di fare la diamantatura. È un <b>promemoria</b>, non un allarme: non blocca niente.</p>
+      <div class="qd-pre" id="qdPre"><button type="button" data-n="0">Spento</button><button type="button" data-n="25">25</button><button type="button" data-n="50">50</button><button type="button" data-n="100">100</button></div>
+      <div class="field-row" style="margin-top:8px"><div><label>Ogni N pezzi</label><input id="qdEvery" class="big-input" inputmode="numeric" maxlength="4" placeholder="es. 50"/></div><div><label>Rimanda di (pezzi)</label><input id="qdStep" class="big-input" inputmode="numeric" maxlength="3" placeholder="10"/></div></div>
+      <button type="button" class="btn btn-teal" id="qdSet" style="width:100%;min-height:56px;margin-top:8px">✓ Imposta</button>
+      <div class="qd-count" id="qdCount"></div></div>
+    <div class="sec-title">Registra</div>
+    <div class="qd-btns" id="qdBtns"><button type="button" data-ev="diamantatura"><span>💎</span>Diamantatura</button><button type="button" data-ev="mola"><span>🔄</span>Cambio mola</button><button type="button" data-ev="manopola"><span>🎛</span>Regolazione manopola</button><button type="button" data-ev="nota"><span>📝</span>Nota libera</button></div>
+    <div class="sec-title">Voci</div>
+    <div id="qdList"></div>
   </section>
   <section class="page" id="page-guida">
     <div class="page-head"><h2>Guida</h2></div>
@@ -1430,6 +1492,21 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
         <li>Tocca <b>WhatsApp</b>, <b>SMS</b> o <b>📞 Chiama</b>: si apre l'app e <b>tocchi tu Invia</b>. L'app non invia mai nulla da sola.</li></ol>
         <p class="g-tip">💡 I numeri restano <b>solo su questo telefono</b> e <b>non sono nel backup</b>. «Esporta contatti» ti avvisa prima. La <b>Chat con l'AI</b> ora è in <b>Setup</b>.</p>
       </details>
+      <details class="g-sec" id="gPacchetto"><summary><span class="g-ico">📦</span>Lavoro ricevuto dal responsabile (pacchetto)</summary>
+        <p>Il responsabile ti manda il lavoro già pronto: <b>serie, base, tolleranze, gioco, lotto, codice, lavorazione, note e checklist</b>. Non serve un server: arriva un <b>file</b> (<b>.rettifica</b> o .json) da WhatsApp o email, un <b>QR</b> o un <b>codice</b> di testo.</p>
+        <ol><li>Tocca il file (o <b>Setup → Ricevi lavoro</b>): si apre <b>📥 Lavoro ricevuto</b> con tutti i dati. Controllali.</li>
+        <li>Se esiste già una serie con lo stesso <b>codice</b>, scegli <b>Aggiorna la serie</b> (le misure restano) oppure <b>Crea nuova</b>. Tocca <b>✅ Accetta e inizia</b>: la serie è pronta e il lavoro parte (lotto, codice, lavorazione in alto in Calcolo).</li>
+        <li>Per <b>mandare</b> un lavoro: <b>Setup → Invia lavoro</b> (o 📦 su una serie): scegli lotto, codice, revisione, lavorazione e tocca <b>Invia</b>: si apre la condivisione (WhatsApp, email…), poi invii tu. Oppure <b>Mostra QR</b> / <b>Copia codice</b>.</li></ol>
+        <p class="g-tip">🔒 <b>Blocco quote (PIN)</b>: in Setup puoi mettere un PIN. Le serie ricevute non si modificano più per sbaglio senza PIN. È una protezione contro gli <b>errori</b>, non una sicurezza. Il pacchetto non contiene numeri di telefono né dati personali. L'app non invia mai nulla da sola.</p>
+      </details>
+      <details class="g-sec" id="gDiamante"><summary><span class="g-ico">💎</span>Promemoria diamantatura e Quaderno macchina</summary>
+        <p>In <b>Setup → Quaderno macchina</b> scegli <b>ogni quanti pezzi</b> (es. 50) ricordare la diamantatura. Il conteggio usa i pezzi salvati dall'ultima diamantatura. Quando arriva il momento compare in Calcolo un avviso grande, <b>senza bloccare niente</b>: <b>💎 Fatta</b> (azzera il conteggio e lo registra) oppure <b>Rimanda di X pezzi</b>.</p>
+        <p>Dopo la diamantatura l'app ti ricorda: <b>primo pezzo dopo diamantatura: controlla con calma</b>. Il quaderno elenca diamantature, cambi mola, regolazioni della manopola e note con data, ora e pezzi dalla voce precedente; è nel backup.</p>
+      </details>
+      <details class="g-sec" id="gChecklist"><summary><span class="g-ico">📋</span>Checklist del lavoro e Report</summary>
+        <p>Il tasto <b>📋</b> sotto i pulsanti di Calcolo apre la <b>checklist</b>: inizio lavoro (disegno e revisione, strumento pulito, pezzo a temperatura, zero fatto) e fine (ovalità/conicità controllate). Tocca le voci; <b>tieni premuto «Tutto ok»</b> per spuntarle tutte. Con <b>✎ Modifica voci</b> la cambi (massimo 7 per parte). Può arrivare anche nel pacchetto del responsabile.</p>
+        <p>In <b>Turno</b>, <b>Storico</b> o <b>Setup → Report</b> crei il <b>report</b> di un turno, di oggi o di un lotto: un <b>PDF di una pagina</b> o un <b>CSV</b> (separatore ;, colonne fisse: lotto, codice, revisione, lavorazione, macchina, serie, esito, limiti). Non contiene dati personali.</p>
+      </details>
       <details class="g-sec" id="gFoglio"><summary><span class="g-ico">📐</span>Foglio «Requisiti Disegno» (foto)</summary>
         <p>Se non hai lo schermo del PC, fotografa il <b>foglio con i requisiti del disegno</b> (tabella con nominale ± tolleranza, limite superiore e inferiore, strumento, riga <b>Accoppiamento</b>). Vale per <b>qualsiasi serie</b>, anche se la foto è girata.</p>
         <ol><li>Tocca <b>📷</b> e scatta, poi <b>Leggi</b>. L'app capisce da sola se è il foglio e prova a ruotare la foto. Puoi anche toccare <b>↻</b> per girarla tu.</li>
@@ -1499,7 +1576,7 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
         <p><b>Guanti?</b><br/>I tasti sono grandi apposta. Ogni bottone foto (📷 Nuovo lavoro, 📷 leggi S, 📷 in Adatta alla femmina) chiede: <b>📷 Scatta foto</b> oppure <b>🖼 Dalla galleria</b> (una foto già fatta). Poi stesso ritaglio e stessa lettura.</p>
       </details>
     </div>
-    <p class="ver">Rettifica Beta v0.8.1</p>
+    <p class="ver">Rettifica Beta v0.9.0</p>
   </section>
   <section class="page" id="page-macchine">
     <button type="button" class="btn btn-sec" id="btnBackSetup1">← Setup</button>
@@ -1565,6 +1642,9 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
 <script src="calc.js"></script>
 <script src="ocr-parse.js"></script>
 <script src="foglio-parse.js"></script>
+<script src="lavoro.js"></script>
+<script src="qrgen.js"></script>
+<script src="qrscan.js"></script>
 <script>window.RETTIFICA_WEB=true;</script>
 <script src="ai.js"></script>
 <script src="app.js"></script>
