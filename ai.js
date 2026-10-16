@@ -4,9 +4,9 @@
  * (excluded from Android backup); in the browser (PWA/tests) in its own localStorage key, never exported. */
 (function (root) {
   'use strict';
-  /** Presets (checked Oct 2026). vision = can read photos. Default = best free option with vision (Gemini). */
+  /** Presets (Gemini model id checked on ai.google.dev, Oct 2026: gemini-3.6-flash is the stable Flash). vision = can read photos. Default = best free option with vision (Gemini). */
   const PROVIDERS = {
-    gemini: { label: 'Google Gemini (gratis)', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-3.8-flash', visionModel: 'gemini-3.8-flash', vision: true,
+    gemini: { label: 'Google Gemini (gratis)', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-3.6-flash', visionModel: 'gemini-3.6-flash', vision: true,
       keyUrl: 'aistudio.google.com/apikey', keyLink: 'https://aistudio.google.com/apikey', free: 'Gratis con limiti al minuto/giorno (vedi AI Studio). Nel piano gratis Google può usare i dati per migliorare i prodotti.' },
     openrouter: { label: 'OpenRouter (modelli :free)', baseUrl: 'https://openrouter.ai/api/v1', model: 'qwen/qwen3.8-27b:free', visionModel: 'qwen/qwen3.8-27b:free', vision: true,
       keyUrl: 'openrouter.ai/keys', keyLink: 'https://openrouter.ai/keys', free: 'Modelli :free gratis: 20 richieste/minuto, 50 al giorno (1000 al giorno dopo 10 $ di credito).' },
@@ -19,6 +19,7 @@
     custom: { label: 'Personalizzato', baseUrl: '', model: '', visionModel: '', vision: true, keyUrl: '', free: 'Qualsiasi servizio compatibile OpenAI (chat/completions).' },
   };
   const DEFAULT_PROVIDER = 'gemini';
+  const STALE_MODELS = { 'gemini-3.8-flash': 1 };
   const DEFAULTS = Object.assign({ provider: DEFAULT_PROVIDER, timeoutMs: 60000 }, PROVIDERS[DEFAULT_PROVIDER]);
   const WEB_KEY = 'rweb_ai_key_local'; // browser only, never in rbeta_v1 / prefs / exports
   const REGOLE = [
@@ -37,7 +38,11 @@
   const REMINDER = 'Ricorda sempre di controllare ovalità e conicità: entro 2–3 µm.';
 
   function cfgOf(prefs) {
-    const a = (prefs && prefs.ai) || {}, id = PROVIDERS[a.provider] ? a.provider : DEFAULT_PROVIDER, P = PROVIDERS[id];
+    const a0 = (prefs && prefs.ai) || {}, id = PROVIDERS[a0.provider] ? a0.provider : DEFAULT_PROVIDER, P = PROVIDERS[id];
+    // 0.9.2: model ids saved by older versions that the provider does not publish → use the preset (no 404 + retry on every call)
+    const a = Object.assign({}, a0);
+    if (STALE_MODELS[a.model]) delete a.model;
+    if (STALE_MODELS[a.visionModel]) delete a.visionModel;
     const custom = id === 'custom';
     const vision = custom ? a.vision !== false : P.vision;
     return { provider: id, label: P.label, baseUrl: String((custom ? a.baseUrl : (a.baseUrl || P.baseUrl)) || '').replace(/\/+$/, ''),
@@ -241,7 +246,7 @@
         .catch((e) => { clearTimeout(t); finish({ ok: false, code: e && e.name === 'AbortError' ? 'timeout' : 'offline' }); });
     });
   }
-  const FALLBACK = { gemini: ['gemini-flash-latest', 'gemini-2.5-flash'] };
+  const FALLBACK = { gemini: ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash'] };
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   /** Retry 429/5xx (2×, backoff), on 404 try the provider's fallback models, drop reasoning_effort if refused. */
   async function postRetry(cfg, body, where, onStatus) {
