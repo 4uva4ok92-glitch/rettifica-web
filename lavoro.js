@@ -11,6 +11,8 @@
   'use strict';
   const PKG_FORMAT = 'rettifica-pacchetto';
   const MAX_CHECK_ITEMS = 7;
+  /** Beta 0.9.1: «Controllo quota» helpers live in quota.js (browser: window.Quota, node: require) */
+  function QT() { return (typeof module !== 'undefined' && module.exports && typeof require === 'function') ? require('./quota.js') : root.Quota; }
 
   /* ---------- small utils ---------- */
   function utf8(str) { return new TextEncoder().encode(String(str)); }
@@ -102,13 +104,14 @@
   }
   /** Build the package object. series: array of series (or one); job: {lotto,codice,rev,lav,note}; checklist optional. */
   function buildPackage(o) {
-    const list = Array.isArray(o.series) ? o.series : [o.series];
+    const list = Array.isArray(o.series) ? o.series : (o.series ? [o.series] : []);
     const job = o.job || {};
     const body = {
       format: PKG_FORMAT, formatVersion: 1, createdAt: o.now || new Date().toISOString(), appVersion: o.appVersion || '',
       job: { lotto: str(job.lotto, 40), codice: str(job.codice, 40), rev: str(job.rev, 12), lavorazione: str(job.lav, 40), note: strNL(job.note, 300) },
       serie: list.map((s, i) => seriesToPkg(s, { meta: i === 0 ? { codice: job.codice, rev: job.rev, lav: job.lav } : null })),
     };
+    if (Array.isArray(o.controlli) && o.controlli.length) { const q = QT(); body.controlli = o.controlli.map((c) => { const p = q.controlloToPkg(c); if (job.codice && !p.codice) p.codice = str(job.codice, 40); if (job.rev && !p.rev) p.rev = str(job.rev, 12); if (job.lav && !p.lavorazione) p.lavorazione = str(job.lav, 40); return p; }); }
     const cl = normalizeChecklist(o.checklist);
     if (cl) body.checklist = cl;
     body.check = sha256hex(JSON.stringify(body)).slice(0, 12);
@@ -158,11 +161,20 @@
         codice: str(s.codice, 40), rev: str(s.rev, 12), lavorazione: str(s.lavorazione, 40), note: strNL(s.note, 600),
         checklist: normalizeChecklist(s.checklist, (m) => warnings.push(tag + m)) });
     });
-    if (!serie.length) return { ok: false, errors: errors.length ? errors : ['Nessuna serie nel pacchetto'], warnings, pkg: null };
+    // Beta 0.9.1: «Controllo quota» (no mating part): controlli[] = [{nome, codice, rev, lavorazione, note, ovalita, quote:[…]}]
+    const carr = Array.isArray(raw.controlli) ? raw.controlli : (raw.controllo && typeof raw.controllo === 'object' ? [raw.controllo] : []);
+    const controlli = [];
+    carr.slice(0, 10).forEach((c, idx) => {
+      const tag = carr.length > 1 ? 'Controllo ' + (idx + 1) + ': ' : 'Controllo quota: ';
+      const r = QT().normalizeControllo(c, (m) => warnings.push(tag + m));
+      if (r.ok) controlli.push(r.c); else errors.push(tag + r.error);
+    });
+    if (!serie.length && !controlli.length) return { ok: false, errors: errors.length ? errors : ['Nessuna serie nel pacchetto'], warnings, pkg: null };
     const j = raw.job && typeof raw.job === 'object' ? raw.job : {};
-    const job = { lotto: str(j.lotto, 40), codice: str(j.codice, 40) || serie[0].codice, rev: str(j.rev, 12) || serie[0].rev, lavorazione: str(j.lavorazione, 40) || serie[0].lavorazione, note: strNL(j.note, 300) };
+    const first = serie[0] || { codice: controlli[0].codice, rev: controlli[0].rev, lavorazione: controlli[0].lav };
+    const job = { lotto: str(j.lotto, 40), codice: str(j.codice, 40) || first.codice, rev: str(j.rev, 12) || first.rev, lavorazione: str(j.lavorazione, 40) || first.lavorazione, note: strNL(j.note, 300) };
     const checklist = normalizeChecklist(raw.checklist, (m) => warnings.push(m)) || (serie.length === 1 ? serie[0].checklist : null);
-    return { ok: true, errors, warnings, pkg: { createdAt: str(raw.createdAt, 40), appVersion: str(raw.appVersion, 20), job, serie, checklist, checkState, check: raw.check ? String(raw.check) : '' } };
+    return { ok: true, errors, warnings, pkg: { createdAt: str(raw.createdAt, 40), appVersion: str(raw.appVersion, 20), job, serie, controlli, checklist, checkState, check: raw.check ? String(raw.check) : '' } };
   }
   /** Existing series that this package series should update (same codice; or, with no codice, same base + same name). */
   function findMatch(list, ps) {
@@ -225,12 +237,12 @@
     return { ok: false, error: 'Non è un pacchetto Rettifica' };
   }
   function packageFileName(pkg) {
-    const j = pkg.job || {}, s = (pkg.serie || [])[0] || {};
+    const j = pkg.job || {}, s = (pkg.serie || [])[0] || (pkg.controlli || [])[0] || {};
     const bit = [j.codice || s.codice, j.lotto ? 'L' + j.lotto : '', j.lavorazione || s.lavorazione].filter(Boolean).join('-').replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 50);
     return 'rettifica-lavoro' + (bit ? '-' + bit : '') + '.rettifica';
   }
   function packageCaption(pkg) {
-    const j = pkg.job || {}, s = (pkg.serie || [])[0] || {};
+    const j = pkg.job || {}, s = (pkg.serie || [])[0] || (pkg.controlli || [])[0] || {};
     const bits = [j.codice || s.codice ? 'Codice ' + (j.codice || s.codice) : '', (j.rev || s.rev) ? 'rev ' + (j.rev || s.rev) : '', (j.lavorazione || s.lavorazione) ? 'lavorazione ' + (j.lavorazione || s.lavorazione) : '', j.lotto ? 'lotto ' + j.lotto : ''].filter(Boolean);
     return 'Nuovo lavoro per Rettifica' + (bits.length ? ': ' + bits.join(' · ') : '') + '. Apri il file con l\'app Rettifica.';
   }
@@ -257,6 +269,7 @@
     ((state.series || []).concat(state.seriesArchive || [])).forEach((s) => (s.history || []).forEach((h) => { if (h.ts && machineKey(nf(h, s)) === key) out.push(String(h.ts)); }));
     (state.femmine || []).forEach((r) => { if (r.ts && machineKey(r.machineName) === key) out.push(String(r.ts)); });
     (state.interni || []).forEach((r) => { if (r.ts && machineKey(r.machineName) === key) out.push(String(r.ts)); });
+    (state.quotaPezzi || []).forEach((r) => { if (r.ts && machineKey(r.machineName) === key) out.push(String(r.ts)); });
     return out;
   }
   function piecesSince(state, key, sinceTs, nameOf) { const t = pieceTimes(state, key, nameOf); return sinceTs ? t.filter((x) => x > String(sinceTs)).length : t.length; }
@@ -294,7 +307,7 @@
   /* ---------- Report per lotto/turno ---------- */
   /** rows: [{ts, machine, serie, codice, rev, lav, lotto, base, tol, gmin, gmax, lavoro, S, d, chosen, gioco, con, conEnd, status}] */
   function reportStats(rows) {
-    const R = rows || [], g = R.map((r) => r.gioco).filter((x) => x != null && Number.isFinite(Number(x))).map(Number);
+    const R = (rows || []).filter((r) => !(r && r.qNome)), g = R.map((r) => r.gioco).filter((x) => x != null && Number.isFinite(Number(x))).map(Number);
     const c = R.map((r) => r.con).filter((x) => x != null && Number.isFinite(Number(x))).map(Number);
     const scarti = R.filter((r) => /scarto/i.test(r.status || '')).length, n = R.length;
     const ts = R.map((r) => String(r.ts || '')).filter(Boolean).sort();
@@ -302,15 +315,18 @@
       gMin: g.length ? Math.min.apply(null, g) : null, gMax: g.length ? Math.max.apply(null, g) : null, gAvg: g.length ? Math.round(g.reduce((a, b) => a + b, 0) / g.length * 10) / 10 : null,
       conMax: c.length ? Math.max.apply(null, c) : null, first: ts[0] || null, last: ts[ts.length - 1] || null };
   }
-  const REPORT_COLS = ['Data', 'Ora', 'Macchina', 'Serie', 'Codice', 'Revisione', 'Lavorazione', 'Numero lotto', 'Base mm', 'Tolleranza ± mm', 'Gioco min µm', 'Gioco max µm', 'Lavoro', 'Misura mm', 'Scarto dalla base µm', 'Pezzo accoppiato', 'Gioco µm', 'Conicità µm', 'Conicità lato', 'Esito'];
+  const REPORT_COLS_BASE = ['Data', 'Ora', 'Macchina', 'Serie', 'Codice', 'Revisione', 'Lavorazione', 'Numero lotto', 'Base mm', 'Tolleranza ± mm', 'Gioco min µm', 'Gioco max µm', 'Lavoro', 'Misura mm', 'Scarto dalla base µm', 'Pezzo accoppiato', 'Gioco µm', 'Conicità µm', 'Conicità lato', 'Esito'];
+  // Beta 0.9.1: columns added at the END for «Controllo quota» rows (empty for the others)
+  const REPORT_COLS_Q = ['Controllo quota', 'Tipo quota', 'Limite min mm', 'Limite max mm', 'Centro mm', 'Scostamento dal centro µm', 'Esito quota'];
+  const REPORT_COLS = REPORT_COLS_BASE.concat(REPORT_COLS_Q);
   function reportCsv(rows) {
     const q = (x) => { const t = x == null ? '' : String(x); return /[;"\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
-    const p2 = (n) => String(n).padStart(2, '0'), out = [REPORT_COLS.join(';')];
+    const p2 = (n) => String(n).padStart(2, '0'), out = [REPORT_COLS.join(';')], qc = (r) => QT().qCells(r);
     (rows || []).forEach((r) => {
       const d = r.ts ? new Date(r.ts) : null;
       out.push([d ? p2(d.getDate()) + '/' + p2(d.getMonth() + 1) + '/' + d.getFullYear() : '', d ? p2(d.getHours()) + ':' + p2(d.getMinutes()) : '', q(r.machine), q(r.serie), q(r.codice), q(r.rev), q(r.lav), q(r.lotto),
-        fmtC(r.base, 3), fmtC(r.tol, 3), fmtC(r.gmin, 0), fmtC(r.gmax, 0), q(r.lavoro === 'femmina' ? 'femmina' : r.lavoro === 'interno' ? 'interno' : 'maschio'), fmtC(r.S, 4), fmtC(r.d, 1),
-        r.chosen == null ? '' : r.chosen, fmtC(r.gioco, 1), fmtC(r.con, 1), q(r.conEnd === 'fondo' ? 'in fondo' : r.conEnd === 'davanti' ? 'davanti' : ''), q(r.status || '')].join(';'));
+        fmtC(r.base, 3), fmtC(r.tol, 3), fmtC(r.gmin, 0), fmtC(r.gmax, 0), q(r.lavoro === 'femmina' ? 'femmina' : r.lavoro === 'interno' ? 'interno' : r.lavoro === 'controllo quota' ? 'controllo quota' : 'maschio'), fmtC(r.S, 4), fmtC(r.d, 1),
+        r.chosen == null ? '' : r.chosen, fmtC(r.gioco, 1), fmtC(r.con, 1), q(r.conEnd === 'fondo' ? 'in fondo' : r.conEnd === 'davanti' ? 'davanti' : ''), q(r.status || '')].concat(qc(r)).join(';'));
     });
     return '\ufeff' + out.join('\r\n') + '\r\n';
   }

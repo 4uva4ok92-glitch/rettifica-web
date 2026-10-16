@@ -730,7 +730,7 @@ html[data-theme="light"] .job-card{background:#fff}
 .g-dot{display:inline-block;width:12px;height:12px;border-radius:4px;vertical-align:middle}
 .g-dot.ok{background:var(--green)}.g-dot.lim{background:#e8c547}.g-dot.no{background:#ff6b6b}
 html[data-theme="light"] .g-sec{background:#fff}
-@media (max-height:700px){
+@media (max-height:700px){.qt-big{flex-direction:row!important;gap:10px}.qt-big small{display:block!important;font-size:11px!important;text-align:left;line-height:1.15}.qt-row{min-height:40px!important}.qt-all{font-size:16px!important;padding:2px 8px!important}.qt-field{min-height:42px!important}.qt-field .fl{font-size:10px}.qt-corr{font-size:13.5px!important;padding:4px 8px!important;margin-top:4px!important}.qt-big{min-height:40px!important}.qt-big b{font-size:24px!important}
   .pad{grid-template-rows:repeat(4,50px);gap:7px;margin-top:8px}
   .btn-job,.job-pill{min-height:50px}
   .btn-job .ji{font-size:20px}
@@ -995,6 +995,38 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
 #taperCard.noform,#formBox.noform{display:none!important}
 .preset-btn{width:100%;min-height:56px;margin-bottom:10px}
 
+/* Beta 0.9.1 – Controllo quota */
+.qt-meta{display:block;width:100%;min-height:36px;margin-top:6px;padding:4px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-size:13px;font-weight:700;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qt-meta.empty{color:var(--muted);font-weight:600}
+.qt-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.qt-row{display:flex;align-items:center;gap:8px;width:100%;min-height:56px;padding:6px 10px;border-radius:14px;border:2px solid var(--line);background:var(--surface);color:var(--text);font:inherit;text-align:left;cursor:pointer}
+.qt-row.on{border-color:var(--teal);box-shadow:0 0 0 2px rgba(25,227,208,.25)}
+.qt-row .qr-n{flex:1;min-width:0}.qt-row .qr-n b{display:block;font-size:17px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qt-row .qr-n small{display:block;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qt-row .qr-r{flex:none;text-align:right;line-height:1.1}.qt-row .qr-r b{display:block;font-size:17px}.qt-row .qr-r small{display:block;font-size:12px;font-weight:800}
+.qt-row.dentro .qr-r small{color:var(--green)}.qt-row.fuori{border-color:rgba(255,77,77,.7)}.qt-row.fuori .qr-r small{color:#ff6b6b}.qt-row.limite .qr-r small{color:var(--amber)}
+.qt-all{margin-top:8px;padding:8px 12px;border-radius:14px;text-align:center;font-weight:900;font-size:20px;border:2px solid var(--line)}
+.qt-all.dentro{border-color:rgba(32,196,107,.6);background:rgba(32,196,107,.12);color:#20c46b}.qt-all.fuori{border-color:rgba(255,77,77,.6);background:rgba(255,77,77,.12);color:#ff6b6b}.qt-all small{display:block;font-size:12px;font-weight:700;color:var(--muted)}
+.qt-big{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:64px;border-radius:16px;border:2px solid var(--line);text-align:center}
+.qt-big b{font-size:34px;line-height:1.05;letter-spacing:.5px}.qt-big small{font-size:13px;font-weight:700;color:var(--muted)}
+.qt-big.dentro{background:rgba(32,196,107,.14);border-color:rgba(32,196,107,.55)}.qt-big.dentro b{color:#20c46b}
+.qt-big.limite{background:rgba(255,197,61,.14);border-color:rgba(255,197,61,.6)}.qt-big.limite b{color:var(--amber)}
+.qt-big.fuori{background:rgba(255,77,77,.14);border-color:rgba(255,77,77,.6)}.qt-big.fuori b{color:#ff6b6b}
+html[data-theme="light"] .qt-big.dentro b,html[data-theme="light"] .qt-all.dentro{color:#11804a}html[data-theme="light"] .qt-big.fuori b,html[data-theme="light"] .qt-all.fuori{color:#c62828}html[data-theme="light"] .qt-big.limite b{color:#b45309}
+.qt-nums{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin:6px 0 2px;font-size:13px}.qt-nums span{color:var(--muted);font-weight:700}.qt-nums b{font-size:15px}
+.qt-corr{margin-top:6px;padding:8px 10px;border-radius:14px;background:var(--bg2);font-size:15px;line-height:1.25}.qt-corr b{font-size:17px}.qt-corr small{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
+.qt-corr.no{border:1px solid rgba(255,77,77,.5)}.qt-corr.ok{color:var(--muted)}
+.modal .chk-big{display:flex}.qt-det{margin-top:10px;padding:8px 12px;border:1.5px solid var(--line2)}.qt-det .qt-nums{margin:0}
+.qt-forma{margin-top:8px;font-size:13px;font-weight:700;color:var(--amber)}
+.qt-rem{margin-top:6px;font-size:12.5px;color:var(--muted)}
+.qt-empty h2{font-size:1.15rem;margin-bottom:6px}.qt-empty .btn{width:100%;min-height:60px;margin-top:8px}
+.qt-qrow{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:14px;margin-bottom:8px;background:var(--surface)}.qt-qrow .qq-t{flex:1;min-width:0}.qt-qrow .qq-t b{display:block;font-size:16px}.qt-qrow .qq-t small{display:block;font-size:12px;color:var(--muted)}.qt-qrow button{min-width:48px;min-height:48px}
+.qt-chips{display:flex;gap:6px;margin:4px 0}.qt-chips button{flex:1;min-height:48px;border-radius:12px;border:2px solid rgba(255,255,255,.15);background:transparent;color:var(--text);font:inherit;font-size:13.5px;font-weight:800;padding:0 4px}.qt-chips button.on{border-color:var(--teal);color:var(--teal);background:rgba(25,227,208,.1)}
+.qt-prev{margin:6px 0;padding:8px 10px;border-radius:12px;background:var(--bg2);font-weight:800;font-size:15px}.qt-prev.bad{color:#ff6b6b}
+.qt-ctl{display:flex;align-items:center;gap:8px;padding:8px 10px;border:2px solid var(--line);border-radius:14px;margin-bottom:8px;background:transparent;color:var(--text);font:inherit;width:100%;text-align:left;min-height:60px;cursor:pointer}.qt-ctl.on{border-color:var(--teal)}.qt-ctl b{display:block;font-size:16px}.qt-ctl small{display:block;font-size:12px;color:var(--muted)}
+.hist-row.qt-hrow{align-items:flex-start}
+@media (max-height:800px){.qt-meta{display:none}.qt-row{min-height:46px;padding:3px 8px}.qt-row .qr-n small{display:none}.qt-list{gap:4px;margin-top:4px}.qt-all{margin-top:4px;padding:3px 8px;font-size:18px}.qt-all small{display:none}.qt-field{min-height:46px;padding:2px 10px}.qt-field .fv{font-size:22px}.qt-res.fm-res{margin-top:5px;padding:6px 10px}.qt-nums{margin:4px 0 0}.qt-rem,.ig-lab{display:none}.qt-big{min-height:54px}.qt-big b{font-size:30px}.qt-row{min-height:52px}.qt-corr{font-size:14px;padding:6px 8px}.qt-corr small{display:none}}
+@media (max-height:700px){.qt-list{gap:4px;margin-top:4px}.qt-row{min-height:46px;padding:3px 8px}.qt-row .qr-n small{display:none}.qt-row .qr-n b,.qt-row .qr-r b{font-size:15px}.qt-all{margin-top:4px;padding:3px 8px;font-size:17px}.qt-all small{display:none}.qt-big{min-height:44px}.qt-big b{font-size:26px}.qt-nums{display:none}.qt-meta{min-height:30px;margin-top:3px}}
+
 /* Beta 0.9.0 */
 .job-strip{display:flex;gap:8px;margin-top:6px}.job-strip.hidden{display:none}
 .js-meta,.js-chk{min-height:40px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-size:13px;font-weight:700;padding:4px 10px;box-shadow:var(--shadow-btn)}
@@ -1214,6 +1246,26 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
     </div>
   </section>
 
+  <!-- Beta 0.9.1: Controllo quota — job type without a mating part: DENTRO / FUORI per quota -->
+  <section class="page" id="page-quota">
+    <div class="fm-top">
+      <button type="button" class="ib" id="qtBack" aria-label="Torna a Calcolo">←</button>
+      <button type="button" class="pill fm-cfg" id="qtCfgBtn" aria-label="Controlli e quote"><span class="pl"><span class="fm-title">Controllo quota</span> · quote ✎</span><span class="pv cond" id="qtCfgTxt">—</span></button>
+    </div>
+    <button type="button" class="qt-meta" id="qtMeta" aria-label="Dati del lavoro: codice, revisione, lavorazione, lotto"></button>
+    <div class="card qt-empty hidden" id="qtEmpty"></div>
+    <div class="qt-list" id="qtList"></div>
+    <div class="fm-field on qt-field" id="qtField"><span class="fl" id="qtFieldLbl">Misura</span><span class="fv cond" id="qtVal">—</span></div>
+    <div class="card fm-res qt-res" id="qtRes"></div>
+    <div class="pad cond fm-pad" id="qKeypad">
+      <button type="button" class="k" data-qk="7">7</button><button type="button" class="k" data-qk="8">8</button><button type="button" class="k" data-qk="9">9</button><button type="button" class="k fn" data-qk="BS">⌫</button>
+      <button type="button" class="k" data-qk="4">4</button><button type="button" class="k" data-qk="5">5</button><button type="button" class="k" data-qk="6">6</button><button type="button" class="k go" data-qk="GO" id="qGo"><span>→</span>OK<small>prossima quota</small></button>
+      <button type="button" class="k" data-qk="1">1</button><button type="button" class="k" data-qk="2">2</button><button type="button" class="k" data-qk="3">3</button>
+      <button type="button" class="k fn" data-qk=",">,</button><button type="button" class="k" data-qk="0">0</button><button type="button" class="k fn" data-qk="AC">AC</button>
+    </div>
+    <div class="card qt-det hidden" id="qtDet"></div>
+  </section>
+
   <section class="page" id="page-turno">
     <div class="page-head">
       <h2>Turno</h2>
@@ -1274,6 +1326,8 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
     <div id="femList"></div>
     <div class="sec-title">Interni salvati (foro)</div>
     <div id="intList"></div>
+    <div class="sec-title">Controllo quota salvati</div>
+    <div id="quotaList"></div>
     <div class="sec-title">Rettifiche manuali</div>
     <div id="manList"></div>
     <div class="sec-title">Turni archiviati</div>
@@ -1323,6 +1377,7 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
     <div class="setup-group" id="grpTeam">
       <button type="button" class="setup-row" id="btnRecv"><span class="row-ico"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 19h16"/></svg></span><span class="row-txt"><b>📥 Ricevi lavoro</b><span>Pacchetto dal responsabile: file, QR o codice</span></span><span class="chev">›</span></button>
       <button type="button" class="setup-row" id="btnSend"><span class="row-ico"><svg viewBox="0 0 24 24"><path d="M12 21V9M8 13l4-4 4 4M4 5h16"/></svg></span><span class="row-txt"><b>📤 Invia lavoro</b><span>Crea il pacchetto e condividilo (WhatsApp, email, QR)</span></span><span class="chev">›</span></button>
+      <button type="button" class="setup-row" id="btnQuota"><span class="row-ico"><svg viewBox="0 0 24 24"><path d="M3 12h18M3 8v8M21 8v8M8 12V9M12 12V8M16 12V9"/></svg></span><span class="row-txt"><b>📏 Controllo quota</b><span id="qtLabel">Misuri un pezzo: DENTRO o FUORI tolleranza (senza accoppiamento)</span></span><span class="chev">›</span></button>
       <button type="button" class="setup-row" id="btnQuaderno"><span class="row-ico"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span><span class="row-txt"><b>📓 Quaderno macchina</b><span id="qdLabel">Diamantatura, cambio mola, note</span></span><span class="chev">›</span></button>
       <button type="button" class="setup-row" id="btnReport"><span class="row-ico"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span class="row-txt"><b>📄 Report lotto / turno</b><span>PDF di una pagina o CSV</span></span><span class="chev">›</span></button>
       <button type="button" class="setup-row" id="btnPin"><span class="row-ico"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><span class="row-txt"><b>🔒 Blocco quote (PIN)</b><span id="pinLabel">PIN non impostato · protegge dagli errori</span></span><span class="chev">›</span></button>
@@ -1368,7 +1423,7 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
     </div>
     <input type="file" id="importFile" accept="application/json,.json,text/plain" class="hidden"/>
     <button type="button" class="btn btn-danger" id="btnReset" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗑 Azzera tutto</button>
-    <p class="ver">Rettifica Beta v0.9.0 · diametri in mm · giochi e correzioni in µm</p>
+    <p class="ver">Rettifica Beta v0.9.1 · diametri in mm · giochi e correzioni in µm</p>
   </section>
 
   <section class="page" id="page-aiuto">
@@ -1492,6 +1547,15 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
         <li>Tocca <b>WhatsApp</b>, <b>SMS</b> o <b>📞 Chiama</b>: si apre l'app e <b>tocchi tu Invia</b>. L'app non invia mai nulla da sola.</li></ol>
         <p class="g-tip">💡 I numeri restano <b>solo su questo telefono</b> e <b>non sono nel backup</b>. «Esporta contatti» ti avvisa prima. La <b>Chat con l'AI</b> ora è in <b>Setup</b>.</p>
       </details>
+      <details class="g-sec" id="gQuota"><summary><span class="g-ico">📏</span>Controllo quota (DENTRO / FUORI)</summary>
+        <p>Per i pezzi <b>senza accoppiamento</b>: misuri la quota e l'app dice <b>DENTRO</b> o <b>FUORI</b> tolleranza. Apri <b>Setup → Controllo quota</b>.</p>
+        <ol><li><b>Quote</b>: per ognuna scrivi nominale e tolleranza a mano (<b>29,5 ± 0,02</b>, oppure sup./inf. come sul disegno), oppure un <b>codice ISO</b> (h6, H7, g6…): l'app calcola i limiti. C'è già il <b>modello del disegno A-A</b> (Ø42 h6 e 29,5 ± 0,02): scrivi solo codice e lotto.</li>
+        <li><b>Misura</b>: scrivi anche solo le ultime cifre (<b>9915</b> = 41,9915). Vedi subito il valore intero, lo scostamento dal centro, quanto manca ai limiti e l'indicatore verde/rosso. Tocca <b>OK</b> per passare alla quota dopo, poi <b>SALVA</b>.</li>
+        <li><b>Esatto sul limite = DENTRO.</b> Vicino al limite (entro il 20% della mezza banda) l'app avvisa e dice quanti µm correggere per arrivare al centro.</li>
+        <li><b>Diametri</b>: la correzione è in tocchi (+ / − dalla taratura della macchina, «da verificare»: controlla sempre dopo il 1° pezzo). Un diametro esterno sotto il minimo (o un foro sopra il massimo) <b>non si recupera</b>. <b>Quote di posizione</b>: solo i µm di cui spostare, senza tocchi.</li>
+        <li>Ovalità/conicità: non viene ricordata, a meno che la attivi nei dati del controllo.</li></ol>
+        <p class="g-tip">💡 Il controllo si può inviare nel <b>pacchetto</b> (Invia lavoro) e finisce in Storico, CSV e Report con colonne aggiunte in fondo.</p>
+      </details>
       <details class="g-sec" id="gPacchetto"><summary><span class="g-ico">📦</span>Lavoro ricevuto dal responsabile (pacchetto)</summary>
         <p>Il responsabile ti manda il lavoro già pronto: <b>serie, base, tolleranze, gioco, lotto, codice, lavorazione, note e checklist</b>. Non serve un server: arriva un <b>file</b> (<b>.rettifica</b> o .json) da WhatsApp o email, un <b>QR</b> o un <b>codice</b> di testo.</p>
         <ol><li>Tocca il file (o <b>Setup → Ricevi lavoro</b>): si apre <b>📥 Lavoro ricevuto</b> con tutti i dati. Controllali.</li>
@@ -1576,7 +1640,7 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
         <p><b>Guanti?</b><br/>I tasti sono grandi apposta. Ogni bottone foto (📷 Nuovo lavoro, 📷 leggi S, 📷 in Adatta alla femmina) chiede: <b>📷 Scatta foto</b> oppure <b>🖼 Dalla galleria</b> (una foto già fatta). Poi stesso ritaglio e stessa lettura.</p>
       </details>
     </div>
-    <p class="ver">Rettifica Beta v0.9.0</p>
+    <p class="ver">Rettifica Beta v0.9.1</p>
   </section>
   <section class="page" id="page-macchine">
     <button type="button" class="btn btn-sec" id="btnBackSetup1">← Setup</button>
@@ -1642,6 +1706,7 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
 <script src="calc.js"></script>
 <script src="ocr-parse.js"></script>
 <script src="foglio-parse.js"></script>
+<script src="quota.js"></script>
 <script src="lavoro.js"></script>
 <script src="qrgen.js"></script>
 <script src="qrscan.js"></script>

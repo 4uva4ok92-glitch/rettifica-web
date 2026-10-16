@@ -1582,7 +1582,10 @@ function historyCsv(rows) {
   const dec = (x, f) => (x == null || x === '' || Number.isNaN(Number(x)) ? '' : f(Number(x)));
   // v2.0.1: conicità + side where the piece is bigger; ovalità kept only for older measures (no longer entered)
   // v2.0.4: «Lavoro» = which part was measured (maschio S / femmina F); «Pezzo» = numbered mating part (femmina / maschio)
-  const head = ['Data', 'Ora', 'Macchina', 'Base (diametro) mm', 'Lotto', 'Lavoro', 'Misura (diametro) mm', 'Scarto dalla base µm', 'Pezzo accoppiato', 'Gioco µm (femmina − maschio, positivo)', 'Conicità µm', 'Conicità più grande', 'Ovalità µm (vecchie misure)', 'Esito', 'Codice', 'Revisione', 'Lavorazione', 'Numero lotto', 'Serie', 'Tolleranza ± mm', 'Gioco min µm', 'Gioco max µm'];
+  const head = ['Data', 'Ora', 'Macchina', 'Base (diametro) mm', 'Lotto', 'Lavoro', 'Misura (diametro) mm', 'Scarto dalla base µm', 'Pezzo accoppiato', 'Gioco µm (femmina − maschio, positivo)', 'Conicità µm', 'Conicità più grande', 'Ovalità µm (vecchie misure)', 'Esito', 'Codice', 'Revisione', 'Lavorazione', 'Numero lotto', 'Serie', 'Tolleranza ± mm', 'Gioco min µm', 'Gioco max µm',
+    // Beta 0.9.1: «Controllo quota» columns, again at the END
+    'Controllo quota', 'Tipo quota', 'Limite min mm', 'Limite max mm', 'Centro mm', 'Scostamento dal centro µm', 'Esito quota'];
+  const QTIPO = { esterno: 'Diametro esterno', foro: 'Foro', posizione: 'Posizione / lunghezza' };
   const lines = [head.join(';')];
   for (const r of rows || []) {
     const d = r.ts ? new Date(r.ts) : null;
@@ -1590,9 +1593,10 @@ function historyCsv(rows) {
     lines.push([
       d ? pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() : '',
       d ? pad(d.getHours()) + ':' + pad(d.getMinutes()) : '',
-      q(r.machine), dec(r.base, fmtMm3), q(r.lotto), r.lavoro === 'interno' ? 'interno (foro misurato)' : r.lavoro === 'femmina' ? 'femmina (F misurata)' : 'maschio (S misurato)', dec(r.S, fmtMmS), dec(r.d, fmtUm), r.interno ? 'quota foro ' + fmtMm4(r.interno.lo) + '–' + fmtMm4(r.interno.hi) + (r.interno.action ? ' · ' + r.interno.action + ' ' + fmtUm(Math.abs(r.interno.devUm)) + ' µm' : '') : r.target != null ? 'maschio da fare ' + fmtMm4(r.target) : r.chosen == null ? '' : (r.lavoro === 'femmina' ? 'maschio ' : 'femmina ') + r.chosen,
+      q(r.machine), dec(r.base, fmtMm3), q(r.lotto), r.lavoro === 'controllo quota' ? 'controllo quota (misura quota)' : r.lavoro === 'interno' ? 'interno (foro misurato)' : r.lavoro === 'femmina' ? 'femmina (F misurata)' : 'maschio (S misurato)', dec(r.S, fmtMmS), dec(r.d, fmtUm), r.interno ? 'quota foro ' + fmtMm4(r.interno.lo) + '–' + fmtMm4(r.interno.hi) + (r.interno.action ? ' · ' + r.interno.action + ' ' + fmtUm(Math.abs(r.interno.devUm)) + ' µm' : '') : r.target != null ? 'maschio da fare ' + fmtMm4(r.target) : r.chosen == null ? '' : (r.lavoro === 'femmina' ? 'maschio ' : 'femmina ') + r.chosen,
       dec(r.gioco, fmtUm), dec(r.con, fmtUm), q(r.conEnd === 'fondo' ? 'in fondo' : r.conEnd === 'davanti' ? 'davanti' : ''), dec(r.oval, fmtUm), q(r.status || ''),
       q(r.codice), q(r.rev), q(r.lav), q(r.lot), q(r.serie), dec(r.tol, fmtMm3), dec(r.gmin, fmtUm), dec(r.gmax, fmtUm), // Beta 0.9.0: new columns at the END (old ones unchanged)
+      q(r.qNome), q(r.qNome ? (QTIPO[r.qTipo] || r.qTipo || '') : ''), dec(r.qLo, fmtMm3), dec(r.qHi, fmtMm3), dec(r.qCentro, fmtMm3), dec(r.qDev, (x) => Number(x).toFixed(1).replace('.', ',')), q(r.qEsito),
     ].join(';'));
   }
   return '\ufeff' + lines.join('\r\n') + '\r\n';

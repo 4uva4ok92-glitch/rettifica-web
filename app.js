@@ -1,4 +1,4 @@
-/* Rettifica Beta v0.9.0 (base: Rettifica OmT v2.0.8) */
+/* Rettifica Beta v0.9.1 (base: Rettifica OmT v2.0.8) */
 (function () {
   const STORAGE_KEY = 'rweb_v1';
   const PREFS_KEY = 'rweb_v1_prefs';
@@ -6,7 +6,7 @@
   const CLEAN_KEY = 'rweb_clean_206';       // v2.0.6 one-time clean start done
   const BACKUP_KEY = 'rweb_backup_pre206';
   const BACKUPS_KEY = 'rweb_backups';           // Beta 0.1.0: last 5 automatic backups (before migration / import / wipe)
-  const APP_VERSION = '0.9.0';
+  const APP_VERSION = '0.9.1';
   /** Beta 0.1.0: automatic local backup; also kept as the «hidden restore» backup (Setup). */
   function autoBackup(why, rawData, rawPrefs) {
     try {
@@ -32,6 +32,7 @@
   const STUDER_NOTE = 'Su Studer il tasto + fa il pezzo più piccolo, − più grande.';
   const $ = (id) => document.getElementById(id);
   const L9 = window.Lavoro; // Beta 0.9.0 helpers (lavoro.js)
+  const QT = window.Quota; // Beta 0.9.1 helpers (quota.js): ISO 286, Controllo quota
   const esc = (t) => String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   let toastTimer = null;
   function clearToast() {
@@ -127,6 +128,8 @@
     if (!d.turniArchivio) d.turniArchivio = [];
     if (!d.training) d.training = { streak: 0, score: 0, todayCount: 0, todayKey: '', lastDay: '' };
     if (!Array.isArray(d.series)) d.series = [];
+    if (!Array.isArray(d.controlli)) d.controlli = []; // Beta 0.9.1 Controllo quota
+    if (!Array.isArray(d.quotaPezzi)) d.quotaPezzi = [];
     (d.machines || []).forEach((m) => { ensureKnob(m); });
     (d.series || []).forEach((s) => {
       if (!s.stock) s.stock = {};
@@ -242,7 +245,7 @@
     requestAnimationFrame(() => {
       const nav = $('nav'); if (!nav) return;
       const limit = nav.getBoundingClientRect().top - 8;
-      [['keypad', 'calcInputView'], ['fKeypad', 'page-femmina'], ['iKeypad', 'page-interno']].forEach(([id, host]) => {
+      [['keypad', 'calcInputView'], ['fKeypad', 'page-femmina'], ['iKeypad', 'page-interno'], ['qKeypad', 'page-quota']].forEach(([id, host]) => {
         const pad = $(id), h = $(host); if (!pad) return;
         pad.style.gridTemplateRows = ''; pad.style.gap = ''; // stale sizes from another screen size never stay
         if (!h || !h.offsetParent || h.classList.contains('hidden')) return;
@@ -427,6 +430,7 @@
       <button type="button" class="btn-job wide" id="jsNew"><span class="ji">📷</span><span><b>Nuovo lavoro</b><small>📷 Foto del foglio → dati del lavoro</small></span></button>
       <button type="button" class="btn btn-sec" id="jsMach" style="width:100%;min-height:52px;margin-top:8px">✎ Macchina: ${esc((myMachine() || {}).name || '—')} · rinomina / taratura</button>
       <div class="js-tools"><button type="button" class="btn btn-sec" id="jsData">✎ Dati lavoro</button><button type="button" class="btn btn-sec" id="jsRecv">📥 Ricevi lavoro</button><button type="button" class="btn btn-sec" id="jsSend">📤 Invia lavoro</button></div>
+      <button type="button" class="btn btn-sec" id="jsQuota" style="width:100%;min-height:52px;margin-top:8px">📏 Controllo quota (DENTRO / FUORI)</button>
       <div class="job-list">${list.map((j) => jobRowHtml(j, j.id === prefs.jobId)).join('')}</div>
       ${arch.length ? `<details class="adv"><summary>Giorni precedenti (${(state.jobsArchive || []).length})</summary>
         <p class="meta" style="margin:4px 0 8px">Tocca per riprenderlo oggi (stessa macchina e serie).</p>
@@ -437,7 +441,7 @@
     $('modalBg').onclick = (ev) => { if (ev.target.id === 'modalBg') close(); };
     $('jsNew').onclick = () => { close(); openNewJob(); };
     $('jsMach').onclick = () => { close(); openMachineDialog(); };
-    $('jsData').onclick = () => { close(); openJobData(); }; $('jsRecv').onclick = () => { close(); openReceiveMenu(); }; $('jsSend').onclick = () => { close(); openSendJob(); };
+    $('jsData').onclick = () => { close(); openJobData(); }; $('jsRecv').onclick = () => { close(); openReceiveMenu(); }; $('jsSend').onclick = () => { close(); openSendJob(); }; $('jsQuota').onclick = () => { close(); openQuota(); };
     $('modalRoot').querySelectorAll('[data-jdel]').forEach((b) => { b.onclick = (ev) => { ev.stopPropagation(); haptic(15); openJobDelete(b.dataset.jdel); }; });
     $('modalRoot').querySelectorAll('[data-job]').forEach((b) => {
       b.onclick = () => {
@@ -468,6 +472,7 @@
       <button type="button" class="btn-job wide" id="njPhoto" style="margin-top:14px"><span class="ji">📷</span><span><b>Scatta foto del foglio</b><small>Legge base, tolleranza, gioco, codice e lotto (nessun calcolo)</small></span></button>
       <button type="button" class="btn btn-sec src-gal" id="njGallery" style="width:100%;margin-top:10px;min-height:56px">🖼 Dalla galleria <small>(foto già fatta)</small></button>
       <button type="button" class="btn btn-sec" id="njManual" style="width:100%;margin-top:10px;min-height:56px">Senza foto: scrivo a mano</button>
+      <button type="button" class="btn btn-sec" id="njQuota" style="width:100%;margin-top:10px;min-height:56px">📏 Controllo quota <small>(senza accoppiamento)</small></button>
       <div id="njErr" class="form-err hidden"></div>
       <div class="actions" style="display:flex;margin-top:10px"><button type="button" class="btn btn-sec" id="njCancel" style="flex:1">Annulla</button></div></div></div>`;
     const inp = $('njName');
@@ -480,6 +485,7 @@
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('njPhoto').click(); } });
     $('njPhoto').onclick = () => { if (!need()) return; pendingJob = { machineName: name() }; $('modalRoot').innerHTML = ''; openFoto('camera'); };
     $('njGallery').onclick = () => { if (!need()) return; pendingJob = { machineName: name() }; $('modalRoot').innerHTML = ''; openFoto('gallery'); };
+    $('njQuota').onclick = () => { const nm = name(); if (nm && myMachine() && nm !== myMachine().name) { rememberMachineName(nm, myMachine().name); myMachine().name = nm; saveData(state); updateJobsPill(); } $('modalRoot').innerHTML = ''; openQuota(); };
     $('njManual').onclick = () => {
       if (!need()) return;
       $('modalRoot').innerHTML = '';
@@ -519,7 +525,7 @@
     const prevActive = document.querySelector('.page.active');
     document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
     document.querySelectorAll('.nv').forEach((b) => {
-      const map = { macchine: 'setup', serie: 'setup', train: 'setup', guida: 'setup', chat: 'setup', quaderno: 'setup', femmina: 'calc', interno: 'calc', manuale: 'calc' };
+      const map = { macchine: 'setup', serie: 'setup', train: 'setup', guida: 'setup', chat: 'setup', quaderno: 'setup', quota: 'calc', femmina: 'calc', interno: 'calc', manuale: 'calc' };
       b.classList.toggle('on', b.dataset.page === name || b.dataset.page === map[name]);
     });
     const page = $('page-' + name); if (page) page.classList.add('active');
@@ -528,9 +534,10 @@
     if (name === 'calc') { renderEmpty(); updateChip(); updatePrefix(); refreshDisplay(); renderRecent(); }
     if (name === 'setup') { fillSetupSelects(); refreshSetup090(); }
     if (name === 'quaderno') renderQuaderno();
+    if (name === 'quota') renderQuota();
     if (name === 'macchine') renderMachines();
     if (name === 'serie') renderSeries();
-    if (name === 'storico') { histShown = 50; renderFemList(); renderIntList(); renderManList(); renderStorico(); renderAndamento(); renderArchivio(); }
+    if (name === 'storico') { histShown = 50; renderFemList(); renderIntList(); renderQuotaList(); renderManList(); renderStorico(); renderAndamento(); renderArchivio(); }
     if (name === 'turno') { renderTurno(); renderStock(); renderPezzi(); renderRiepilogo(); }
     if (name === 'train') renderTrain();
     if (name === 'femmina') renderFemPage();
@@ -1684,7 +1691,7 @@
   function placeUndo() {
     const u = $('undoBar'), lh = $('lastHint'); if (!u) return;
     const onCalc = document.body.dataset.page === 'calc' && lh && !lh.classList.contains('hidden') && lh.getBoundingClientRect().height > 0;
-    const pg = document.body.dataset.page, top = (pg === 'femmina' || pg === 'interno') ? document.querySelector('#page-' + pg + ' .fm-top') : null;
+    const pg = document.body.dataset.page, top = (pg === 'femmina' || pg === 'interno' || pg === 'quota') ? document.querySelector('#page-' + pg + ' .fm-top') : null;
     if (onCalc) { const r = lh.getBoundingClientRect(); u.style.top = Math.round(r.top) + 'px'; u.style.minHeight = Math.round(r.height) + 'px'; u.classList.add('ub-strip'); }
     else if (top && top.getBoundingClientRect().height > 0) { const r = top.getBoundingClientRect(); u.style.top = Math.round(r.top) + 'px'; u.style.minHeight = Math.round(r.height) + 'px'; u.style.maxHeight = Math.round(r.height) + 'px'; u.classList.add('ub-strip', 'ub-fm'); }
     else { u.style.top = ''; u.style.minHeight = ''; u.style.maxHeight = ''; u.classList.remove('ub-strip', 'ub-fm'); }
@@ -2273,8 +2280,8 @@
     const f = shiftPieces((state.turno && state.turno.saves) || [], saveMachineName);
     el.textContent = String(f.total);
     const fd = femShift();
-    const id0 = intShift();
-    if ($('femTurno')) $('femTurno').textContent = [fd ? `+ ${fd} ${fd === 1 ? 'femmina salvata' : 'femmine salvate'} (Adatta alla femmina)` : '', id0 ? `+ ${id0} ${id0 === 1 ? 'interno salvato' : 'interni salvati'} (foro)` : ''].filter(Boolean).join(' · ') + (fd || id0 ? ' in questo turno' : '');
+    const id0 = intShift(), qd0 = qtShift();
+    if ($('femTurno')) $('femTurno').textContent = [fd ? `+ ${fd} ${fd === 1 ? 'femmina salvata' : 'femmine salvate'} (Adatta alla femmina)` : '', id0 ? `+ ${id0} ${id0 === 1 ? 'interno salvato' : 'interni salvati'} (foro)` : '', qd0.length ? `+ ${qd0.length} ${qd0.length === 1 ? 'controllo quota' : 'controlli quota'} (${qd0.filter((x) => x.esito !== 'fuori').length} dentro, ${qd0.filter((x) => x.esito === 'fuori').length} fuori)` : ''].filter(Boolean).join(' · ') + (fd || id0 || qd0.length ? ' in questo turno' : '');
     $('fattiSplit').innerHTML = f.total ? `<span class="fs-ok">${f.buoni} buoni</span> · <span class="fs-no">${f.scarti} ${f.scarti === 1 ? 'scarto' : 'scarti'}</span>` : 'Nessun pezzo salvato in questo turno';
     $('fattiMacchine').innerHTML = f.byMachine.map((m) =>
       `<div class="fm-row"><span class="fm-n">${esc(m.name)}</span><span class="fm-c cond">${m.total}</span>${m.scarti ? `<span class="fm-s">${m.buoni} buoni · <b class="fs-no">${m.scarti} ${m.scarti === 1 ? 'scarto' : 'scarti'}</b></span>` : '<span class="fm-s ok">tutti buoni</span>'}</div>`).join('');
@@ -2332,6 +2339,7 @@
     const sum = shiftSum();
     let t = 'Rettifica Beta — riepilogo turno\n' + turnoLavori((state.turno && state.turno.saves) || []).map((l) => 'Lavoro: ' + l + '\n').join('') + 'Pezzi fatti: ' + sum.total + ' · Buoni: ' + sum.buoni + ' · Scarti: ' + sum.scarti + '\n';
     sum.byMachine.forEach((m) => { t += '  ' + fmtMachineLine(m) + '\n'; });
+    const qd = qtShift(); if (qd.length) t += 'Controllo quota: ' + qd.length + ' ' + (qd.length === 1 ? 'pezzo' : 'pezzi') + ' (' + qd.filter((x) => x.esito !== 'fuori').length + ' dentro, ' + qd.filter((x) => x.esito === 'fuori').length + ' fuori)\n';
     t += 'Correzioni: ' + sum.correzioni + ' · Portati via: ' + sum.pezziPortati + '\n';
     t += formatMostUsed(sum.mostUsed) + '\n';
     sum.bySeries.forEach((s) => { t += '- ' + s.name + ': ' + s.count + '\n'; });
@@ -3240,6 +3248,7 @@
     }));
     femRows().forEach((r) => rows.push(r)); // v2.0.5 female pieces (page Femmina)
     intRows().forEach((r) => rows.push(r)); // Beta 0.3.0 interno (bore)
+    qtQuotaRows().forEach((r) => rows.push(Object.assign({}, r, { lot: r.lotto, lotto: r.serie }))); // Beta 0.9.1 controllo quota (one row per quota)
     rows.sort((a, b) => String(a.ts || '').localeCompare(String(b.ts || '')));
     if (!rows.length) { toast('Nessuna misura da esportare'); return; }
     shareFile('rettifica-beta-misure-' + todayKey() + '.csv', historyCsv(rows), 'text/csv');
@@ -3289,7 +3298,7 @@
   }
   $('btnReset').addEventListener('click', () => {
     $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal del-confirm" id="wipeConfirm"><h2>Azzera tutto?</h2>
-      <p class="del-p">Cancella <b>basi e serie, lavori, macchina, storico, conteggi del turno, magazzino, taratura, femmine e quaderno macchina</b>. Restano solo le preferenze (tema, voce).</p>
+      <p class="del-p">Cancella <b>basi e serie, lavori, macchina, storico, conteggi del turno, magazzino, taratura, femmine, controlli quota e quaderno macchina</b>. Restano solo le preferenze (tema, voce).</p>
       <p class="meta">Prima l'app salva un backup automatico (recuperabile da Setup).</p>
       <div class="actions" style="display:flex;gap:8px;margin-top:12px"><button type="button" class="btn btn-sec" id="wipeNo" style="flex:1;min-height:56px">Annulla</button>
       <button type="button" class="btn btn-danger" id="wipeYes" style="flex:1.3;min-height:56px">🗑 Azzera tutto</button></div></div></div>`;
@@ -3708,12 +3717,12 @@
       const n1 = $('pinNew').value, n2 = $('pinNew2').value;
       if (on && !L9.pinCheck(prefs.pin, $('pinCur').value)) return err('PIN attuale sbagliato');
       if (on && !n1) { // remove
-        delete prefs.pin; state.series.forEach((s) => { delete s.locked; }); savePrefs(prefs); saveData(state); $('modalRoot').innerHTML = ''; toast('PIN tolto · serie sbloccate'); renderSeriesIfOpen(); return;
+        delete prefs.pin; state.series.forEach((s) => { delete s.locked; }); qtList().forEach((c) => { delete c.locked; }); savePrefs(prefs); saveData(state); $('modalRoot').innerHTML = ''; toast('PIN tolto · serie sbloccate'); renderSeriesIfOpen(); return;
       }
       if (!L9.pinValid(n1)) return err('Il PIN deve avere da 4 a 8 cifre');
       if (n1 !== n2) return err('I due PIN sono diversi');
       prefs.pin = L9.pinMake(n1); savePrefs(prefs);
-      if ($('pinAll').checked) state.series.forEach((s) => { s.locked = true; });
+      if ($('pinAll').checked) { state.series.forEach((s) => { s.locked = true; }); qtList().forEach((c) => { c.locked = true; }); }
       saveData(state); $('modalRoot').innerHTML = ''; toast('PIN impostato'); renderSeriesIfOpen();
     };
   }
@@ -3892,6 +3901,10 @@
     if (ps.fixedF != null) rows.push(['Femmina fissa', fmtMm4(ps.fixedF) + ' mm']);
     return `<div class="pk-ser">${rows.map((r) => `<div class="pk-r"><span>${esc(r[0])}</span><b>${esc(r[1])}</b></div>`).join('')}${ps.note ? `<div class="pk-note">${esc(ps.note)}</div>` : ''}</div>`;
   }
+  function pkgControlloHtml(pc, withName) {
+    const rows = (pc.quote || []).map((q) => [q.nome + ' · ' + QT.TIPI[q.tipo], QT.quotaText(q)]);
+    return `<div class="pk-ser" id="rcvControllo"><div class="pk-r"><span>📏 Controllo quota</span><b>${esc(pc.nome)}</b></div>${rows.map((r) => `<div class="pk-r"><span>${esc(r[0])}</span><b>${esc(r[1])}</b></div>`).join('')}<div class="pk-r"><span>Ovalità/conicità</span><b>${pc.forma ? 'da controllare' : 'non richieste'}</b></div>${pc.note ? `<div class="pk-note">${esc(pc.note)}</div>` : ''}</div>`;
+  }
   async function receivePackage(text, source) {
     const r = await L9.parseAny(text);
     if (!r.ok) { infoModal('Pacchetto non letto', `<p>${esc(r.error)}</p>`); return false; }
@@ -3900,36 +3913,39 @@
     openReceived(v, source); return true;
   }
   function openReceived(v, source) {
-    const p = v.pkg, one = p.serie.length === 1, m = myMachine() || {};
+    const p = v.pkg, nQ = (p.controlli || []).length, onlyQ = !p.serie.length && nQ > 0, one = p.serie.length === 1 || (onlyQ && nQ === 1), m = myMachine() || {};
     const matches = p.serie.map((ps) => L9.findMatch(state.series, ps));
-    const anyMatch = matches.some(Boolean);
-    const already = state.series.some((s) => s.fromPackage && p.check && s.fromPackage.check === p.check);
+    const matchesQ = (p.controlli || []).map((pc) => QT.findControllo(qtList(), pc));
+    const anyMatch = matches.some(Boolean) || matchesQ.some(Boolean);
+    const already = state.series.some((s) => s.fromPackage && p.check && s.fromPackage.check === p.check) || qtList().some((c) => c.fromPackage && p.check && c.fromPackage.check === p.check);
     const j = p.job, cl = p.checklist;
     const metaRows = [['Codice', j.codice], ['Revisione', j.rev], ['Lavorazione', j.lavorazione], ['Numero lotto', j.lotto]];
     const integ = p.checkState === 'ok' ? '<div class="pk-ok">✓ Controllo integrità OK (il file è completo)</div>' : p.checkState === 'mismatch' ? '<div class="pk-warn">⚠ Il codice di controllo non corrisponde: controlla bene i numeri</div>' : '<div class="meta">Pacchetto senza codice di controllo.</div>';
-    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal pk-recv" id="rcvModal" role="dialog" aria-modal="true"><h2>📥 ${one ? 'Lavoro ricevuto' : 'Serie ricevute (' + p.serie.length + ')'}</h2>
-      <p class="meta">Controlla i dati: l'app non li usa finché non tocchi <b>${one ? 'Accetta e inizia' : 'Importa le serie'}</b>.${source ? '' : ''}</p>
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal pk-recv" id="rcvModal" role="dialog" aria-modal="true"><h2>📥 ${one ? 'Lavoro ricevuto' : onlyQ ? 'Controlli ricevuti (' + nQ + ')' : 'Serie ricevute (' + p.serie.length + ')'}</h2>
+      <p class="meta">Controlla i dati: l'app non li usa finché non tocchi <b>${one ? 'Accetta e inizia' : onlyQ ? 'Importa i controlli' : 'Importa le serie'}</b>.${source ? '' : ''}</p>
       ${one || j.lotto || j.codice ? `<div class="pk-meta">${metaRows.map((r) => `<div><span>${r[0]}</span><b id="rcv${r[0].replace(/\W/g, '')}">${esc(r[1] || '—')}</b></div>`).join('')}</div>` : ''}
       ${p.serie.map((ps, i) => (p.serie.length > 1 ? `<h3 class="pk-h">${esc(ps.nome || 'Base ' + fmtT3(ps.base))}${ps.codice ? ' · ' + esc(ps.codice) : ''}</h3>` : '') + pkgSeriesHtml(ps)).join('')}
+      ${(p.controlli || []).map((pc) => pkgControlloHtml(pc, nQ > 1)).join('')}
       ${j.note ? `<div class="pk-cl" id="rcvNote"><b>💬 Nota del responsabile</b><div class="pk-note">${esc(j.note)}</div></div>` : ''}
       ${cl ? `<div class="pk-cl"><b>📋 Checklist</b><div class="meta">Inizio: ${cl.inizio.map(esc).join(' · ') || '—'}</div><div class="meta">Fine: ${cl.fine.map(esc).join(' · ') || '—'}</div></div>` : ''}
       ${integ}${already ? '<div class="pk-warn" id="rcvAlready">⚠ Hai già importato questo pacchetto.</div>' : ''}
       ${v.warnings.map((w) => `<div class="pk-warn">⚠ ${esc(w)}</div>`).join('')}
-      ${anyMatch ? `<div class="pk-choice" id="rcvChoiceBox"><b>Esiste già una serie con lo stesso ${matches.find(Boolean).how === 'codice' ? 'codice' : 'nome e base'}</b>
-        <label class="pk-rad"><input type="radio" name="rcvChoice" id="rcvUpd" value="update" checked/><span>Aggiorna la serie esistente <small>(le misure salvate restano)</small></span></label>
-        <label class="pk-rad"><input type="radio" name="rcvChoice" id="rcvNew" value="new"/><span>Crea una nuova serie</span></label>
-        <div class="pk-diff" id="rcvDiff">${matches.map((mm, i) => { if (!mm) return ''; const d = L9.diffSeries(mm.series, p.serie[i]); return `<div class="meta">«${esc(mm.series.lotto || 'Base ' + fmtT3(mm.series.base))}»: ${d.length ? '' : 'nessuna differenza'}</div>` + d.map((x) => `<div class="pk-d"><span>${esc(x.label)}</span><s>${esc(x.from)}</s> → <b>${esc(x.to)}</b></div>`).join(''); }).join('')}</div></div>` : ''}
+      ${anyMatch ? `<div class="pk-choice" id="rcvChoiceBox"><b>Esiste già ${matches.some(Boolean) ? 'una serie' : 'un controllo quota'} con lo stesso ${(matches.find(Boolean) || matchesQ.find(Boolean)).how === 'codice' ? 'codice' : matches.some(Boolean) ? 'nome e base' : 'nome'}</b>
+        <label class="pk-rad"><input type="radio" name="rcvChoice" id="rcvUpd" value="update" checked/><span>Aggiorna ${matches.some(Boolean) ? 'la serie' : 'il controllo'} esistente <small>(le misure salvate restano)</small></span></label>
+        <label class="pk-rad"><input type="radio" name="rcvChoice" id="rcvNew" value="new"/><span>Crea ${matches.some(Boolean) ? 'una nuova serie' : 'un nuovo controllo'}</span></label>
+        <div class="pk-diff" id="rcvDiff">${matchesQ.map((mm, i) => { if (!mm) return ''; const d = QT.diffControllo(mm.c, p.controlli[i]); return `<div class="meta">«${esc(mm.c.nome)}»: ${d.length ? '' : 'nessuna differenza'}</div>` + d.map((x) => `<div class="pk-d"><span>${esc(x.label)}</span><s>${esc(x.from)}</s> → <b>${esc(x.to)}</b></div>`).join(''); }).join('')}${matches.map((mm, i) => { if (!mm) return ''; const d = L9.diffSeries(mm.series, p.serie[i]); return `<div class="meta">«${esc(mm.series.lotto || 'Base ' + fmtT3(mm.series.base))}»: ${d.length ? '' : 'nessuna differenza'}</div>` + d.map((x) => `<div class="pk-d"><span>${esc(x.label)}</span><s>${esc(x.from)}</s> → <b>${esc(x.to)}</b></div>`).join(''); }).join('')}</div></div>` : ''}
       ${lockOn() ? '<div class="meta" id="rcvLockNote">🔒 Le serie importate saranno bloccate dal tuo PIN.</div>' : ''}
-      ${one ? `<label for="rcvMachine">Macchina</label><input id="rcvMachine" class="big-input cond" value="${esc(m.name || '')}" maxlength="40" autocomplete="off" placeholder="es. S33 O060"/>` : ''}
+      ${p.serie.length === 1 ? `<label for="rcvMachine">Macchina</label><input id="rcvMachine" class="big-input cond" value="${esc(m.name || '')}" maxlength="40" autocomplete="off" placeholder="es. S33 O060"/>` : ''}
+      ${onlyQ ? `<div class="meta" id="rcvMachQ">Macchina: <b>${esc(m.name || '—')}</b> (si cambia da Calcolo)</div>` : ''}
       <div id="rcvErr" class="form-err hidden"></div>
-      <div class="pk-bar"><button type="button" class="btn btn-orange pk-go" id="rcvGo">${one ? '✅ Accetta e inizia' : '✅ Importa le serie'}</button>
-      <div class="actions" style="display:flex;gap:8px;margin-top:8px">${one ? '<button type="button" class="btn btn-sec" id="rcvSave" style="flex:1">Salva solo la serie</button>' : ''}<button type="button" class="btn btn-sec" id="rcvNo" style="flex:1">Rifiuta</button></div></div></div></div>`;
+      <div class="pk-bar"><button type="button" class="btn btn-orange pk-go" id="rcvGo">${one ? '✅ Accetta e inizia' : onlyQ ? '✅ Importa i controlli' : '✅ Importa le serie'}</button>
+      <div class="actions" style="display:flex;gap:8px;margin-top:8px">${one ? `<button type="button" class="btn btn-sec" id="rcvSave" style="flex:1">${onlyQ ? 'Salva solo il controllo' : 'Salva solo la serie'}</button>` : ''}<button type="button" class="btn btn-sec" id="rcvNo" style="flex:1">Rifiuta</button></div></div></div></div>`;
     const close = () => { $('modalRoot').innerHTML = ''; };
     $('rcvNo').onclick = close;
     const go = (start) => {
       const choice = anyMatch ? ($('rcvNew').checked ? 'new' : 'update') : 'new';
       let machineName = '';
-      if (start) { machineName = $('rcvMachine').value.replace(/\s+/g, ' ').trim(); if (!machineName) { const e = $('rcvErr'); e.textContent = 'Scrivi il nome della macchina'; e.classList.remove('hidden'); haptic(60); return; } }
+      if (start && $('rcvMachine')) { machineName = $('rcvMachine').value.replace(/\s+/g, ' ').trim(); if (!machineName) { const e = $('rcvErr'); e.textContent = 'Scrivi il nome della macchina'; e.classList.remove('hidden'); haptic(60); return; } }
       const res = acceptPackage(v, { choice, start, machineName });
       close(); if (res && res.msg) toast(res.msg);
       if (start && res && res.checkInizio) setTimeout(() => openChecklist('inizio'), 250);
@@ -3947,6 +3963,14 @@
       if (!match) state.series.push(s);
       made.push({ s, updated: !!match });
     });
+    const madeC = [];
+    (p.controlli || []).forEach((pc) => {
+      const match = o.choice === 'update' ? QT.findControllo(qtList(), pc) : null;
+      const c = match ? match.c : { id: 'c_' + uid(), nome: '', quote: [] };
+      QT.applyControllo(c, pc, { lotto: p.job.lotto, check: p.check, now }); c.locked = lockOn() ? true : undefined; if (c.locked === undefined) delete c.locked;
+      if (!match) qtList().push(c);
+      madeC.push({ c, updated: !!match });
+    });
     saveData(state);
     let msg = made.length === 1 ? (made[0].updated ? 'Serie aggiornata' : 'Serie creata') + ' · Base ' + fmtMm3(made[0].s.base) : made.length + ' serie importate';
     let checkInizio = false;
@@ -3956,8 +3980,10 @@
       job.pkg = { check: p.check, at: now }; if (jb.note) job.pkgNote = jb.note;
       ensureJobCheck(job, s); checkInizio = job.check.inizio.items.length > 0;
       saveData(state); newMeasure(); showPage('calc'); msg = 'Lavoro iniziato · ' + metaLine(jobMeta(job, s) ) || msg;
-    } else { fillSetupSelects(); renderSeriesIfOpen(); updateChip(); }
-    return { msg, checkInizio, made };
+    } else if (o.start && !made.length && madeC.length === 1) {
+      qtSetCur(madeC[0].c.id); saveData(state); showPage('quota'); msg = (madeC[0].updated ? 'Controllo aggiornato' : 'Controllo creato') + ' · ' + madeC[0].c.nome;
+    } else { fillSetupSelects(); renderSeriesIfOpen(); updateChip(); if (!made.length && madeC.length) msg = madeC.length === 1 ? (madeC[0].updated ? 'Controllo aggiornato' : 'Controllo creato') : madeC.length + ' controlli importati'; }
+    return { msg, checkInizio, made, madeC };
   }
   function openReceiveMenu() {
     $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="rmModal"><h2>📥 Ricevi lavoro</h2>
@@ -4012,17 +4038,20 @@
     return { j, cur };
   }
   function openSendJob(seriesId) {
-    const { j, cur } = sendCtx(); const list = state.series;
-    if (!list.length) { toast('Prima crea una serie', 'warn'); return; }
-    let sid = seriesId || (cur && cur.id) || list[0].id;
+    const { j, cur } = sendCtx(); const list = state.series, cls = qtList();
+    if (!list.length && !cls.length) { toast('Prima crea una serie', 'warn'); return; }
+    let sid = seriesId || (cur && cur.id) || (list[0] ? list[0].id : 'c:' + cls[0].id);
     const fill = () => {
-      const s = seriesById($('sjSeries').value) || list[0], same = j && cur && s.id === cur.id;
+      const sv0 = $('sjSeries').value;
+      if (sv0.indexOf('c:') === 0) { const c = cls.find((x) => x.id === sv0.slice(2)); if (c) { $('sjLotto').value = c.lotto || ''; $('sjCod').value = c.codice || ''; $('sjRev').value = c.rev || ''; $('sjLav').value = c.lav || ''; $('sjChk').checked = false; $('sjChk').disabled = true; return; } }
+      $('sjChk').disabled = false;
+      const s = seriesById(sv0) || list[0], same = j && cur && s.id === cur.id;
       $('sjLotto').value = same ? (j.lotto || '') : ''; $('sjCod').value = same ? (j.codice || s.codice || '') : (s.codice || ''); $('sjRev').value = same ? (j.rev || s.rev || '') : (s.rev || ''); $('sjLav').value = same ? (j.lav || s.lav || '') : (s.lav || '');
       $('sjChk').checked = !!s.checklist;
     };
     $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="sdModal"><h2>📤 Invia lavoro</h2>
       <p class="meta">Crea il pacchetto e lo condividi con WhatsApp, email… (o QR). L'app <b>non invia niente da sola</b>: scegli tu l'app e la persona. Non contiene numeri di telefono né dati personali.</p>
-      <label>Serie</label><select id="sjSeries" class="neu">${list.map((s) => `<option value="${esc(s.id)}" ${s.id === sid ? 'selected' : ''}>${esc((s.lotto ? s.lotto + ' · ' : '') + 'Base ' + fmtMm3(s.base) + ' · gioco ' + s.giocoMin + '–' + s.giocoMax)}</option>`).join('')}</select>
+      <label>Serie</label><select id="sjSeries" class="neu">${list.map((s) => `<option value="${esc(s.id)}" ${s.id === sid ? 'selected' : ''}>${esc((s.lotto ? s.lotto + ' · ' : '') + 'Base ' + fmtMm3(s.base) + ' · gioco ' + s.giocoMin + '–' + s.giocoMax)}</option>`).join('')}${cls.length ? `<optgroup label="Controllo quota">${cls.map((c) => `<option value="c:${esc(c.id)}" ${('c:' + c.id) === sid ? 'selected' : ''}>${esc('📏 ' + c.nome + ' · ' + c.quote.length + (c.quote.length === 1 ? ' quota' : ' quote'))}</option>`).join('')}</optgroup>` : ''}</select>
       <label>Numero lotto</label><input id="sjLotto" class="big-input" maxlength="40" autocomplete="off"/>
       <label>Codice (disegno / articolo)</label><input id="sjCod" class="big-input" maxlength="40" autocomplete="off"/>
       <div class="field-row"><div><label>Revisione</label><input id="sjRev" class="big-input" maxlength="12" autocomplete="off"/></div><div><label>Lavorazione</label><input id="sjLav" class="big-input" maxlength="40" autocomplete="off" placeholder="es. 0522"/></div></div>
@@ -4035,7 +4064,9 @@
     fill(); $('sjSeries').onchange = fill;
     $('sjClose').onclick = () => { $('modalRoot').innerHTML = ''; }; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') $('modalRoot').innerHTML = ''; };
     const build = () => {
-      const s = seriesById($('sjSeries').value), v = (id) => $(id).value.replace(/\s+/g, ' ').trim();
+      const sv = $('sjSeries').value, v = (id) => $(id).value.replace(/\s+/g, ' ').trim();
+      if (sv.indexOf('c:') === 0) { const c = cls.find((x) => x.id === sv.slice(2)); return L9.buildPackage({ series: [], controlli: [Object.assign({}, c, { lotto: v('sjLotto'), codice: v('sjCod') || c.codice, rev: v('sjRev'), lav: v('sjLav') })], job: { lotto: v('sjLotto'), codice: v('sjCod'), rev: v('sjRev'), lav: v('sjLav'), note: $('sjNote').value }, checklist: null, appVersion: APP_VERSION, now: nowIso() }); }
+      const s = seriesById(sv);
       const clb = $('sjChk').checked ? L9.checklistFor(s, prefs.checkDefault) : null;
       return L9.buildPackage({ series: s, job: { lotto: v('sjLotto'), codice: v('sjCod'), rev: v('sjRev'), lav: v('sjLav'), note: $('sjNote').value }, checklist: clb, appVersion: APP_VERSION, now: nowIso() });
     };
@@ -4067,6 +4098,7 @@
         chosen: h.chosen, gioco: h.gioco, con: h.con, conEnd: h.conEnd, status: h.status || '' };
       if (!pred || pred(r, h)) rows.push(r);
     }));
+    qtQuotaRows().forEach((r) => { if (!pred || pred(r, null)) rows.push(Object.assign({}, r, { tol: null, gmin: null, gmax: null })); }); // Beta 0.9.1 controllo quota (one row per quota)
     return rows.sort((a, b) => String(a.ts || '').localeCompare(String(b.ts || '')));
   }
   function reportLotti() { return [...new Set(reportRows().map((r) => r.lotto).filter(Boolean))]; }
@@ -4079,19 +4111,22 @@
   function uniq(a) { return [...new Set(a.filter(Boolean))]; }
   function reportModel(scope, lotto) {
     const { rows, label } = reportScopeRows(scope, lotto), st = L9.reportStats(rows);
+    const srows = rows.filter((r) => !r.qNome), qrows = rows.filter((r) => r.qNome), qpz = uniq(qrows.map((r) => r.pid)).length;
     const quad = ((state.quaderno || []).filter((e) => e.type === 'diamantatura' && (!st.first || (e.ts >= st.first && e.ts <= (st.last || e.ts)))));
     const j = jobsOn ? activeJob() : null, ck = j && j.check ? { a: L9.checkCount(j.check.inizio), b: L9.checkCount(j.check.fine) } : null;
     const p2 = (ts) => ts ? dmHm(ts) : '—';
     const info = [['Perimetro', label], ['Periodo', st.n ? p2(st.first) + ' – ' + p2(st.last) : '—'], ['Macchina', uniq(rows.map((r) => r.machine)).join(', ') || '—'],
       ['Codice / rev.', uniq(rows.map((r) => [r.codice, r.rev && 'rev ' + r.rev].filter(Boolean).join(' '))).join(', ') || '—'], ['Lavorazione', uniq(rows.map((r) => r.lav)).join(', ') || '—'], ['Numero lotto', uniq(rows.map((r) => r.lotto)).join(', ') || '—'],
-      ['Serie', uniq(rows.map((r) => r.serie + ' (base ' + fmtMm3(r.base) + ' ± ' + fmtMm3(r.tol) + ', gioco ' + r.gmin + '–' + r.gmax + ' µm)')).join('; ') || '—']];
+      ['Serie', uniq(srows.map((r) => r.serie + ' (base ' + fmtMm3(r.base) + ' ± ' + fmtMm3(r.tol) + ', gioco ' + r.gmin + '–' + r.gmax + ' µm)')).join('; ') || '—']];
+    if (qrows.length) info.push(['Controllo quota', uniq(qrows.map((r) => r.qNome + ' ' + fmtMm3(r.qLo) + '–' + fmtMm3(r.qHi))).join('; ')]);
     const stats = [['Pezzi', st.n], ['Buoni', st.buoni + (st.pctBuoni != null ? ' (' + String(st.pctBuoni).replace('.', ',') + '%)' : '')], ['Scarti', st.scarti], ['Gioco misurato', st.gMin != null ? fmtUm(st.gMin) + '–' + fmtUm(st.gMax) + ' µm (medio ' + String(st.gAvg).replace('.', ',') + ')' : '—'],
       ['Conicità max', st.conMax != null ? fmtUm(st.conMax) + ' µm' : '—'], ['Diamantature', quad.length]];
+    if (qrows.length) { const fz = uniq(qrows.filter((r) => r.status === 'fuori').map((r) => r.pid)).length; stats.push(['Pezzi controllo quota', qpz], ['Dentro / fuori', (qpz - fz) + ' / ' + fz]); }
     const notes = []; if (ck) notes.push('Checklist del lavoro in corso: inizio ' + ck.a.done + '/' + ck.a.total + ', fine ' + ck.b.done + '/' + ck.b.total + '.');
     if (scope === 'turno' && state.turno && state.turno.note) notes.push('Nota turno: ' + String(state.turno.note).replace(/\s+/g, ' ').slice(0, 110));
     return { rows, label, st, model: { title: 'Rettifica – Report ' + label.toLowerCase(), sub: 'Creato il ' + new Date().toLocaleString('it-IT') + ' · v' + APP_VERSION, info, stats, notes,
-      cols: [{ h: 'Data ora', x: 40, w: 11 }, { h: 'Serie', x: 100, w: 20 }, { h: 'Lotto', x: 215, w: 11 }, { h: 'Misura mm', x: 275, w: 10 }, { h: 'Pezzo', x: 335, w: 6 }, { h: 'Gioco µm', x: 375, w: 8 }, { h: 'Conicità', x: 430, w: 8 }, { h: 'Esito', x: 485, w: 10 }],
-      rows: rows.map((r) => [dmHm(r.ts), r.serie, r.lotto, fmtMmS(r.S), r.chosen == null ? '' : r.chosen, fmtUm(r.gioco), r.con == null ? '' : fmtUm(r.con), r.status]),
+      cols: [{ h: 'Data ora', x: 40, w: 11 }, { h: 'Serie', x: 100, w: 20 }, { h: 'Lotto', x: 215, w: 11 }, { h: 'Misura mm', x: 275, w: 10 }, { h: 'Pezzo', x: 335, w: 6 }, { h: 'Gioco/Scost.', x: 375, w: 8 }, { h: 'Conicità', x: 430, w: 8 }, { h: 'Esito', x: 485, w: 10 }],
+      rows: rows.map((r) => r.qNome ? [dmHm(r.ts), r.serie + ' · ' + r.qNome, r.lotto, fmtMmS(r.S), '', QT.sg(r.qDev), '', r.qEsito] : [dmHm(r.ts), r.serie, r.lotto, fmtMmS(r.S), r.chosen == null ? '' : r.chosen, fmtUm(r.gioco), r.con == null ? '' : fmtUm(r.con), r.status]),
       footer: 'Rettifica Beta · misure salvate in Calcolo · nessun dato personale' } };
   }
   function openReport(scope0) {
@@ -4122,9 +4157,241 @@
   $('btnPin').addEventListener('click', openPinSetup);
   $('btnReport').addEventListener('click', () => openReport('turno'));
   function refreshSetup090() {
+    refreshQuotaLabel();
     const s = $('pinLabel'); if (s) s.textContent = lockOn() ? '🔒 PIN attivo · ' + state.series.filter((x) => x.locked).length + ' serie bloccate' : 'PIN non impostato · protegge dagli errori';
     const q = $('qdLabel'); if (q) { const i = L9.dressInfo(state, mKey(), nameOfHist); q.textContent = i.on ? 'Promemoria diamantatura: ogni ' + i.every + ' pezzi (' + i.count + ' fatti)' : 'Diamantatura, cambio mola, note · promemoria spento'; }
   }
+
+  /* ───────── Beta 0.9.1: Controllo quota (lavoro senza accoppiamento: DENTRO / FUORI per quota) ───────── */
+  const qS = { buf: '', sel: null, vals: {}, ctl: null, lock: false };
+  const qtUnlocked = new Set();
+  const numTxt = (x) => (x == null ? '' : String(x).replace('.', ','));
+  function qtList() { if (!Array.isArray(state.controlli)) state.controlli = []; return state.controlli; }
+  function qtPezzi() { if (!Array.isArray(state.quotaPezzi)) state.quotaPezzi = []; return state.quotaPezzi; }
+  function qtCur() { const l = qtList(); return l.find((c) => c.id === prefs.controlloId) || l[0] || null; }
+  function qtSetCur(id) { prefs.controlloId = id; savePrefs(prefs); qS.ctl = null; qS.buf = ''; qS.vals = {}; qS.sel = null; }
+  function qtMachine() { return (myMachine() || {}).name || ''; }
+  function qtMeta(c) { return { codice: c.codice || '', rev: c.rev || '', lav: c.lav || '', lotto: c.lotto || '' }; }
+  function qtActive(c) { return (c.quote || []).find((q) => q.id === qS.sel) || (c.quote || []).find((q) => qS.vals[q.id] == null) || (c.quote || [])[0] || null; }
+  function qtLive(c) { const q = qtActive(c); if (!q) return { q: null, v: null }; return { q, v: qS.buf ? QT.parseMeasure(qS.buf, q) : null }; }
+  function qtVals(c) { const o = Object.assign({}, qS.vals), l = qtLive(c); if (l.q && l.v != null) o[l.q.id] = l.v; return o; }
+  async function qtGuard(c) { if (!lockedNow(c) || qtUnlocked.has(c.id)) return true; const ok = await askPin('🔒 Sblocca il controllo', c.nome); if (ok) qtUnlocked.add(c.id); return ok; }
+  function qtShift() { const t0 = (state.turno && state.turno.startedAt) || ''; return qtPezzi().filter((r) => String(r.ts || '') >= t0); }
+  function qtAdvice(ev, cal) {
+    // correction block: words, never claims more than the data allows
+    const cr = ev.corr, diam = ev.tipo !== 'posizione';
+    if (cr.kind === 'nessuna' || cr.kind === 'centro') return `<div class="qt-corr ok" id="qtCorr"><b>${cr.kind === 'centro' ? '✓ Al centro: nessuna correzione' : '✓ Non serve correggere'}</b></div>`;
+    const note = diam && cr.key ? `<small>${esc(calLegend())} · ${ev.verify ? '+ / − <b>da verificare</b>: controlla sempre dopo il 1° pezzo' : 'segno verificato'}</small>` : (diam && cr.next ? `<small>${esc(calLegend())} · ${ev.verify ? '+ / − da verificare: controlla sempre dopo il 1° pezzo' : 'segno verificato'}</small>` : '');
+    const next = cr.next ? `<div style="margin-top:4px">${esc(cr.next.words)}</div>` : '';
+    return `<div class="qt-corr ${cr.recoverable ? '' : 'no'}" id="qtCorr"><b>${esc(cr.words)}</b>${next}${note}</div>`;
+  }
+  function renderQuota() {
+    const c = qtCur(), cal = calOf();
+    const hide = (ids, on) => ids.forEach((i) => $(i).classList.toggle('hidden', on));
+    $('qtCfgTxt').textContent = c ? c.nome : 'nessun controllo';
+    if (!c || !(c.quote || []).length) {
+      hide(['qtList', 'qtField', 'qtRes', 'qKeypad', 'qtDet'], true); $('qtMeta').classList.toggle('hidden', !c); hide(['qtEmpty'], false);
+      if (c) { $('qtMeta').textContent = metaLine(qtMeta(c)) || '＋ Lotto · codice · lavorazione'; $('qtMeta').classList.toggle('empty', !metaLine(qtMeta(c))); }
+      $('qtEmpty').innerHTML = c ? `<h2>${esc(c.nome)}</h2><p class="meta">Questo controllo non ha ancora quote. Aggiungi la prima: nominale e tolleranza, oppure un codice ISO (h6, H7…).</p><button type="button" class="btn btn-orange" id="qtAddFirst">＋ Aggiungi quota</button>`
+        : `<h2>📏 Controllo quota</h2><p class="meta">Per i pezzi <b>senza accoppiamento</b>: misuri e l'app dice <b>DENTRO</b> o <b>FUORI</b> tolleranza, con quanto correggere.</p><button type="button" class="btn btn-orange" id="qtTpl">📐 Usa il modello del disegno A-A<br/><small>Ø42 h6 · 29,5 ± 0,02</small></button><button type="button" class="btn btn-sec" id="qtNew">＋ Nuovo controllo vuoto</button><button type="button" class="btn btn-sec" id="qtRecv">📥 Ricevi un lavoro (file, QR, codice)</button>`;
+      fitPads(); return;
+    }
+    hide(['qtEmpty'], true); hide(['qtList', 'qtField', 'qtRes', 'qKeypad', 'qtMeta'], false);
+    if (qS.ctl !== c.id) { qS.ctl = c.id; qS.vals = {}; qS.buf = ''; qS.sel = null; }
+    const act = qtActive(c); qS.sel = act ? act.id : null;
+    const vals = qtVals(c), ec = QT.evalControllo(c, vals, cal), live = qtLive(c);
+    const ml = metaLine(qtMeta(c)); $('qtMeta').textContent = (ml ? ml + ' · ' : '') + (qtMachine() || 'macchina?'); $('qtMeta').classList.toggle('empty', !ml);
+    $('qtList').innerHTML = ec.items.map((it) => {
+      const ev = it.ev, st = !ev ? '' : ev.state === 'fuori' ? 'fuori' : ev.near ? 'limite' : 'dentro';
+      return `<button type="button" class="qt-row ${st} ${it.q.id === qS.sel ? 'on' : ''}" data-qid="${esc(it.q.id)}" aria-label="Quota ${esc(it.q.nome)}"><span class="qr-n"><b>${esc(it.q.nome)}</b><small>${esc(QT.TIPI[it.q.tipo])} · ${esc(QT.quotaText(it.q))}</small></span>
+        <span class="qr-r"><b class="cond">${ev ? QT.fmtN(ev.value, 4) : '—'}</b><small>${!ev ? 'da misurare' : ev.state === 'fuori' ? 'FUORI ' + QT.sg(ev.devUm) + ' µm' : (ev.near ? 'DENTRO · limite' : 'DENTRO') + ' ' + QT.sg(ev.devUm) + ' µm'}</small></span></button>`;
+    }).join('') + (ec.measured ? `<div class="qt-all ${ec.overall}" id="qtAll">PEZZO: ${ec.overall === 'fuori' ? 'FUORI' : '✓ DENTRO'}<small>${ec.fuori ? ec.fuori + (ec.fuori === 1 ? ' quota fuori' : ' quote fuori') + ' · ' : ''}${ec.measured} di ${ec.total} ${ec.total === 1 ? 'quota misurata' : 'quote misurate'}</small></div>` : '');
+    // entry field with the full-value preview
+    const q = act, av = live.v != null ? live.v : (qS.vals[q.id] != null && !qS.buf ? qS.vals[q.id] : null);
+    $('qtFieldLbl').innerHTML = `Misura · ${esc(q.nome)}${qS.buf ? ` <i>scritto ${esc(qS.buf)}</i>` : ''}`;
+    $('qtVal').textContent = qS.buf && live.v == null ? qS.buf + ' …' : (av != null ? QT.fmtMeasure(av, qS.buf || String(av)) + ' mm' : '—');
+    const nPz = qtPezzi().filter((p) => p.controlloId === c.id && (p.lotto || '') === (c.lotto || '')).length;
+    let h = '', det = '';
+    if (av == null) h = `<div class="fr-empty" id="qtHint">${esc(QT.TIPI[q.tipo])}: da <b>${QT.fmtN(QT.quotaLimits(q).lo, 3)}</b> a <b>${QT.fmtN(QT.quotaLimits(q).hi, 3)}</b> mm, centro <b>${QT.fmtN(QT.quotaLimits(q).centro, 3)}</b>. Scrivi la misura (anche solo le ultime cifre, es. <b>${QT.fmtN(QT.quotaLimits(q).centro, 4).split(',')[1].slice(0, 3)}</b>).<br/><small>Pezzo n. ${nPz + 1}${c.lotto ? ' · lotto ' + esc(c.lotto) : ''}</small></div>`;
+    else {
+      const ev = QT.evalQuota(q, av, cal), l = QT.quotaLimits(q), um = QT.fmtUm;
+      const vf = ev.verify && ev.tipo !== 'posizione' && (ev.corr.key || (ev.corr.next && ev.corr.next.key)) ? ' · tocchi da verificare' : '';
+      const big = ev.state === 'fuori' ? `<div class="qt-big fuori" id="qtBig"><b>FUORI</b><small>${um(ev.outByUm)} µm ${ev.side === 'sotto' ? 'sotto il minimo' : 'sopra il massimo'}${vf}</small></div>`
+        : `<div class="qt-big ${ev.near ? 'limite' : 'dentro'}" id="qtBig"><b>DENTRO</b><small>${ev.near ? 'vicino al limite ' + (ev.marginLoUm <= ev.marginHiUm ? 'inferiore' : 'superiore') : 'in tolleranza'} · margini ${um(ev.marginLoUm)} / ${um(ev.marginHiUm)} µm${vf}</small></div>`;
+      const mg = (x, nm) => (x >= 0 ? 'restano ' + um(x) + ' µm' : 'oltre di ' + um(x) + ' µm');
+      const nums = `<div class="qt-nums"><span>Misura</span><b class="cond" id="qtN_m">${QT.fmtMeasure(av, qS.buf || String(av))} mm</b>
+        <span>Dal centro ${QT.fmtN(l.centro, 3)}</span><b class="cond" id="qtN_d">${QT.sg(ev.devUm)} µm</b>
+        <span>Al minimo ${QT.fmtN(l.lo, 3)}</span><b id="qtN_lo">${mg(ev.marginLoUm)}</b>
+        <span>Al massimo ${QT.fmtN(l.hi, 3)}</span><b id="qtN_hi">${mg(ev.marginHiUm)}</b></div>`;
+      const span = Math.max(l.hi - l.lo, 0.002), g0 = l.lo - span, g1 = l.hi + span, pct = (v) => Math.max(0, Math.min(100, ((v - g0) / (g1 - g0)) * 100));
+      const gauge = `<div class="int-gauge ${ev.state}" id="qtGauge" aria-label="misura rispetto ai limiti"><div class="ig-bar"><div class="ig-ok" style="left:${pct(l.lo)}%;right:${100 - pct(l.hi)}%"></div><div class="ig-c" style="left:${pct(l.centro)}%"></div><div class="ig-m" id="qtNeedle" style="left:${pct(av)}%"></div></div>
+        <div class="ig-lab"><span>sotto</span><span>${QT.fmtN(l.lo, 3)} · ${QT.fmtN(l.hi, 3)}</span><span>sopra</span></div></div>`;
+      h = big + gauge + qtAdvice(ev, cal); det = nums + (c.forma && q.tipo !== 'posizione' ? '<div class="qt-forma" id="qtForma">Ovalità e conicità: controllale sempre, devono restare entro circa 2–3 µm.</div>' : '') + `<div class="qt-rem">Pezzo n. ${nPz + 1}${c.lotto ? ' · lotto ' + esc(c.lotto) : ''}</div>`;
+    }
+    $('qtRes').innerHTML = h; $('qtDet').innerHTML = det; $('qtDet').classList.toggle('hidden', !det);
+    // contextual OK / SALVA key
+    const go = $('qGo'), typed = !!qS.buf, ok = typed ? live.v != null : ec.measured > 0;
+    const nextQ = (() => { const i = c.quote.findIndex((x) => x.id === q.id); for (let k = 1; k <= c.quote.length; k++) { const n = c.quote[(i + k) % c.quote.length]; if (n.id !== q.id && qS.vals[n.id] == null) return n; } return null; })();
+    go.innerHTML = typed ? `<span>→</span>OK<small>${nextQ ? 'prossima quota' : 'conferma'}</small>` : `<span>✓</span>SALVA<small>pezzo</small>`;
+    go.classList.toggle('off', !ok);
+    fitPads();
+  }
+  function qtKey(k) {
+    haptic(10); const c = qtCur(); if (!c || !(c.quote || []).length) return;
+    if (k === 'GO') { qtGo(); return; }
+    const q = qtActive(c);
+    if (k === 'BS') qS.buf = qS.buf.slice(0, -1);
+    else if (k === 'AC') { if (qS.buf) qS.buf = ''; else if (q && qS.vals[q.id] != null) delete qS.vals[q.id]; }
+    else if (k === ',') { if (qS.buf && !/[,]/.test(qS.buf)) qS.buf += ','; }
+    else if (qS.buf.replace(/,/g, '').length < 9) qS.buf += k;
+    renderQuota();
+  }
+  function qtGo() {
+    const c = qtCur(); if (!c) return; const q = qtActive(c); if (!q) return;
+    if (qS.buf) {
+      const v = QT.parseMeasure(qS.buf, q);
+      if (v == null) { toast('Scrivi almeno 3 cifre (es. 9915) oppure il valore con la virgola', 'warn'); haptic(60); return; }
+      qS.vals[q.id] = v; qS.buf = '';
+      const i = c.quote.findIndex((x) => x.id === q.id); let nx = null;
+      for (let k = 1; k < c.quote.length; k++) { const n = c.quote[(i + k) % c.quote.length]; if (qS.vals[n.id] == null) { nx = n; break; } }
+      qS.sel = nx ? nx.id : q.id; renderQuota(); return;
+    }
+    if (!Object.keys(qS.vals).length) { toast('Scrivi prima una misura'); return; }
+    qtSave();
+  }
+  function qtSave() {
+    if (qS.lock) return; const c = qtCur(); if (!c) return;
+    const rec = QT.makePiece(c, qS.vals, calOf(), { machineName: qtMachine(), lotto: c.lotto || '' }); if (!rec) { toast('Scrivi prima una misura'); return; }
+    qS.lock = true; setTimeout(() => { qS.lock = false; }, 700);
+    qtPezzi().push(rec); saveData(state);
+    const n = qtPezzi().filter((p) => p.controlloId === c.id && (p.lotto || '') === (c.lotto || '')).length;
+    qS.vals = {}; qS.buf = ''; qS.sel = null; renderQuota(); renderFatti(); dressAfterSave();
+    const lab = rec.esito === 'fuori' ? 'FUORI' : 'DENTRO';
+    showUndo(`Salvato pezzo ${n} · ${lab}${rec.parziale ? ' (quote misurate ' + rec.quote.length + ' di ' + c.quote.length + ')' : ''}`, () => {
+      const before = qtPezzi().length; state.quotaPezzi = qtPezzi().filter((x) => x.id !== rec.id);
+      if (state.quotaPezzi.length < before) { saveData(state); renderQuota(); renderFatti(); toast('Pezzo annullato'); }
+    });
+    if (prefs.voiceAuto) speakIt('Pezzo ' + (rec.esito === 'fuori' ? 'fuori tolleranza' : 'dentro'));
+  }
+  $('qKeypad').addEventListener('click', (e) => { const b = e.target.closest('[data-qk]'); if (b) qtKey(b.dataset.qk); });
+  $('qtList').addEventListener('click', (e) => { const r = e.target.closest('[data-qid]'); if (!r) return; haptic(10); qS.sel = r.dataset.qid; qS.buf = ''; renderQuota(); });
+  $('qtBack').addEventListener('click', () => showPage('calc'));
+  $('qtCfgBtn').addEventListener('click', () => openControlli());
+  $('qtMeta').addEventListener('click', () => { const c = qtCur(); if (c) openControlloData(c.id); });
+  $('qtEmpty').addEventListener('click', (e) => {
+    if (e.target.closest('#qtTpl')) qtNewFromTemplate(); else if (e.target.closest('#qtNew')) qtNewEmpty(); else if (e.target.closest('#qtRecv')) openReceiveMenu();
+    else if (e.target.closest('#qtAddFirst')) { const c = qtCur(); if (c) openQuotaEdit(c.id, null); }
+  });
+  function openQuota() { showPage('quota'); }
+  function qtNewFromTemplate() {
+    const c = QT.templateAA(); c.id = 'c_' + uid(); c.quote.forEach((q) => { q.id = 'q_' + Math.random().toString(36).slice(2, 8); });
+    if (lockOn()) c.locked = true; qtList().push(c); saveData(state); qtSetCur(c.id); renderQuota();
+    openControlloData(c.id, 'Dati del disegno: scrivi codice e lotto');
+  }
+  function qtNewEmpty() { const c = { id: 'c_' + uid(), nome: 'Nuovo controllo', codice: '', rev: '', lav: '', lotto: '', note: '', forma: false, quote: [] }; qtList().push(c); saveData(state); qtSetCur(c.id); renderQuota(); openControlloData(c.id, 'Nuovo controllo'); }
+  function openControlli() {
+    const l = qtList(), cur = qtCur();
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="ctlModal"><h2>📏 Controllo quota</h2>
+      ${l.length ? l.map((c) => `<button type="button" class="qt-ctl ${cur && cur.id === c.id ? 'on' : ''}" data-cid="${esc(c.id)}"><span style="flex:1;min-width:0"><b>${esc(c.nome)}${lockedNow(c) ? ' 🔒' : ''}</b><small>${c.quote.length} ${c.quote.length === 1 ? 'quota' : 'quote'}${metaLine(qtMeta(c)) ? ' · ' + esc(metaLine(qtMeta(c))) : ''}</small></span>${cur && cur.id === c.id ? '<span class="sheet-on">IN USO</span>' : ''}</button>`).join('') : '<p class="meta">Nessun controllo ancora.</p>'}
+      <button type="button" class="btn btn-orange" id="ctlTpl" style="width:100%;min-height:56px;margin-top:6px">📐 Modello disegno A-A <small>(Ø42 h6 · 29,5 ± 0,02)</small></button>
+      <button type="button" class="btn btn-sec" id="ctlNew" style="width:100%;min-height:52px;margin-top:8px">＋ Nuovo controllo vuoto</button>
+      ${cur ? `<div class="js-tools"><button type="button" class="btn btn-sec" id="ctlQuote">✎ Quote</button><button type="button" class="btn btn-sec" id="ctlData">✎ Dati</button><button type="button" class="btn btn-sec" id="ctlSend">📤 Invia</button></div>
+      <button type="button" class="btn btn-sec" id="ctlDel" style="width:100%;min-height:48px;margin-top:8px">🗑 Elimina questo controllo</button>` : ''}
+      <div class="actions" style="display:flex;margin-top:12px"><button type="button" class="btn btn-sec" id="ctlClose" style="flex:1">Chiudi</button></div></div></div>`;
+    const close = () => { $('modalRoot').innerHTML = ''; };
+    $('ctlClose').onclick = close; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') close(); };
+    $('ctlModal').querySelectorAll('[data-cid]').forEach((b) => { b.onclick = () => { qtSetCur(b.dataset.cid); close(); renderQuota(); }; });
+    $('ctlTpl').onclick = () => { close(); qtNewFromTemplate(); };
+    $('ctlNew').onclick = () => { close(); qtNewEmpty(); };
+    if (cur) {
+      $('ctlQuote').onclick = async () => { if (await qtGuard(cur)) openQuoteList(cur.id); else openControlli(); };
+      $('ctlData').onclick = async () => { if (await qtGuard(cur)) openControlloData(cur.id); else openControlli(); };
+      $('ctlSend').onclick = () => { close(); openSendJob('c:' + cur.id); };
+      $('ctlDel').onclick = async () => { if (await askBig({ title: 'Eliminare «' + cur.nome + '»?', html: '<p class="meta">I pezzi già salvati restano nello Storico.</p>', ok: '🗑 Elimina', danger: true })) { state.controlli = qtList().filter((x) => x.id !== cur.id); prefs.controlloId = null; savePrefs(prefs); qS.ctl = null; saveData(state); renderQuota(); toast('Controllo eliminato'); } else openControlli(); };
+    }
+  }
+  function openControlloData(cid, title) {
+    const c = qtList().find((x) => x.id === cid); if (!c) return;
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="cdModal"><h2>${esc(title || 'Dati del controllo')}</h2>
+      <label>Nome del controllo (disegno)</label><input id="cdNome" class="big-input" maxlength="60" autocomplete="off" value="${esc(c.nome)}"/>
+      <label>Codice (disegno / articolo)</label><input id="cdCod" class="big-input" maxlength="40" autocomplete="off" value="${esc(c.codice)}" placeholder="es. 12345-A"/>
+      <div class="field-row"><div><label>Revisione</label><input id="cdRev" class="big-input" maxlength="12" autocomplete="off" value="${esc(c.rev)}"/></div><div><label>Lavorazione</label><input id="cdLav" class="big-input" maxlength="40" autocomplete="off" value="${esc(c.lav)}" placeholder="es. 0522"/></div></div>
+      <label>Numero lotto</label><input id="cdLotto" class="big-input" maxlength="40" autocomplete="off" value="${esc(c.lotto)}"/>
+      <label>Note</label><textarea id="cdNote" class="neu" rows="3" maxlength="600">${esc(c.note)}</textarea>
+      <label class="chk-big"><input type="checkbox" id="cdForma" ${c.forma ? 'checked' : ''}/><span>Ricordami ovalità/conicità <small style="display:block;font-weight:600;color:var(--muted)">(spenta di default per questo tipo di lavoro)</small></span></label>
+      <div class="actions" style="display:flex;gap:8px;margin-top:12px"><button type="button" class="btn btn-sec" id="cdNo" style="flex:1;min-height:52px">Annulla</button><button type="button" class="btn btn-primary" id="cdOk" style="flex:1.4;min-height:52px">✓ Salva</button></div></div></div>`;
+    const close = () => { $('modalRoot').innerHTML = ''; };
+    $('cdNo').onclick = () => { close(); renderQuota(); }; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') { close(); renderQuota(); } };
+    $('cdOk').onclick = () => {
+      const v = (id) => $(id).value.replace(/\s+/g, ' ').trim();
+      c.nome = v('cdNome') || 'Controllo quota'; c.codice = v('cdCod'); c.rev = v('cdRev'); c.lav = v('cdLav'); c.lotto = v('cdLotto'); c.note = $('cdNote').value.trim().slice(0, 600); c.forma = $('cdForma').checked;
+      saveData(state); close(); renderQuota(); toast('Dati salvati');
+    };
+  }
+  function openQuoteList(cid) {
+    const c = qtList().find((x) => x.id === cid); if (!c) return;
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="qlModal"><h2>✎ Quote · ${esc(c.nome)}</h2>
+      <p class="meta">Una quota per riga. Per ognuna: nominale e tolleranza a mano, oppure codice ISO. Massimo ${QT.MAX_QUOTE}.</p>
+      ${c.quote.map((q) => `<div class="qt-qrow"><div class="qq-t"><b>${esc(q.nome)}</b><small>${esc(QT.TIPI[q.tipo])} · ${esc(QT.quotaText(q))}</small></div><button type="button" class="btn btn-sec" data-qe="${esc(q.id)}" aria-label="Modifica quota">✎</button><button type="button" class="btn btn-sec" data-qd="${esc(q.id)}" aria-label="Elimina quota">🗑</button></div>`).join('') || '<p class="meta">Nessuna quota.</p>'}
+      <button type="button" class="btn btn-orange" id="qlAdd" style="width:100%;min-height:56px" ${c.quote.length >= QT.MAX_QUOTE ? 'disabled' : ''}>＋ Aggiungi quota</button>
+      <div class="actions" style="display:flex;margin-top:10px"><button type="button" class="btn btn-sec" id="qlClose" style="flex:1">Fatto</button></div></div></div>`;
+    const close = () => { $('modalRoot').innerHTML = ''; renderQuota(); };
+    $('qlClose').onclick = close; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') close(); };
+    $('qlAdd').onclick = () => openQuotaEdit(cid, null);
+    $('qlModal').querySelectorAll('[data-qe]').forEach((b) => { b.onclick = () => openQuotaEdit(cid, b.dataset.qe); });
+    $('qlModal').querySelectorAll('[data-qd]').forEach((b) => { b.onclick = async () => { const q = c.quote.find((x) => x.id === b.dataset.qd); if (q && await askBig({ title: 'Eliminare la quota «' + q.nome + '»?', ok: '🗑 Elimina', danger: true })) { c.quote = c.quote.filter((x) => x.id !== q.id); delete qS.vals[q.id]; qS.sel = null; saveData(state); } openQuoteList(cid); }; });
+  }
+  function openQuotaEdit(cid, qid) {
+    const c = qtList().find((x) => x.id === cid); if (!c) return;
+    const old = qid ? c.quote.find((x) => x.id === qid) : null;
+    const f = old ? { nome: old.nome, tipo: old.tipo, mode: old.mode, nom: numTxt(old.nom), iso: old.iso || '', tol: numTxt(old.tol), up: numTxt(old.up), low: numTxt(old.low) } : { nome: '', tipo: 'esterno', mode: 'iso', nom: '', iso: '', tol: '', up: '', low: '' };
+    const grab = () => { ['nom', 'iso', 'tol', 'up', 'low'].forEach((k) => { const el = $('eq_' + k); if (el) f[k] = el.value; }); const n = $('eq_nome'); if (n) f.nome = n.value; };
+    const model = () => ({ id: old ? old.id : undefined, nome: f.nome, tipo: f.tipo, mode: f.mode, nom: String(f.nom).replace(/^Ø/, ''), iso: f.iso, tol: String(f.tol).replace(/^±/, ''), up: f.up, low: f.low });
+    const prev = () => {
+      const el = $('eqPrev'); if (!el) return; const m = model();
+      if (!String(f.nom).trim()) { el.className = 'qt-prev'; el.textContent = 'Scrivi il nominale'; return; }
+      const r = QT.normalizeQuota(Object.assign({}, m, { nome: '' }));
+      if (!r.ok) { el.className = 'qt-prev bad'; el.textContent = r.error; return; }
+      const iso = r.q.mode === 'iso' ? QT.isoLimits(r.q.nom, r.q.iso) : null;
+      el.className = 'qt-prev'; el.innerHTML = `${esc(r.q.nome)}: <b>${QT.fmtN(r.q.lo, 3)}–${QT.fmtN(r.q.hi, 3)}</b> mm · centro <b>${QT.fmtN(r.q.centro, 3)}</b>${iso ? `<br/><small>IT${QT.isoParse(r.q.iso).grade} = ${iso.it} µm · ${iso.kind === 'foro' ? 'ES' : 'es'} ${QT.sg(iso.esUm)} / ${iso.kind === 'foro' ? 'EI' : 'ei'} ${QT.sg(iso.eiUm)} µm</small>` : ''}${r.q.warn ? `<br/><small>⚠ ${esc(r.q.warn)}</small>` : ''}`;
+    };
+    const draw = () => {
+      $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="eqModal"><h2>${old ? 'Modifica quota' : 'Nuova quota'}</h2>
+        <label>Tipo di quota</label><div class="qt-chips" id="eqTipo">${[['esterno', 'Diametro esterno'], ['foro', 'Foro'], ['posizione', 'Posizione / lunghezza']].map(([k, t]) => `<button type="button" data-t="${k}" class="${f.tipo === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+        <label>Come scrivi la tolleranza</label><div class="qt-chips" id="eqMode">${[['iso', 'Codice ISO'], ['sim', '± simmetrica'], ['asim', 'Sup. / inf.']].map(([k, t]) => `<button type="button" data-m="${k}" class="${f.mode === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+        <label for="eq_nom">Nominale mm</label><input id="eq_nom" class="big-input" inputmode="decimal" autocomplete="off" value="${esc(f.nom)}" placeholder="es. 42 oppure 29,5"/>
+        ${f.mode === 'iso' ? `<label for="eq_iso">Codice ISO ${f.tipo === 'foro' ? '(maiuscolo: H6, H7…)' : '(minuscolo: h6, g6, js6…)'}</label><input id="eq_iso" class="big-input" autocomplete="off" autocapitalize="none" value="${esc(f.iso)}" placeholder="${f.tipo === 'foro' ? 'es. H7' : 'es. h6'}"/>`
+          : f.mode === 'sim' ? `<label for="eq_tol">Tolleranza ± mm</label><input id="eq_tol" class="big-input" inputmode="decimal" autocomplete="off" value="${esc(f.tol)}" placeholder="es. 0,02"/>`
+          : `<div class="field-row"><div><label for="eq_up">Scostamento sup. mm</label><input id="eq_up" class="big-input" inputmode="text" autocomplete="off" value="${esc(f.up)}" placeholder="es. 0 o +0,02"/></div><div><label for="eq_low">Scostamento inf. mm</label><input id="eq_low" class="big-input" inputmode="text" autocomplete="off" value="${esc(f.low)}" placeholder="es. −0,016"/></div></div>`}
+        <label for="eq_nome">Nome (facoltativo)</label><input id="eq_nome" class="big-input" maxlength="40" autocomplete="off" value="${esc(f.nome)}" placeholder="automatico, es. Ø42 h6"/>
+        <div class="qt-prev" id="eqPrev"></div><div id="eqErr" class="form-err hidden"></div>
+        <div class="actions" style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn btn-sec" id="eqNo" style="flex:1;min-height:52px">Annulla</button><button type="button" class="btn btn-primary" id="eqOk" style="flex:1.4;min-height:52px">✓ Salva quota</button></div></div></div>`;
+      $('eqTipo').onclick = (e) => { const b = e.target.closest('[data-t]'); if (b) { grab(); f.tipo = b.dataset.t; draw(); } };
+      $('eqMode').onclick = (e) => { const b = e.target.closest('[data-m]'); if (b) { grab(); f.mode = b.dataset.m; draw(); } };
+      $('eqModal').addEventListener('input', () => { grab(); prev(); });
+      $('eqNo').onclick = () => openQuoteList(cid); $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') openQuoteList(cid); };
+      $('eqOk').onclick = () => {
+        grab(); const r = QT.normalizeQuota(model());
+        if (!r.ok) { const e = $('eqErr'); e.textContent = r.error; e.classList.remove('hidden'); haptic(60); return; }
+        if (old) { Object.keys(old).forEach((k) => delete old[k]); Object.assign(old, r.q); } else c.quote.push(r.q);
+        saveData(state); qS.sel = r.q.id; openQuoteList(cid);
+      };
+      prev();
+    };
+    draw();
+  }
+  /* Storico: lista dei pezzi controllati */
+  function renderQuotaList() {
+    const el = $('quotaList'); if (!el) return;
+    const l = qtPezzi().slice().reverse().slice(0, 50);
+    el.innerHTML = l.length ? l.map((p) => `<div class="hist-row fem-row qt-hrow"><span class="mono">${esc(dmHm(p.ts))}</span>
+      <span><b class="cond">${esc(p.nome)}</b> ${p.esito === 'fuori' ? '<b style="color:#ff8a8a">FUORI</b>' : '✓ DENTRO'}${p.parziale ? ' <small>(parziale)</small>' : ''}${metaLine({ codice: p.codice, rev: p.rev, lav: p.lav, lotto: p.lotto }) ? '<small class="hist-meta"> ' + esc(metaLine({ codice: p.codice, rev: p.rev, lav: p.lav, lotto: p.lotto })) + '</small>' : ''}
+      ${p.quote.map((q) => `<small> ${esc(q.nome)} ${esc(QT.fmtN(q.misura, 4))} (${esc(QT.sg(q.devUm))} µm${q.esito === 'fuori' ? ' · FUORI' : ''})</small>`).join('')}<small> ${esc(p.machineName || '')}</small></span></div>`).join('')
+      : '<p class="meta">Nessun controllo quota salvato.</p>';
+  }
+  function qtQuotaRows() { return QT.pieceRows(qtPezzi()); }
+  $('btnQuota').addEventListener('click', openQuota);
+  function refreshQuotaLabel() { const c = qtCur(), l = $('qtLabel'); if (l) l.textContent = c ? c.nome + ' · ' + c.quote.length + (c.quote.length === 1 ? ' quota' : ' quote') : 'Misuri un pezzo: DENTRO o FUORI tolleranza (senza accoppiamento)'; }
 
   window.__rettifica = {
     get contacts() { return contacts; }, renderAiuto: () => renderAiuto(), openHelp: () => openHelp(),
@@ -4154,7 +4421,7 @@
     measureDigitsSet(d) { measureDigits = d; refreshDisplay(); },
     doCalcFlow, newTrainQ, saveCurrent, openMachineDialog, openSeriesSheet, exportCsv,
     openNewJob, openJobsSheet, startJob, get activeJob() { return activeJob(); }, initJobs,
-    receivePackage: (t, src) => receivePackage(t, src), openReceived: (v) => openReceived(v), acceptPackage: (v, o) => acceptPackage(v, o), openSendJob: (id) => openSendJob(id), openChecklist: (p) => openChecklist(p), openJobData: () => openJobData(), renderQuaderno: () => renderQuaderno(), renderJobStrip: () => renderJobStrip(), renderDress: () => renderDress(), openReport: (s) => openReport(s), reportModel: (s, l) => reportModel(s, l), reportRows: (p) => reportRows(p), lockedNow: (s) => lockedNow(s), lockOn: () => lockOn(), openPinSetup: () => openPinSetup(), openReceiveMenu: () => openReceiveMenu(), L9, metaLine, jobMeta, ensureJobCheck,
+    openQuota, renderQuota, qtCur, qtList, qtPezzi, qtSave, qtKey, qtNewFromTemplate, openControlli, openQuoteList, openQuotaEdit, openControlloData, qS, QT, receivePackage: (t, src) => receivePackage(t, src), openReceived: (v) => openReceived(v), acceptPackage: (v, o) => acceptPackage(v, o), openSendJob: (id) => openSendJob(id), openChecklist: (p) => openChecklist(p), openJobData: () => openJobData(), renderQuaderno: () => renderQuaderno(), renderJobStrip: () => renderJobStrip(), renderDress: () => renderDress(), openReport: (s) => openReport(s), reportModel: (s, l) => reportModel(s, l), reportRows: (p) => reportRows(p), lockedNow: (s) => lockedNow(s), lockOn: () => lockOn(), openPinSetup: () => openPinSetup(), openReceiveMenu: () => openReceiveMenu(), L9, metaLine, jobMeta, ensureJobCheck,
     setPendingJob(n) { pendingJob = n ? { machineName: n } : null; },
   };
 
