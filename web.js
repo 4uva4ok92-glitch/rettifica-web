@@ -1,18 +1,21 @@
 /* Rettifica Web: service worker, «Aggiungi a Home», web notes. Loaded only in the web build. */
 (function () {
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./sw.js').catch(function () {});
+  // 0.9.2: inside the Android APK (window.RettificaAndroid) the files are already in the app: no service worker, no «Aggiungi a Home»
+  var apk = !!(window.RettificaAndroid && window.RettificaAndroid.isApk);
+  if (!apk && 'serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./sw.js').catch(function () {});
   var deferred = null;
   var ios = /iphone|ipad|ipod/i.test(navigator.userAgent), standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
   window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; draw(); });
   window.addEventListener('appinstalled', function () { deferred = null; draw(); });
   function draw() {
-    var page = document.getElementById('page-setup'); if (!page) return;
+    var page = document.getElementById('page-setup'); if (!page || apk) return;
     var box = document.getElementById('webInstall');
     if (!box) { box = document.createElement('div'); box.id = 'webInstall'; box.className = 'card web-install'; page.insertBefore(box, page.firstChild); }
-    if (standalone) { box.innerHTML = '<b>📲 App installata</b><p class="meta">Funziona anche senza rete (tranne l’AI).</p>'; return; }
+    var apkLink = /android/i.test(navigator.userAgent) ? '<a class="btn btn-sec" href="https://github.com/4uva4ok92-glitch/rettifica-web/releases/latest/download/rettifica.apk" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;margin-top:8px;text-decoration:none">🤖 Scarica l’app Android (APK)</a>' : '';
+    if (standalone) { box.innerHTML = '<b>📲 App installata</b><p class="meta">Funziona anche senza rete (tranne l’AI).</p>' + apkLink; return; }
     box.innerHTML = '<b>📲 Aggiungi a Home</b><p class="meta">' + (deferred ? 'Installa l’app sul telefono: si apre a schermo intero e funziona senza rete.' :
       ios ? 'Su iPhone: tocca Condividi ⬆︎ e poi «Aggiungi alla schermata Home».' : 'Nel menu del browser (⋮) tocca «Aggiungi a schermata Home» o «Installa app».') + '</p>' +
-      (deferred ? '<button type="button" class="btn btn-teal" id="webInstallBtn" style="width:100%;min-height:56px;font-size:17px">📲 Aggiungi a Home</button>' : '');
+      (deferred ? '<button type="button" class="btn btn-teal" id="webInstallBtn" style="width:100%;min-height:56px;font-size:17px">📲 Aggiungi a Home</button>' : '') + apkLink;
     var b = document.getElementById('webInstallBtn');
     if (b) b.onclick = function () { deferred.prompt(); deferred.userChoice.then(function () { deferred = null; draw(); }); };
   }
@@ -55,7 +58,8 @@
     injectCss();
     var n = savedCount(), last = lastBackup();
     var due = n > 0 && (!last || Date.now() - last > BK_DAYS * 86400000);
-    var why = '<details><summary>Perché serve?</summary><p class="meta">Nella versione web i dati restano solo in questo browser: se cancelli i dati del browser, usi la navigazione privata o cambi telefono, misure e lavori si perdono. Il backup si apre in «Condividi»: mandalo su Drive, email o WhatsApp.</p></details>';
+    var where = apk ? 'su questo telefono' : 'in questo browser';
+    var why = '<details><summary>Perché serve?</summary><p class="meta">' + (apk ? 'I dati restano solo in questa app: se la disinstalli, cancelli i dati dell’app o cambi telefono, misure e lavori si perdono.' : 'Nella versione web i dati restano solo in questo browser: se cancelli i dati del browser, usi la navigazione privata o cambi telefono, misure e lavori si perdono.') + ' Il backup si apre in «Condividi»: mandalo su Drive, email o WhatsApp.</p></details>';
     [['page-setup', 'webData'], ['page-storico', 'webDataSt']].forEach(function (pair) {
       var page = document.getElementById(pair[0]); if (!page) return;
       var box = document.getElementById(pair[1]);
@@ -66,12 +70,12 @@
       }
       if (due) {
         box.className = 'card web-data';
-        box.innerHTML = '<b>💾 Backup da fare</b><p class="meta">' + mis(n) + ' salvate solo in questo browser · ultimo backup: <b>' + (last ? agoText(last) : 'mai') + '</b>.</p>' +
+        box.innerHTML = '<b>💾 Backup da fare</b><p class="meta">' + mis(n) + ' salvate solo ' + where + ' · ultimo backup: <b>' + (last ? agoText(last) : 'mai') + '</b>.</p>' +
           '<button type="button" class="btn btn-orange web-bk" style="width:100%;min-height:56px;font-size:17px">💾 Fai backup adesso</button>' + why;
       } else {
         box.className = 'card web-data ok';
         box.innerHTML = '<div class="wd-t">' + (last ? '✓ Backup fatto ' + agoText(last) : '💾 Backup') +
-          '<small>' + (n ? mis(n) + ' · i dati restano solo in questo browser' : 'Nessuna misura ancora: fai il backup dopo i primi pezzi') + '</small></div>' +
+          '<small>' + (n ? mis(n) + ' · i dati restano solo ' + where : 'Nessuna misura ancora: fai il backup dopo i primi pezzi') + '</small></div>' +
           '<button type="button" class="btn btn-sec web-bk">' + (last ? 'Rifai' : 'Backup') + '</button>';
       }
       box.querySelector('.web-bk').onclick = function () { var b = document.getElementById('btnExport'); if (b) b.click(); };
