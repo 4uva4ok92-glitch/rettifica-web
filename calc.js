@@ -165,13 +165,6 @@ function parseMisura(raw, base, tolleranza) {
     const tol = tolleranza != null && tolleranza > 0 ? tolleranza : 0.1;
     if (delta > tol) {
       warning = `Misura incoerente con la base ${fmtMm(base)}, controlla`;
-      // 0.9.2: most common slip at the machine = the leading 0 after the comma is missing (10,12 meant 10,012)
-      const vsZ = String(value);
-      const dot = vsZ.indexOf('.');
-      if (dot > 0 && vsZ.length - dot - 1 >= 2 && vsZ.length - dot - 1 <= 3) {
-        const z = parseFloat(vsZ.slice(0, dot + 1) + '0' + vsZ.slice(dot + 1));
-        if (Math.abs(z - base) <= tol && Math.abs(z - value) > 1e-9) return { value, warning, suggestion: round4(z) };
-      }
       // v1.9.4: first try the same decimals with the whole number next to the base (22,9966 → 21,9966)
       const frac4 = Math.round((value - Math.floor(value)) * 10000) / 10000;
       const bi0 = Math.floor(base);
@@ -575,11 +568,11 @@ function correctionHint(S, base, giocoMin, giocoMax, n, machineRule, mode) {
  * v2.0.8: one wording for every correction: measured position vs the centre FIRST, then the action, then the presses.
  * diffUm = target − measured (+ → the piece is BELOW the centre → make it bigger).
  */
-function corrWords(diffUm, presses, key, none) {
+function corrWords(diffUm, presses, key, none, valTxt) {
   if (none || diffUm == null || Math.abs(diffUm) <= 0.5 + 1e-9) return { none: true, pos: 'al centro', posShort: 'al centro', act: 'nessuna correzione', keys: '', text: 'al centro: nessuna correzione', short: 'nessuna correzione' };
   const below = diffUm > 0, um = fmtUm(Math.abs(diffUm)) + ' µm', where = below ? 'sotto' : 'sopra';
   const act = 'fai più ' + (below ? 'grande' : 'piccolo');
-  const keys = key ? key + ' ×' + presses : presses + ' µm';
+  const keys = valTxt ? 'inserisci ' + valTxt : key ? key + ' ×' + presses : presses + ' µm';
   return { none: false, below, pos: um + ' ' + where + ' il centro', posShort: um + ' ' + where, act, keys,
     text: um + ' ' + where + ' il centro → ' + act + ': ' + keys, short: um + ' ' + where + ' → ' + keys };
 }
@@ -790,7 +783,7 @@ function internoWords(r) {
   if (!r) return '';
   if (r.none) return 'al centro: nessuna correzione';
   const um = String(round1(Math.abs(r.needUm))).replace('.', ',');
-  return (r.action === 'allarga' ? 'allarga' : 'stringi') + ' di ' + um + ' µm' + (r.key ? ' → ' + r.key + ' ×' + r.presses : ' (verso del tasto da impostare)');
+  return (r.action === 'allarga' ? 'allarga' : 'stringi') + ' di ' + um + ' µm' + (r.valTxt ? ' → inserisci ' + r.valTxt : r.key ? ' → ' + r.key + ' ×' + r.presses : ' (verso del tasto da impostare)');
 }
 
 function stockWarnNear(candidates, stock, ideal) {
@@ -1660,7 +1653,7 @@ function interpretG(Gmm, F, S) {
  * Per-machine calibration (configuration only; the pairing math is unchanged).
  * outer/bore: what «+» does to the diameter ('stringe' = smaller). Default '+ stringe' for both, status 'da_verificare'.
  */
-const CAL_DEFAULT = { outer: 'stringe', bore: 'stringe', umPerTocco: 1, scala: 'diametro', taper: 'normale', stato: 'da_verificare' };
+const CAL_DEFAULT = { outer: 'stringe', bore: 'stringe', umPerTocco: 1, scala: 'diametro', taper: 'normale', stato: 'da_verificare', modo: 'tocchi' };
 function machineCal(m) {
   const c = Object.assign({}, CAL_DEFAULT, (m && m.cal) || {});
   if (!(m && m.cal && m.cal.outer) && m && m.rule === 'plus_bigger') c.outer = 'allarga';
@@ -1669,6 +1662,7 @@ function machineCal(m) {
   if (c.scala !== 'raggio') c.scala = 'diametro';
   if (c.taper !== 'invertito') c.taper = 'normale';
   if (c.stato !== 'verificata') c.stato = 'da_verificare';
+  if (c.modo !== 'valore') c.modo = 'tocchi';
   return c;
 }
 /** machine.rule / internoRule from the calibration (keeps the existing math keys). */
@@ -1678,6 +1672,37 @@ function tocchiFor(diffUm, cal) {
   const c = cal || CAL_DEFAULT, per = (Number(c.umPerTocco) || 1) * (c.scala === 'raggio' ? 2 : 1);
   const v = Math.abs(Number(diffUm) || 0) / per;
   return v < 1e-9 ? 0 : Math.max(1, Math.ceil(v - 0.5 - 1e-9));
+}
+/**
+ * Beta 0.9.3 «valore diretto» (CNC without tocchi buttons, e.g. Studer favorit): the signed value in mm to type.
+ * um = |change| on the diameter, key = '+'|'−' (direction already from the machine rule). Radius setting halves the value.
+ * favorit (+ = bigger): remove 4 µm on Ø → key '−' → «−0.004».
+ */
+function valoreFor(um, key, cal) {
+  const c = cal || CAL_DEFAULT, a = Math.abs(Number(um) || 0) / (c.scala === 'raggio' ? 2 : 1) / 1000;
+  const r = Math.round(a * 10000) / 10000, d = Math.abs(r * 1000 - Math.round(r * 1000)) < 1e-6 ? 3 : 4;
+  return (r === 0 ? '' : key === '−' || key === '-' ? '−' : '+') + r.toFixed(d);
+}
+/** Text of the keys / value for a correction object {key, presses, valTxt}. */
+function corrKeysTxt(o) { if (!o) return ''; if (o.valTxt) return 'inserisci ' + o.valTxt; return o.key ? o.key + ' ×' + o.presses : o.presses + ' µm'; }
+/** Beta 0.9.3: the +/− note from the calibration (replaces the fixed «Su Studer il tasto + fa il pezzo più piccolo»). */
+function calNote(cal) {
+  const c = cal || CAL_DEFAULT;
+  const o = c.outer === 'allarga' ? '+ fa il diametro esterno più grande, − più piccolo' : '+ fa il diametro esterno più piccolo, − più grande';
+  const b = c.bore === 'allarga' ? '+ allarga il foro' : '+ stringe il foro';
+  const m = c.modo === 'valore' ? 'correzione scritta come valore in mm sul ' + c.scala + ' (niente tocchi)' : '1 tocco = ' + fmtUm(c.umPerTocco) + ' µm sul ' + c.scala;
+  return o + ' · ' + b + ' · ' + m + (c.stato === 'verificata' ? ' · verificata' : ' · da verificare sul primo pezzo');
+}
+/** Machine presets (configuration only). */
+const MACHINE_PRESETS = {
+  studer_o061: { name: 'Studer O061', cal: { outer: 'stringe', bore: 'stringe', umPerTocco: 1, scala: 'diametro', taper: 'normale', stato: 'da_verificare', modo: 'tocchi' } },
+  studer_favorit: { name: 'Studer favorit CNC', cal: { outer: 'allarga', bore: 'allarga', umPerTocco: 1, scala: 'diametro', taper: 'normale', stato: 'da_verificare', modo: 'valore' } },
+};
+/** Ovality / taper reminder: from the drawing frame (series.geo circolarità/cilindricità, µm) or the default 2–3 µm. */
+function formReminderTxt(series) {
+  const s = series || {}, g = s.geo || {};
+  if (!(Number(g.circ) > 0) && !(Number(g.cyl) > 0)) return 'Controlla anche ovalità e conicità (circa 2–3 µm)';
+  const L = jobLimits(s); return 'Controlla anche ovalità (entro ' + fmtUm(L.ovalMax) + ' µm) e conicità (entro ' + fmtUm(L.conMax) + ' µm) · dal disegno';
 }
 function fmtTocchi(n) { return n + (n === 1 ? ' tocco' : ' tocchi'); }
 /** Correction in words: what happens to the diameter, independent of the key sign. diffUm = target − measured (same as corrWords). */
@@ -1691,6 +1716,11 @@ function jobLimits(series) {
   const s = series || {}, o = Object.assign({}, LIM_DEFAULT);
   ['conOk', 'conMax', 'ovalOk', 'ovalMax'].forEach((k) => { const v = Number(s.lim && s.lim[k]); if (Number.isFinite(v) && v >= 0 && v <= 50) o[k] = v; });
   if (o.conMax < o.conOk) o.conMax = o.conOk; if (o.ovalMax < o.ovalOk) o.ovalMax = o.ovalOk;
+  // Beta 0.9.3: tolerance frame of the drawing (µm). circolarità → ovalità; cilindricità → ovalità and conicità (stricter wins).
+  const g = s.geo || {}, gc = Number(g.circ), gy = Number(g.cyl);
+  const ov = [gc, gy].filter((x) => Number.isFinite(x) && x > 0 && x <= 50);
+  if (ov.length) { const v = Math.min.apply(null, ov); o.ovalMax = v; if (o.ovalOk > v) o.ovalOk = v; }
+  if (Number.isFinite(gy) && gy > 0 && gy <= 50) { o.conMax = gy; if (o.conOk > gy) o.conOk = gy; }
   return o;
 }
 /**
@@ -1816,7 +1846,8 @@ function manualStatus(mode, cur, target, cal) {
     const effect = bore ? 'allarga' : 'stringe'; // what we need: male smaller (stringe), bore bigger (allarga)
     const plus = bore ? c.bore : c.outer; out.key = plus === effect ? '+' : '−';
     out.presses = tocchiFor(out.removeUm, c);
-    out.words = (bore ? 'allarga il foro di ' : 'stringi il diametro di ') + fmtUm(out.removeUm) + ' µm sul Ø (' + fmtUm(out.perSideUm) + ' µm per lato) → ' + out.key + ' ×' + out.presses + ' ' + (out.presses === 1 ? 'tocco' : 'tocchi');
+    if (c.modo === 'valore') out.valTxt = valoreFor(out.removeUm, out.key, c);
+    out.words = (bore ? 'allarga il foro di ' : 'stringi il diametro di ') + fmtUm(out.removeUm) + ' µm sul Ø (' + fmtUm(out.perSideUm) + ' µm per lato) → ' + (out.valTxt ? 'inserisci ' + out.valTxt + ' mm' : out.key + ' ×' + out.presses + ' ' + (out.presses === 1 ? 'tocco' : 'tocchi'));
   }
   return out;
 }
@@ -2034,6 +2065,7 @@ module.exports = {
   wrapBackup,
   pushBackupList,
   BACKUP_FORMAT,
+  valoreFor, corrKeysTxt, calNote, MACHINE_PRESETS, formReminderTxt,
 };
 
 }

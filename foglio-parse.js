@@ -24,6 +24,7 @@
   const NUM = '[-+]?[\\dOo][\\dOolI|]*(?:[,.][\\dOolI|]+)?';
   const DIAM = '(?:[ØøÖ⌀∅Φφ]|diam(?:etro)?\\.?)';
   const r4 = (x) => Math.round(x * 10000) / 10000;
+  const r5 = (x) => Math.round(x * 100000) / 100000;
 
   // ── recognition ─────────────────────────────────────────────
   const SCORE_KW = [/requisit/i, /lim\w*\.?\s*sup/i, /lim\w*\.?\s*inf/i, /strument/i, /frequen/i, /accoppiam/i, /nominal/i, /toller/i, /altimetr|micromet|bowers|calibr|comparator/i, /\bcalcolo\b/i, /\bgi?u?oco\b/i];
@@ -63,6 +64,10 @@
     else if (o.name && new RegExp('^[OQ0]\\s*(?=\\d)').test(rest) && /\d\s*$|\d\s*[±+-]/.test(rest) && !/^0[,.]/.test(rest)) { o.diam = true; rest = rest.replace(/^[OQ0]\s*/, ''); }
     const m1 = rest.match(new RegExp('^(' + NUM + ')'));
     if (m1) { o.nominal = num(m1[1]); rest = rest.slice(m1[0].length).trim(); }
+    // Beta 0.9.3: ISO code after the nominal («Ø42 h6», «Ø20 H6») → deviations from ISO 286 (quota.js); limits in parentheses are only a check
+    const QTm = (typeof root !== 'undefined' && root.Quota) || (typeof require === 'function' ? (() => { try { return require('./quota.js'); } catch (e) { return null; } })() : null);
+    const isoM = rest.match(/^([A-Za-z]{1,2}\d{1,2})\b/);
+    if (isoM && o.nominal != null && QTm) { const r = QTm.isoLimits(o.nominal, isoM[1]); if (r.ok) { o.iso = r.code; o.tolPlus = r5(r.esUm / 1000); o.tolMinus = r5(-r.eiUm / 1000); o.isoSigned = true; return o; } }
     const sym = rest.match(new RegExp('^±\\s*(' + NUM + ')'));
     const asy = rest.match(new RegExp('^(?:\\+\\s*(' + NUM.replace('[-+]?', '') + ')\\s*)(?:[/ ]\\s*)?-\\s*(' + NUM.replace('[-+]?', '') + ')'));
     const asy2 = rest.match(new RegExp('^-\\s*(' + NUM.replace('[-+]?', '') + ')\\s*[/ ]?\\s*\\+\\s*(' + NUM.replace('[-+]?', '') + ')'));

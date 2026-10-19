@@ -1,5 +1,5 @@
 /**
- * Rettifica Beta 0.9.1 – «Controllo quota» (pure helpers, no DOM, no pairing math):
+ * Rettifica Beta 0.9.2 – «Controllo quota» (pure helpers, no DOM, no pairing math):
  *  • ISO 286 limits: IT grades IT4–IT12 and the fundamental deviations d e f g h js k m n p / D E F G H JS K M N P by size range
  *  • quote (outer diameter / bore / position-length): limits from «nominale ± tol», «sup./inf.» or an ISO code
  *  • quick entry (last digits), evaluation DENTRO/FUORI (exactly on a limit = inside), margins, deviation from the centre,
@@ -70,8 +70,9 @@
     const p = isoParse(code); if (!p) return { ok: false, error: 'codice ISO non valido (es. h6, H7, g6, js6)' }; if (p.error) return { ok: false, error: p.error };
     const it = IT[p.grade][i], L = p.letter, g = p.grade;
     let es, ei;
-    const kEi = (g >= 4 && g <= 7) ? FD.k[i] : 0; // shaft k: deviation only for IT4–IT7, else 0
+    const kEi = (g >= 4 && g <= 7) ? FD.k[i] : 0; // shaft k: deviation only for IT4–IT7, else 0 (shafts only)
     const delta = () => it - (IT[g - 1] ? IT[g - 1][i] : it); // Δ = IT(n) − IT(n−1)
+    const dl = () => (i === 0 ? 0 : delta()); // Beta 0.9.3: no Δ for nominal ≤ 3 mm
     if (!p.hole) {
       if (L === 'h') { es = 0; ei = -it; }
       else if (L === 'js') { es = it / 2; ei = -it / 2; }
@@ -82,12 +83,14 @@
       if (L === 'h') { es = it; ei = 0; }
       else if (L === 'js') { es = it / 2; ei = -it / 2; }
       else if (L === 'd' || L === 'e' || L === 'f' || L === 'g') { ei = -FD[L][i]; es = ei + it; }
-      else if (L === 'k') { es = g <= 8 ? -kEi + delta() : 0; ei = es - it; }
+      // Beta 0.9.3 (ISO 286-1 tab. 3): K/M/N up to IT8 and P up to IT7 get «+Δ», but NOT for nominal ≤ 3 mm (there Δ = 0).
+      // K uses the shaft k value (FD.k) for IT ≤ 8 (0.9.2 wrongly dropped it at IT8). N ≤ 3 mm = −4 µm (FD.n[0]).
+      else if (L === 'k') { es = g <= 8 ? -FD.k[i] + dl() : 0; ei = es - it; }
       else if (L === 'm' || L === 'n') {
         if (g > 8) return { ok: false, error: p.code.replace(/^./, (c) => c.toUpperCase()) + ' non supportato (solo IT4–IT8)' };
-        es = -FD[L][i] + delta(); ei = es - it;
+        es = -FD[L][i] + dl(); ei = es - it;
       } else { // P
-        es = -FD.p[i] + (g <= 7 ? delta() : 0); ei = es - it;
+        es = -FD.p[i] + (g <= 7 ? dl() : 0); ei = es - it;
       }
     }
     es = r2(es); ei = r2(ei);
@@ -106,6 +109,7 @@
   function autoName(q) {
     const diam = q.tipo !== 'posizione' ? 'Ø' : '';
     if (q.mode === 'iso') return diam + fmtNom(q.nom) + ' ' + q.iso;
+    if (q.mode === 'gen') return diam + fmtNom(q.nom) + ' (ISO 2768-' + q.gen + ' ±' + String(q.tol).replace('.', ',') + ')';
     if (q.mode === 'sim') return diam + fmtNom(q.nom) + ' ± ' + String(q.tol).replace('.', ',');
     if (q.mode === 'asim') { const f = (x) => (x > 0 ? '+' : x < 0 ? '−' : '') + String(Math.abs(x)).replace('.', ','); return diam + fmtNom(q.nom) + ' ' + (q.up === 0 ? '0' : f(q.up)) + '/' + (q.low === 0 ? '0' : f(q.low)); }
     return diam + fmtNom(q.nom);
@@ -118,7 +122,7 @@
     if (!raw || typeof raw !== 'object') return { ok: false, error: 'quota non valida' };
     const nom = numOf(raw.nom); if (nom == null || nom <= 0 || nom > 5000) return { ok: false, error: 'nominale non valido (mm)' };
     const tipo = tipoOf(raw.tipo);
-    let mode = raw.mode === 'iso' || raw.mode === 'asim' || raw.mode === 'sim' ? raw.mode : (raw.iso ? 'iso' : (raw.up != null || raw.low != null) ? 'asim' : 'sim');
+    let mode = raw.mode === 'iso' || raw.mode === 'asim' || raw.mode === 'sim' || raw.mode === 'gen' ? raw.mode : (raw.iso ? 'iso' : (raw.up != null || raw.low != null) ? 'asim' : raw.gen ? 'gen' : 'sim');
     const q = { id: str(raw.id, 24) || 'q_' + Math.random().toString(36).slice(2, 8), nome: '', tipo, mode, nom, note: strNL(raw.note, 200) };
     let lo, hi;
     if (mode === 'iso') {
@@ -130,6 +134,9 @@
       const up = numOf(raw.up), low = numOf(raw.low); if (up == null || low == null) return { ok: false, error: 'scrivi scostamento superiore e inferiore (mm)' };
       if (!(up > low)) return { ok: false, error: 'lo scostamento superiore deve essere maggiore dell\'inferiore' };
       q.up = up; q.low = low; lo = r5(nom + low); hi = r5(nom + up);
+    } else if (mode === 'gen') {
+      const g = genTol(nom, raw.gen); if (!g.ok) return { ok: false, error: g.error };
+      q.gen = g.cls; q.tol = g.tol; lo = r5(nom - g.tol); hi = r5(nom + g.tol);
     } else {
       let tol = numOf(raw.tol); if (tol == null || tol <= 0) return { ok: false, error: 'tolleranza non valida (± mm, maggiore di 0)' };
       tol = Math.abs(tol); q.tol = tol; lo = r5(nom - tol); hi = r5(nom + tol); q.mode = 'sim';
@@ -138,6 +145,8 @@
     if (hi - lo > 5) return { ok: false, error: 'tolleranza troppo larga (oltre 5 mm)' };
     q.lo = lo; q.hi = hi; q.centro = r5((lo + hi) / 2);
     q.nome = str(raw.nome, 40) || autoName(q);
+    // Beta 0.9.3: geometric tolerance frame (µm) – circolarità / cilindricità from the drawing (only for diameters)
+    if (tipo !== 'posizione') { const gc = geoUm(raw.circ), gy = geoUm(raw.cyl); if (gc != null) q.circ = gc; if (gy != null) q.cyl = gy; }
     if (raw.lo != null && raw.hi != null && opts && opts.warn) {
       const a = numOf(raw.lo), b = numOf(raw.hi); if (a != null && b != null && (Math.abs(a - lo) > 0.00051 || Math.abs(b - hi) > 0.00051)) opts.warn('«' + q.nome + '»: i limiti del file non corrispondono alla definizione, uso quelli calcolati (' + fmtN(lo, 3) + '–' + fmtN(hi, 3) + ')');
     }
@@ -188,7 +197,8 @@
    */
   function evalQuota(q, value, cal) {
     const l = quotaLimits(q); const v = numOf(value); if (!l || v == null) return null;
-    const c = Object.assign({ outer: 'stringe', bore: 'stringe', umPerTocco: 1, scala: 'diametro', stato: 'da_verificare' }, cal || {});
+    const c = Object.assign({ outer: 'stringe', bore: 'stringe', umPerTocco: 1, scala: 'diametro', stato: 'da_verificare', modo: 'tocchi' }, cal || {});
+    const vm = c.modo === 'valore';
     const dev = r2((v - l.centro) * 1000), mLo = r2((v - l.lo) * 1000), mHi = r2((l.hi - v) * 1000);
     const dentro = mLo >= 0 && mHi >= 0;
     const near = dentro && Math.min(mLo, mHi) <= l.halfUm * NEAR_FRAC + 1e-9;
@@ -209,7 +219,8 @@
     const bore = q.tipo === 'foro';
     const effectNeeded = (grow) => (bore ? (grow ? 'allarga' : 'stringe') : (grow ? 'allarga' : 'stringe')); // diameter grows / shrinks
     const keyFor = (grow) => { const plus = bore ? c.bore : c.outer; const eff = grow ? 'allarga' : 'stringe'; return plus === eff ? '+' : '−'; };
-    const lastWords = (grow, um) => { const n = tocchiFor(um, c), k = keyFor(grow); return { key: k, presses: n, txt: (grow ? 'allarga' : 'stringi') + ' di ' + fmtUm(um) + ' µm sul Ø → ' + k + ' ×' + n + ' ' + (n === 1 ? 'tocco' : 'tocchi') }; };
+    const lastWords = (grow, um) => { const n = tocchiFor(um, c), k = keyFor(grow), val = vm ? valoreTxt(um, k, c) : '';
+      return { key: k, presses: n, val, txt: (grow ? 'allarga' : 'stringi') + ' di ' + fmtUm(um) + ' µm sul Ø → ' + (vm ? 'inserisci ' + val : k + ' ×' + n + ' ' + (n === 1 ? 'tocco' : 'tocchi')) }; };
     const relevant = !dentro || near;
     // can we still act on THIS piece? grinding only removes material: an outer diameter can only shrink, a bore can only grow
     const canNow = bore ? (need > 0) : (need < 0);
@@ -218,23 +229,23 @@
       cr.kind = 'non_recuperabile'; cr.recoverable = false;
       cr.words = 'Non recuperabile: ' + (bore ? 'foro troppo grande di ' : 'diametro troppo piccolo di ') + fmtUm(outByUm) + ' µm ' + (bore ? 'sopra il massimo' : 'sotto il minimo') + ' (' + (bore ? 'rettificando il foro cresce' : 'togliendo materiale il diametro non cresce') + ')';
       cr.short = 'non recuperabile';
-      const nx = lastWords(grow, an); cr.next = { um: an, key: nx.key, presses: nx.presses, words: 'Per i prossimi pezzi: ' + nx.txt };
+      const nx = lastWords(grow, an); cr.next = { um: an, key: nx.key, presses: nx.presses, val: nx.val, words: 'Per i prossimi pezzi: ' + nx.txt };
       return out;
     }
     if (!relevant) { cr.words = 'Non serve correggere'; return out; }
     if (an < 0.5) { cr.kind = 'centro'; cr.words = 'già al centro: non togliere altro'; return out; }
     if (canNow) {
       const w = lastWords(!bore ? false : true, an); // outer: stringi (shrink) · bore: allarga (grow)
-      cr.kind = 'ora'; cr.um = an; cr.key = w.key; cr.presses = w.presses;
-      cr.words = (bore ? 'Allarga il foro di ' : 'Stringi il diametro di ') + fmtUm(an) + ' µm sul Ø (' + fmtUm(an / 2) + ' µm per lato) → ' + w.key + ' ×' + w.presses + ' ' + (w.presses === 1 ? 'tocco' : 'tocchi');
-      cr.short = w.key + ' ×' + w.presses;
+      cr.kind = 'ora'; cr.um = an; cr.key = w.key; cr.presses = w.presses; cr.val = w.val;
+      cr.words = (bore ? 'Allarga il foro di ' : 'Stringi il diametro di ') + fmtUm(an) + ' µm sul Ø (' + fmtUm(an / 2) + ' µm per lato) → ' + (vm ? 'Inserisci ' + w.val + ' mm' + (c.scala === 'raggio' ? ' (sul raggio)' : '') : w.key + ' ×' + w.presses + ' ' + (w.presses === 1 ? 'tocco' : 'tocchi'));
+      cr.short = vm ? 'Inserisci ' + w.val : w.key + ' ×' + w.presses;
     } else {
       // inside, but on the «wrong» side of the centre: material cannot be added back
       const nx = lastWords(grow, an);
-      cr.kind = 'sotto_centro'; cr.um = an; cr.key = nx.key; cr.presses = nx.presses;
+      cr.kind = 'sotto_centro'; cr.um = an; cr.key = nx.key; cr.presses = nx.presses; cr.val = nx.val;
       cr.words = (bore ? 'Foro ' + fmtUm(an) + ' µm sopra il centro: non togliere altro (non si può restringere)' : 'Diametro ' + fmtUm(an) + ' µm sotto il centro: non togliere altro (non si può aggiungere materiale)');
       cr.short = 'non togliere altro';
-      cr.next = { um: an, key: nx.key, presses: nx.presses, words: 'Per i prossimi pezzi: ' + nx.txt };
+      cr.next = { um: an, key: nx.key, presses: nx.presses, val: nx.val, words: 'Per i prossimi pezzi: ' + nx.txt };
     }
     return out;
   }
@@ -265,7 +276,7 @@
   /** pkg form (controlli[] entry) */
   function controlloToPkg(c) {
     return { nome: c.nome, codice: c.codice || '', rev: c.rev || '', lavorazione: c.lav || '', note: c.note || '', ovalita: !!c.forma,
-      quote: (c.quote || []).map((q) => { const o = { nome: q.nome, tipo: q.tipo, mode: q.mode, nom: q.nom, lo: q.lo, hi: q.hi, note: q.note || '' }; if (q.mode === 'iso') o.iso = q.iso; else if (q.mode === 'asim') { o.up = q.up; o.low = q.low; } else o.tol = q.tol; return o; }) };
+      quote: (c.quote || []).map((q) => { const o = { nome: q.nome, tipo: q.tipo, mode: q.mode, nom: q.nom, lo: q.lo, hi: q.hi, note: q.note || '' }; if (q.mode === 'iso') o.iso = q.iso; else if (q.mode === 'asim') { o.up = q.up; o.low = q.low; } else if (q.mode === 'gen') o.gen = q.gen; else o.tol = q.tol; if (q.circ != null) o.circ = q.circ; if (q.cyl != null) o.cyl = q.cyl; return o; }) };
   }
   /** Template of the drawing section A-A «Riservato Lotto»: Ø42 h6 (outer, ground on the Studer) + 29,5 ± 0,02 (distance C face → lateral Ø5 hole). */
   function templateAA() {
@@ -303,7 +314,7 @@
     return { id: 'qp_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ts: m.ts || new Date().toISOString(), controlloId: c.id, nome: c.nome, codice: c.codice || '', rev: c.rev || '', lav: c.lav || '', lotto: m.lotto != null ? m.lotto : (c.lotto || ''),
       machineName: m.machineName || '', esito: ec.overall, parziale: ec.parziale, forma: !!c.forma,
       quote: ec.items.filter((i) => i.ev).map((i) => ({ id: i.q.id, nome: i.q.nome, tipo: i.q.tipo, nom: i.q.nom, lo: i.ev.lo, hi: i.ev.hi, centro: i.ev.centro, misura: i.ev.value, devUm: i.ev.devUm, marginLoUm: i.ev.marginLoUm, marginHiUm: i.ev.marginHiUm, esito: i.ev.state, near: i.ev.near,
-        corr: i.ev.corr.kind, corrUm: i.ev.corr.um || 0, key: i.ev.corr.key || '', presses: i.ev.corr.presses || 0 })) };
+        corr: i.ev.corr.kind, corrUm: i.ev.corr.um || 0, key: i.ev.corr.key || '', presses: i.ev.corr.presses || 0, val: i.ev.corr.val || '' })) };
   }
   /** pieces → flat rows for the CSV/report (one row per quota) */
   function pieceRows(pezzi) {
@@ -319,7 +330,191 @@
     return [q(r.qNome), q(TIPI[r.qTipo] || r.qTipo || ''), fmtN(r.qLo, 3), fmtN(r.qHi, 3), fmtN(r.qCentro, 3), fmtN(r.qDev, 1), q(r.qEsito || '')];
   }
 
+
+  /* ───────── Beta 0.9.2: streak (ultimi pezzi) + live feedback debounce ───────── */
+  /** Last up to `max` (default 12) pieces for a controllo (+ same lotto). Chronological (oldest → newest). */
+  function lastPieces(pezzi, controlloId, lotto, max) {
+    const lim = max == null ? 12 : Math.max(0, max | 0);
+    const lot = lotto == null ? '' : String(lotto);
+    const id = String(controlloId == null ? '' : controlloId);
+    return (pezzi || []).filter((p) => p && String(p.controlloId || '') === id && (p.lotto || '') === lot).slice(-lim);
+  }
+  /**
+   * From chronological pieces (or raw esito strings): { states:['dentro'|'fuori',...], streakOk, n }.
+   * streakOk = consecutive DENTRO from the end (resets on FUORI). Partial pieces still count by overall esito.
+   */
+  function streakOf(piecesOrEsiti) {
+    const states = (piecesOrEsiti || []).map((p) => {
+      if (p == null) return 'dentro';
+      if (typeof p === 'string') return p === 'fuori' ? 'fuori' : 'dentro';
+      return p.esito === 'fuori' ? 'fuori' : 'dentro';
+    });
+    let streakOk = 0;
+    for (let i = states.length - 1; i >= 0; i--) { if (states[i] === 'dentro') streakOk++; else break; }
+    return { states, streakOk, n: states.length };
+  }
+  /**
+   * Live feedback while typing a full measure. Call only when parseMeasure succeeded.
+   * prev = { spoken:'dentro'|'fuori'|null, haptic:'dentro'|'fuori'|null }.
+   * Returns { next, speak?:'dentro'|'fuori', hapticMs?:number }. Speak only on state flip; haptic 80 ms once per entry into FUORI.
+   */
+  function liveFeedback(prev, state) {
+    const p = prev && typeof prev === 'object' ? prev : {};
+    const next = { spoken: p.spoken == null ? null : p.spoken, haptic: p.haptic == null ? null : p.haptic };
+    const out = { next };
+    if (state !== 'dentro' && state !== 'fuori') return out;
+    if (state === 'fuori' && p.haptic !== 'fuori') { out.hapticMs = 80; next.haptic = 'fuori'; }
+    else if (state === 'dentro') next.haptic = 'dentro';
+    if (p.spoken !== state) { out.speak = state; next.spoken = state; }
+    return out;
+  }
+
+  /* ───────── Beta 0.9.3 ───────── */
+  /** «Valore diretto» (CNC without tocchi buttons): the signed value in mm to type. key '+'|'−' = direction from the machine rule. */
+  function valoreTxt(um, key, cal) {
+    const c = cal || {}, a = Math.abs(Number(um) || 0) / (c.scala === 'raggio' ? 2 : 1) / 1000;
+    const r = Math.round(a * 10000) / 10000, d = Math.abs(r * 1000 - Math.round(r * 1000)) < 1e-6 ? 3 : 4;
+    return (r === 0 ? '' : key === '−' || key === '-' ? '−' : '+') + r.toFixed(d);
+  }
+  /** µm from a geometric tolerance value: «0,003» (mm, < 1) → 3 · «3» → 3 µm. null when empty / invalid. */
+  function geoUm(v) {
+    if (v == null || v === '') return null; const t = String(v).trim().replace(',', '.').replace('−', '-'); const x = Number(t);
+    if (!Number.isFinite(x) || x <= 0) return null; const um = /[.]/.test(t) && x < 1 ? x * 1000 : x; return um > 200 ? null : r1(um);
+  }
+  /** Ovality / taper limits for a quota from its frame: circolarità → ovalità, cilindricità → both (the stricter wins). null = use 2–3 µm. */
+  function formLimitsOf(q) {
+    if (!q || (q.circ == null && q.cyl == null)) return null;
+    const ov = [q.circ, q.cyl].filter((x) => x != null), oval = Math.min.apply(null, ov), con = q.cyl != null ? q.cyl : null;
+    return { oval, con, txt: 'Dal disegno: ' + (q.circ != null ? 'circolarità ' + fmtUm(q.circ) + ' µm' : '') + (q.circ != null && q.cyl != null ? ' · ' : '') + (q.cyl != null ? 'cilindricità ' + fmtUm(q.cyl) + ' µm' : '')
+      + ' → ovalità entro ' + fmtUm(oval) + ' µm' + (con != null ? ', conicità entro ' + fmtUm(con) + ' µm' : ', conicità circa 2–3 µm') };
+  }
+  /* ISO 2768-1 general tolerances, linear dimensions (± mm). Ranges: over … up to (mm); first range from 0,5. */
+  const GEN_UP = [3, 6, 30, 120, 400, 1000, 2000, 4000];
+  const GEN = { f: [0.05, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5, null], m: [0.1, 0.1, 0.2, 0.3, 0.5, 0.8, 1.2, 2], c: [0.2, 0.3, 0.5, 0.8, 1.2, 2, 3, 4], v: [null, 0.5, 1, 1.5, 2.5, 4, 6, 8] };
+  const GEN_NAMES = { f: 'fine', m: 'media', c: 'grossolana', v: 'molto grossolana' };
+  /** «m» / «ISO 2768-mK» / «2768 m» → class letter f|m|c|v (+ geometric class H|K|L) or null */
+  function genParse(x) {
+    const t = String(x == null ? '' : x).trim(); if (!t) return null;
+    let m = /(?:ISO|UNI|EN)?\s*(?:22768|2768)(?:\s*-\s*1)?\s*[-–\s]\s*([fmcv])\s*([HKL])?\b/i.exec(t) || /^([fmcvFMCV])\s*([HKL])?$/.exec(t);
+    if (!m) return null; return { cls: m[1].toLowerCase(), geo: m[2] ? m[2].toUpperCase() : '' };
+  }
+  function genTol(nom, cls) {
+    const n = numOf(nom), p = genParse(cls); if (n == null || !(n > 0)) return { ok: false, error: 'nominale non valido' };
+    if (!p) return { ok: false, error: 'classe ISO 2768 non valida (f, m, c, v)' };
+    if (n < 0.5) return { ok: false, error: 'ISO 2768: sotto 0,5 mm la tolleranza va scritta sul disegno' };
+    let i = GEN_UP.findIndex((u) => n <= u + 1e-9); if (i < 0) return { ok: false, error: 'ISO 2768: nominale fino a 4000 mm' };
+    const t = GEN[p.cls][i]; if (t == null) return { ok: false, error: 'ISO 2768-' + p.cls + ': per questo nominale non è definita, chiedi al responsabile' };
+    return { ok: true, cls: p.cls, geo: p.geo, tol: t, lo: r5(n - t), hi: r5(n + t) };
+  }
+  /** Fit «40 H7/g6»: hole + shaft limits and the gioco (F − S) min/max in µm. Negative = interferenza. */
+  function fitParse(code) {
+    const t = String(code == null ? '' : code).replace(/\s+/g, ' ').trim();
+    const m = /^[Øø⌀∅]?\s*(\d+(?:[.,]\d+)?)\s*([A-Z]{1,2}\d{1,2})\s*[\/⁄-]\s*([a-z]{1,2}\d{1,2})$/.exec(t);
+    return m ? { nom: numOf(m[1]), hole: m[2], shaft: m[3] } : null;
+  }
+  function fitLimits(nom, holeCode, shaftCode) {
+    if (holeCode == null && shaftCode == null) { const p = fitParse(nom); if (!p) return { ok: false, error: 'scrivi l\'accoppiamento come 40 H7/g6' }; nom = p.nom; holeCode = p.hole; shaftCode = p.shaft; }
+    const h = isoLimits(nom, holeCode), s = isoLimits(nom, shaftCode);
+    if (!h.ok) return { ok: false, error: 'foro: ' + h.error }; if (!s.ok) return { ok: false, error: 'albero: ' + s.error };
+    if (h.kind !== 'foro') return { ok: false, error: 'il primo codice è del foro (maiuscolo, es. H7)' };
+    if (s.kind !== 'albero') return { ok: false, error: 'il secondo codice è dell\'albero (minuscolo, es. g6)' };
+    const gMin = r1(h.eiUm - s.esUm), gMax = r1(h.esUm - s.eiUm);
+    const tipo = gMin >= 0 ? 'gioco' : gMax <= 0 ? 'interferenza' : 'incerto';
+    const sys = /^H/.test(h.code) ? 'foro base' : /^h/.test(s.code) ? 'albero base' : '';
+    const words = tipo === 'gioco' ? 'Accoppiamento con gioco: ' + fmtUm(gMin) + '–' + fmtUm(gMax) + ' µm'
+      : tipo === 'interferenza' ? 'Accoppiamento con INTERFERENZA: ' + fmtUm(-gMax) + '–' + fmtUm(-gMin) + ' µm (il maschio è più grande del foro)'
+      : 'Accoppiamento INCERTO: da ' + fmtUm(-gMin) + ' µm di interferenza a ' + fmtUm(gMax) + ' µm di gioco';
+    return { ok: true, nom: numOf(nom), hole: h, shaft: s, giocoMinUm: gMin, giocoMaxUm: gMax, tipo, sys, words, code: fmtNom(numOf(nom)) + ' ' + h.code + '/' + s.code };
+  }
+  /** «misura a pezzo freddo»: thermal growth ΔL = α · L · ΔT, in µm. α default 1,2·10⁻⁵ /°C (acciaio, dispensa p. 251). */
+  const ALPHA = { acciaio: 12e-6, ghisa: 10.5e-6, inox: 16e-6, alluminio: 23e-6, ottone: 19e-6 };
+  function thermalUm(Lmm, dT, alpha) {
+    const L = numOf(Lmm), T = numOf(dT); if (L == null || T == null || !(L > 0)) return null;
+    const a = typeof alpha === 'string' ? ALPHA[alpha] : (Number(alpha) > 0 ? Number(alpha) : ALPHA.acciaio); if (!(a > 0)) return null;
+    return r1(a * L * T * 1000);
+  }
+
+  /* ───────── Beta 0.9.3: tolerances written on drawings (OCR text / typed) → quota definitions ───────── */
+  const DN = '(\\d+(?:[.,]\\d+)?)';
+  const SN = '([+\\-−]?\\s*\\d*[.,]?\\d+)';
+  const nn = (x) => numOf(String(x).replace(/\s+/g, '').replace('−', '-'));
+  /**
+   * Parse the text of a drawing (one dimension per line, OCR or typed). Recognised forms:
+   *  «Ø42 h6» · «Ø42 h6 (41,984/42,000)» · «40 H7/g6» · «29,5 ±0,02» · «42 0/−0,016» · «42 +0,000 −0,016» · «42 0» + next line «−0,016» (stacked) ·
+   *  «42,000/41,984» (two limits) · «ISO 2768-mK» (general class) · «circolarità 0,003» / «○ 0,003» · «cilindricità 0,005» / «⌭ 0,005».
+   *  Auxiliary dimensions in parentheses «(35)» are ignored (ISO 129: no tolerance). Plain «Ø30» gets the general class if found.
+   * @returns {{items:Array<{raw:string, def?:object, fit?:object, aux?:boolean, noTol?:boolean, warn?:string}>, gen:object|null, geo:{circ?:number, cyl?:number}}}
+   */
+  function parseDrawingText(text) {
+    const lines = String(text == null ? '' : text).replace(/\r/g, '').split('\n').map((l) => l.replace(/[\u00a0\t]+/g, ' ').replace(/[–—\u2212]/g, '−').replace(/\+\s*\/\s*[-−]|\+[-−]/g, '±').trim()).filter(Boolean);
+    const out = { items: [], gen: null, geo: {} };
+    lines.forEach((l) => { const g = genParse(l); if (g && !out.gen) out.gen = g; });
+    const geoRe = [[/(circolarit[aà]|rotondit[aà]|^[○◯⭘]|\s[○◯⭘])\s*[:=]?\s*(\d*[.,]?\d+)/i, 'circ'], [/(cilindricit[aà]|⌭)\s*[:=]?\s*(\d*[.,]?\d+)/i, 'cyl']];
+    let lastGeoTarget = null;
+    for (let k = 0; k < lines.length; k++) {
+      let l = lines[k];
+      if (genParse(l) && !/[Øø⌀∅]/.test(l)) continue;
+      let geoHit = false;
+      geoRe.forEach(([re, key]) => { const m = re.exec(l); if (m) { const v = geoUm(m[2]); if (v != null) { geoHit = true; if (lastGeoTarget) lastGeoTarget[key] = v; else out.geo[key] = v; } } });
+      if (geoHit) continue;
+      if (/^\(\s*[Øø⌀∅]?\s*\d+(?:[.,]\d+)?\s*\)$/.test(l)) { out.items.push({ raw: l, aux: true }); continue; }
+      // a «(41,984/42,000)» after an ISO code is a check, not an auxiliary dimension
+      let chk = null; const pm = /\(\s*(\d+[.,]\d+)\s*[\/÷\s]\s*(\d+[.,]\d+)\s*\)\s*$/.exec(l);
+      if (pm) { chk = [nn(pm[1]), nn(pm[2])].sort((a, b) => a - b); l = l.slice(0, pm.index).trim(); }
+      else l = l.replace(/\(\s*[Øø⌀∅]?\s*\d+(?:[.,]\d+)?\s*\)/g, ' ').replace(/\s+/g, ' ').trim();
+      const diam = /^[Øø⌀∅]|^diam/i.test(l) || /\s[Øø⌀∅]\s*\d/.test(l);
+      const body = l.replace(/^.*?(?=[Øø⌀∅]?\s*\d)/, '').replace(/^[Øø⌀∅]\s*/, '');
+      let m;
+      if ((m = new RegExp('^' + DN + '\\s*([A-Z]{1,2}\\d{1,2})\\s*[/⁄]\\s*([a-z]{1,2}\\d{1,2})\\b').exec(body))) {
+        const f = fitLimits(nn(m[1]), m[2], m[3]);
+        if (f.ok) { const hd = { tipo: 'foro', mode: 'iso', nom: f.nom, iso: f.hole.code }, sd = { tipo: 'esterno', mode: 'iso', nom: f.nom, iso: f.shaft.code };
+          out.items.push({ raw: l, fit: f, def: hd, pair: sd }); lastGeoTarget = null; }
+        else out.items.push({ raw: l, warn: f.error });
+        continue;
+      }
+      if ((m = new RegExp('^' + DN + '\\s*([A-Za-z]{1,2}\\d{1,2})\\b').exec(body)) && !/^(mm|x)$/i.test(m[2].replace(/\d+/g, ''))) {
+        const code = m[2], hole = code[0] === code[0].toUpperCase();
+        const def = { tipo: hole ? 'foro' : 'esterno', mode: 'iso', nom: nn(m[1]), iso: code };
+        const r = isoLimits(def.nom, code); const it = { raw: lines[k], def };
+        if (!r.ok) it.warn = r.error;
+        else if (chk && (Math.abs(chk[0] - r.lo) > 0.0006 || Math.abs(chk[1] - r.hi) > 0.0006)) it.warn = 'I limiti scritti tra parentesi (' + fmtN(chk[0], 3) + '/' + fmtN(chk[1], 3) + ') non tornano con ' + code + ' (' + fmtN(r.lo, 3) + '/' + fmtN(r.hi, 3) + '): controlla';
+        out.items.push(it); lastGeoTarget = def; continue;
+      }
+      const tipoNoIso = diam ? 'esterno' : 'posizione';
+      if ((m = new RegExp('^' + DN + '\\s*±\\s*' + DN + '\\s*$').exec(body))) {
+        const def = { tipo: tipoNoIso, mode: 'sim', nom: nn(m[1]), tol: nn(m[2]) }; out.items.push({ raw: l, def, tipoGuess: diam }); lastGeoTarget = diam ? def : null; continue;
+      }
+      // two signed deviations «42 +0,02 −0,01» / «42 0/−0,016» / «42 −0,01/+0,02»
+      if ((m = new RegExp('^' + DN + '\\s+' + SN + '\\s*[/\\s]\\s*' + SN + '\\s*$').exec(body)) || (m = new RegExp('^' + DN + '\\s*([+\\-−]\\s*\\d*[.,]?\\d+)\\s*[/\\s]?\\s*([+\\-−]\\s*\\d*[.,]?\\d+|0)\\s*$').exec(body))) {
+        const nom = nn(m[1]), a = nn(m[2]), b = nn(m[3]);
+        if (nom != null && a != null && b != null && Math.abs(a) < 5 && Math.abs(b) < 5 && a !== b) { const def = { tipo: tipoNoIso, mode: 'asim', nom, up: Math.max(a, b), low: Math.min(a, b) }; out.items.push({ raw: l, def, tipoGuess: diam }); lastGeoTarget = diam ? def : null; continue; }
+      }
+      // stacked: «42 0» / «42 +0,02» and the next line only a signed deviation
+      if ((m = new RegExp('^' + DN + '\\s+' + SN + '$').exec(body)) && k + 1 < lines.length && new RegExp('^' + SN + '$').test(lines[k + 1].replace(/\s+/g, ''))) {
+        const nom = nn(m[1]), a = nn(m[2]), b = nn(lines[k + 1]);
+        if (nom != null && a != null && b != null && Math.abs(a) < 5 && Math.abs(b) < 5 && a !== b) { const def = { tipo: tipoNoIso, mode: 'asim', nom, up: Math.max(a, b), low: Math.min(a, b) }; out.items.push({ raw: l + ' / ' + lines[k + 1], def, tipoGuess: diam }); lastGeoTarget = diam ? def : null; k++; continue; }
+      }
+      // two limits «42,000/41,984» or «41,984 ÷ 42,000»
+      if ((m = /^(\d+[.,]\d+)\s*(?:\/|÷|\s-\s|\s−\s)\s*(\d+[.,]\d+)\s*$/.exec(body))) {
+        const a = nn(m[1]), b = nn(m[2]);
+        if (a != null && b != null && a !== b && Math.abs(a - b) < 5 && Math.abs(a - b) / Math.max(a, b) < 0.2) {
+          const lo = Math.min(a, b), hi = Math.max(a, b), nom = Math.round(((lo + hi) / 2) * 1000) / 1000;
+          const def = { tipo: tipoNoIso, mode: 'asim', nom: hi, up: 0, low: r5(lo - hi) };
+          out.items.push({ raw: l, def, tipoGuess: diam, limits: true }); lastGeoTarget = diam ? def : null; void nom; continue;
+        }
+      }
+      // plain dimension: general tolerance (if the title block has ISO 2768) or «senza tolleranza»
+      if ((m = new RegExp('^' + DN + '\\s*$').exec(body)) && /\d/.test(l)) {
+        const nom = nn(m[1]); if (nom == null || nom <= 0) continue;
+        out.items.push({ raw: l, noTol: true, nom, tipo: tipoNoIso }); continue;
+      }
+    }
+    if (out.gen) out.items.forEach((it) => { if (it.noTol) { const g = genTol(it.nom, out.gen.cls); if (g.ok) { it.def = { tipo: it.tipo, mode: 'gen', nom: it.nom, gen: out.gen.cls }; it.general = true; } } });
+    return out;
+  }
+
   const api = { MAX_QUOTE, NEAR_FRAC, TIPI, IT, FD, RANGE_UP, LETTERS, GRADES, QCOLS, numOf, rangeIndex, itGrade, isoParse, isoLimits, tipoOf, autoName, normalizeQuota, quotaLimits, quotaText, parseMeasure, fmtMeasure,
-    evalQuota, evalControllo, tocchiFor, normalizeControllo, controlloToPkg, templateAA, diffControllo, findControllo, applyControllo, makePiece, pieceRows, qCells, fmtN, fmtUm, sg };
+    evalQuota, evalControllo, tocchiFor, normalizeControllo, controlloToPkg, templateAA, diffControllo, findControllo, applyControllo, makePiece, pieceRows, qCells, lastPieces, streakOf, liveFeedback, fmtN, fmtUm, sg,
+    valoreTxt, geoUm, formLimitsOf, GEN, GEN_UP, GEN_NAMES, genParse, genTol, fitParse, fitLimits, ALPHA, thermalUm, parseDrawingText };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Quota = api;
 })(typeof window !== 'undefined' ? window : globalThis);

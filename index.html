@@ -942,6 +942,23 @@ html[data-theme="light"] .int-mat.largo b{color:#c62828}
 .qual .ql-btn{grid-area:b;min-height:44px;min-width:76px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:transparent;color:var(--text);font-weight:800}
 .cal-box{margin:10px 0;padding:10px 12px;border-radius:12px;border:2px solid var(--amber)}.cal-box.ok{border-color:var(--green)}
 .cal-h{font-weight:800;display:flex;justify-content:space-between}.cal-box.unver .cal-st{color:var(--amber)}.cal-box.ok .cal-st{color:var(--green)}
+/* Beta 0.9.3: valore diretto, presets, Leggi il disegno */
+.corr .key.val{width:auto;min-width:48px;padding:0 8px;font-size:22px;letter-spacing:-.5px;white-space:nowrap}
+.md-pre{display:flex;gap:8px;margin:4px 0 6px}.md-pre button{flex:1;min-height:56px;border-radius:12px;border:2px solid var(--line2);background:var(--surface);color:inherit;font-weight:800;font-size:15px;padding:6px}
+.md-pre button small{display:block;font-weight:600;font-size:12px;color:var(--muted)}
+.md-note{margin:6px 0 4px;font-weight:600}
+.ld-card{margin:10px 0}.ld-card h3{margin:0 0 6px;font-size:17px}.ld-card p,.ld-card li{font-size:15px;line-height:1.5}
+.ld-tbl{width:100%;border-collapse:collapse;font-size:14px}.ld-tbl td,.ld-tbl th{border-bottom:1px solid var(--line2);padding:6px 4px;text-align:left;vertical-align:top}
+.ld-sym{font-size:22px;width:40px;text-align:center!important}
+.ld-out{margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(255,138,31,.08);font-weight:700;font-size:16px;line-height:1.45}
+.ld-out.bad{background:rgba(255,90,90,.12);color:#ff8a8a}
+.ld-row{display:flex;gap:8px}.ld-row>*{flex:1;min-width:0}
+.ld-card input,.ld-card select{width:100%;box-sizing:border-box;max-width:100%}
+.ld-btn{width:100%;min-height:56px;margin-top:8px}
+.qt-geo{margin-top:6px}
+.dt-item{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line2)}.dt-item input{width:28px;height:28px;flex:none;margin-top:2px}
+.dt-item small{display:block;color:var(--muted)}.dt-item.aux{opacity:.6}
+
 .lim-h{margin-top:10px;font-weight:800;font-size:14px}
 .ocr-sum{margin:6px 0 8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.04);font-size:13.5px;line-height:1.45}
 .ocr-sum b{font-weight:800}.ocr-sum .neg{color:var(--amber)}.ocr-sum .intf{color:var(--red);font-weight:800}
@@ -995,7 +1012,7 @@ html[data-theme="light"] .man-res .mr-st.da_togliere,html[data-theme="light"] .m
 #taperCard.noform,#formBox.noform{display:none!important}
 .preset-btn{width:100%;min-height:56px;margin-bottom:10px}
 
-/* Beta 0.9.1 – Controllo quota */
+/* Beta 0.9.1–0.9.2 – Controllo quota */
 .qt-meta{display:block;width:100%;min-height:36px;margin-top:6px;padding:4px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-size:13px;font-weight:700;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .qt-meta.empty{color:var(--muted);font-weight:600}
 .qt-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
@@ -1017,6 +1034,27 @@ html[data-theme="light"] .qt-big.dentro b,html[data-theme="light"] .qt-all.dentr
 .qt-corr.no{border:1px solid rgba(255,77,77,.5)}.qt-corr.ok{color:var(--muted)}
 .modal .chk-big{display:flex}.qt-det{margin-top:10px;padding:8px 12px;border:1.5px solid var(--line2)}.qt-det .qt-nums{margin:0}
 .qt-forma{margin-top:8px;font-size:13px;font-weight:700;color:var(--amber)}
+/* Beta 0.9.2 – striscia ultimi pezzi */
+.qt-streak{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:4px 0 2px;padding:6px 8px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);min-height:40px}
+.qt-streak.hidden{display:none}
+.qt-streak .qs-lab{font-size:12.5px;font-weight:800;color:var(--muted);flex:none}
+.qt-streak .qs-dots{display:flex;gap:5px;align-items:center;flex:1;min-width:0;overflow:hidden}
+.qt-streak .qs-dot{width:14px;height:14px;border-radius:50%;flex:none;border:2px solid transparent}
+.qt-streak .qs-dot.dentro{background:#20c46b;border-color:rgba(32,196,107,.55);box-shadow:0 0 0 1px rgba(32,196,107,.25)}
+.qt-streak .qs-dot.fuori{background:#ff6b6b;border-color:rgba(255,77,77,.55);box-shadow:0 0 0 1px rgba(255,77,77,.25)}
+.qt-streak .qs-ok{font-size:12.5px;font-weight:800;color:var(--text);flex:none;white-space:nowrap}
+.qt-streak .qs-ok b{color:#20c46b;font-size:15px}
+.qt-streak.empty .qs-ok{color:var(--muted);font-weight:700}
+html[data-theme="light"] .qt-streak .qs-dot.dentro{background:#11804a;border-color:#0d6b3c}
+html[data-theme="light"] .qt-streak .qs-dot.fuori{background:#c62828;border-color:#a31f1f}
+html[data-theme="light"] .qt-streak .qs-ok b{color:#11804a}
+html[data-theme="light"] .qt-big.dentro{background:rgba(17,128,74,.12);border-color:rgba(17,128,74,.45)}
+html[data-theme="light"] .qt-big.fuori{background:rgba(198,40,40,.1);border-color:rgba(198,40,40,.45)}
+html[data-theme="light"] .qt-big.limite{background:rgba(180,83,9,.1);border-color:rgba(180,83,9,.4)}
+html[data-theme="light"] .qt-row.dentro .qr-r small{color:#11804a}
+html[data-theme="light"] .qt-row.fuori .qr-r small{color:#c62828}
+@media (max-height:700px){.qt-streak{margin:3px 0 1px;padding:4px 8px;min-height:36px}.qt-streak .qs-dot{width:12px;height:12px}.qt-streak .qs-lab,.qt-streak .qs-ok{font-size:11.5px}}
+
 .qt-rem{margin-top:6px;font-size:12.5px;color:var(--muted)}
 .qt-empty h2{font-size:1.15rem;margin-bottom:6px}.qt-empty .btn{width:100%;min-height:60px;margin-top:8px}
 .qt-qrow{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:14px;margin-bottom:8px;background:var(--surface)}.qt-qrow .qq-t{flex:1;min-width:0}.qt-qrow .qq-t b{display:block;font-size:16px}.qt-qrow .qq-t small{display:block;font-size:12px;color:var(--muted)}.qt-qrow button{min-width:48px;min-height:48px}
@@ -1263,6 +1301,7 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
       <button type="button" class="k" data-qk="1">1</button><button type="button" class="k" data-qk="2">2</button><button type="button" class="k" data-qk="3">3</button>
       <button type="button" class="k fn" data-qk=",">,</button><button type="button" class="k" data-qk="0">0</button><button type="button" class="k fn" data-qk="AC">AC</button>
     </div>
+    <div class="qt-streak hidden" id="qtStreak" aria-live="polite"></div>
     <div class="card qt-det hidden" id="qtDet"></div>
   </section>
 
@@ -1423,13 +1462,14 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
     </div>
     <input type="file" id="importFile" accept="application/json,.json,text/plain" class="hidden"/>
     <button type="button" class="btn btn-danger" id="btnReset" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗑 Azzera tutto</button>
-    <p class="ver">Rettifica Beta v0.9.2 · diametri in mm · giochi e correzioni in µm</p>
+    <p class="ver">Rettifica Beta v0.9.3 · diametri in mm · giochi e correzioni in µm</p>
   </section>
 
   <section class="page" id="page-aiuto">
     <div class="page-head"><h2>🆘 Aiuto</h2></div>
     <button type="button" class="help-big" id="helpAsk"><span class="hb-t">🆘 Chiedi aiuto</span><span class="hb-s" id="helpAskSub">—</span></button>
     <p class="meta help-ctx" id="helpSub"></p>
+    <button type="button" class="btn btn-sec ld-btn" id="btnDisegno" style="min-height:60px;font-size:18px">📐 Leggi il disegno <small style="display:block;font-weight:600">ISO, tolleranze, simboli, Ra, pezzo freddo</small></button>
     <div class="sec-title">Contatti</div>
     <div id="ctList"></div>
     <button type="button" class="btn btn-teal ct-add" id="ctAdd">＋ Aggiungi contatto</button>
@@ -1450,6 +1490,56 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
     <div class="qd-btns" id="qdBtns"><button type="button" data-ev="diamantatura"><span>💎</span>Diamantatura</button><button type="button" data-ev="mola"><span>🔄</span>Cambio mola</button><button type="button" data-ev="manopola"><span>🎛</span>Regolazione manopola</button><button type="button" data-ev="nota"><span>📝</span>Nota libera</button></div>
     <div class="sec-title">Voci</div>
     <div id="qdList"></div>
+  </section>
+  <section class="page" id="page-disegno">
+    <div class="page-head"><button type="button" class="ib" id="ldBack" aria-label="Indietro">←</button><h2>📐 Leggi il disegno</h2></div>
+    <p class="meta">Le cose che servono in rettifica, in breve. Fonte: dispensa «Disegno Tecnico Industriale» (UniFE). Diametri in mm, scostamenti in µm.</p>
+    <div class="card ld-card" id="ldFitCard"><h3>⇄ Accoppiamento ISO (es. 40 H7/g6)</h3>
+      <p>La lettera <b>MAIUSCOLA è il foro</b>, la <b>minuscola è l'albero</b> (maschio). Il numero è il grado IT: più è piccolo, più la tolleranza è stretta.</p>
+      <label for="ldFitIn">Scrivi l'accoppiamento</label><input id="ldFitIn" class="big-input" autocomplete="off" autocapitalize="none" placeholder="es. 40 H7/g6"/>
+      <button type="button" class="btn btn-orange ld-btn" id="ldFitGo">Calcola foro, albero e gioco</button>
+      <div class="ld-out hidden" id="ldFitOut"></div></div>
+    <div class="card ld-card"><h3>🔤 Lettere e numeri ISO 286</h3>
+      <ul><li><b>H</b> (foro) e <b>h</b> (albero) partono dal nominale: H va sopra (foro più grande), h va sotto (albero più piccolo). Es. Ø42 h6 = 41,984–42,000.</li>
+      <li>Fori <b>da A a H</b>: misura più grande del nominale. Fori <b>da K a ZC</b>: più piccola (dispensa p. 265).</li>
+      <li><b>Foro base</b> (H7/g6, H6/p5): il foro resta H e cambia l'albero. <b>Albero base</b> (G7/h6): l'albero resta h (p. 288).</li>
+      <li>Gioco = foro − maschio. Positivo = <b>gioco</b>; negativo = <b>interferenza</b> (il maschio è più grande, va piantato). In mezzo = <b>incerto</b>.</li>
+      <li>JS / js: tolleranza metà sopra e metà sotto (es. Ø30 js7 = ±10,5 µm).</li></ul></div>
+    <div class="card ld-card"><h3>✏ Come sono scritte le tolleranze</h3>
+      <table class="ld-tbl"><tr><th>Sul disegno</th><th>Vuol dire</th></tr>
+      <tr><td>Ø42 h6</td><td>codice ISO: l'app calcola i limiti</td></tr>
+      <tr><td>Ø42 h6 (41,984/42,000)</td><td>codice + limiti già scritti (controllo)</td></tr>
+      <tr><td>29,5 ±0,02</td><td>simmetrica: 29,48–29,52</td></tr>
+      <tr><td>Ø42 <sup>0</sup><sub>−0,016</sub></td><td>sup. 0, inf. −0,016 (valori uno sopra l'altro)</td></tr>
+      <tr><td>42,000/41,984</td><td>i due limiti scritti direttamente</td></tr>
+      <tr><td>(35)</td><td>quota <b>ausiliaria</b>, tra parentesi: solo informazione, <b>non si controlla</b> (p. 181)</td></tr>
+      <tr><td>Ø30 senza tolleranza</td><td>vale la tolleranza <b>generale</b> del cartiglio (es. ISO 2768-mK)</td></tr></table></div>
+    <div class="card ld-card" id="ldGenCard"><h3>📋 Tolleranze generali ISO 2768</h3>
+      <p>Nel cartiglio trovi per esempio «ISO 2768-mK»: <b>m</b> = classe per le lunghezze (f fine, m media, c grossolana, v molto grossolana), <b>K</b> = classe geometrica. La circolarità generale è uguale alla tolleranza del diametro; per cilindricità e coassialità non ci sono valori generali (p. 191–197).</p>
+      <div class="ld-row"><div><label for="ldGenNom">Nominale mm</label><input id="ldGenNom" class="big-input" inputmode="decimal" placeholder="es. 30"/></div><div><label for="ldGenCls">Classe</label><select id="ldGenCls" class="big-input"><option value="f">f fine</option><option value="m" selected>m media</option><option value="c">c grossolana</option><option value="v">v molto gross.</option></select></div></div>
+      <div class="ld-out hidden" id="ldGenOut"></div></div>
+    <div class="card ld-card"><h3>⭕ Simboli geometrici (riquadro)</h3>
+      <p>Il riquadro si legge da sinistra: <b>simbolo</b> · <b>valore</b> (con Ø davanti la zona è cilindrica) · <b>lettere di riferimento</b> (A, B, C…) (p. 312).</p>
+      <table class="ld-tbl">
+      <tr><td class="ld-sym">○</td><td><b>Circolarità</b>: quanto è tonda una sezione. Per te: <b>ovalità</b>. Scrivila nella quota o nella serie e il promemoria userà quel valore.</td></tr>
+      <tr><td class="ld-sym">⌭</td><td><b>Cilindricità</b>: tondo e dritto su tutta la lunghezza = ovalità + conicità insieme.</td></tr>
+      <tr><td class="ld-sym">—</td><td><b>Rettilineità</b>: la generatrice deve essere dritta.</td></tr>
+      <tr><td class="ld-sym">▱</td><td><b>Planarità</b>: la faccia deve essere piana.</td></tr>
+      <tr><td class="ld-sym">∥</td><td><b>Parallelismo</b> rispetto al riferimento (lettera).</td></tr>
+      <tr><td class="ld-sym">⊥</td><td><b>Perpendicolarità</b> (es. faccia rispetto all'asse).</td></tr>
+      <tr><td class="ld-sym">◎</td><td><b>Concentricità / coassialità</b>: i due diametri devono avere lo stesso asse.</td></tr>
+      <tr><td class="ld-sym">↗</td><td><b>Oscillazione</b> (run-out): si misura col comparatore girando il pezzo.</td></tr>
+      <tr><td class="ld-sym">⌖</td><td><b>Posizione</b> di fori e assi.</td></tr></table></div>
+    <div class="card ld-card"><h3>〰 Rugosità Ra</h3>
+      <p>Il simbolo √ con un numero dà <b>Ra massimo in µm</b> (con due numeri: massimo e minimo). Con il trattino sopra = con asportazione di materiale (p. 223–226).</p>
+      <ul><li>Ra 0,1: accoppiamenti a tenuta, utensili di precisione</li><li>Ra 0,2: perni di alberi a gomiti e a camme</li><li>Ra 0,4: cuscinetti, perni, guide</li><li>Ra 0,8: ruote dentate, freni</li><li>Ra 1,6: alberi e fori di ingranaggi</li></ul>
+      <p>Si controlla con il <b>rugosimetro</b>: l'app non la calcola.</p></div>
+    <div class="card ld-card" id="ldTermCard"><h3>🌡 Misura a pezzo freddo</h3>
+      <p>Il pezzo caldo è più grande: misura sempre <b>a pezzo freddo</b>, a temperatura ambiente (circa 20 °C). Esempio della dispensa (p. 251): acciaio, 50 mm, 60 °C in più → <b>36 µm</b> più lungo.</p>
+      <p class="meta">ΔL = α · L · ΔT (facoltativo)</p>
+      <div class="ld-row"><div><label for="ldTL">Misura mm</label><input id="ldTL" class="big-input" inputmode="decimal" placeholder="es. 42"/></div><div><label for="ldTT">Caldo di °C</label><input id="ldTT" class="big-input" inputmode="decimal" placeholder="es. 10"/></div></div>
+      <label for="ldTM">Materiale</label><select id="ldTM" class="big-input"><option value="acciaio">acciaio (1,2·10⁻⁵)</option><option value="inox">inox (1,6·10⁻⁵)</option><option value="ghisa">ghisa (1,05·10⁻⁵)</option><option value="ottone">ottone (1,9·10⁻⁵)</option><option value="alluminio">alluminio (2,3·10⁻⁵)</option></select>
+      <div class="ld-out hidden" id="ldTOut"></div></div>
   </section>
   <section class="page" id="page-guida">
     <div class="page-head"><h2>Guida</h2></div>
@@ -1553,7 +1643,8 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
         <li><b>Misura</b>: scrivi anche solo le ultime cifre (<b>9915</b> = 41,9915). Vedi subito il valore intero, lo scostamento dal centro, quanto manca ai limiti e l'indicatore verde/rosso. Tocca <b>OK</b> per passare alla quota dopo, poi <b>SALVA</b>.</li>
         <li><b>Esatto sul limite = DENTRO.</b> Vicino al limite (entro il 20% della mezza banda) l'app avvisa e dice quanti µm correggere per arrivare al centro.</li>
         <li><b>Diametri</b>: la correzione è in tocchi (+ / − dalla taratura della macchina, «da verificare»: controlla sempre dopo il 1° pezzo). Un diametro esterno sotto il minimo (o un foro sopra il massimo) <b>non si recupera</b>. <b>Quote di posizione</b>: solo i µm di cui spostare, senza tocchi.</li>
-        <li>Ovalità/conicità: non viene ricordata, a meno che la attivi nei dati del controllo.</li></ol>
+        <li>Ovalità/conicità: non viene ricordata, a meno che la attivi nei dati del controllo.</li>
+        <li><b>Ultimi pezzi</b>: sotto il risultato vedi una striscia di pallini (verde = DENTRO, rosso = FUORI) e quanti pezzi <b>di fila OK</b>. Con <b>voce automatica</b> (Setup) l'app dice «dentro» / «fuori» quando la misura è completa (senza ripetere a ogni cifra).</li></ol>
         <p class="g-tip">💡 Il controllo si può inviare nel <b>pacchetto</b> (Invia lavoro) e finisce in Storico, CSV e Report con colonne aggiunte in fondo.</p>
       </details>
       <details class="g-sec" id="gPacchetto"><summary><span class="g-ico">📦</span>Lavoro ricevuto dal responsabile (pacchetto)</summary>
@@ -1571,6 +1662,10 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
         <p>Il tasto <b>📋</b> sotto i pulsanti di Calcolo apre la <b>checklist</b>: inizio lavoro (disegno e revisione, strumento pulito, pezzo a temperatura, zero fatto) e fine (ovalità/conicità controllate). Tocca le voci; <b>tieni premuto «Tutto ok»</b> per spuntarle tutte. Con <b>✎ Modifica voci</b> la cambi (massimo 7 per parte). Può arrivare anche nel pacchetto del responsabile.</p>
         <p>In <b>Turno</b>, <b>Storico</b> o <b>Setup → Report</b> crei il <b>report</b> di un turno, di oggi o di un lotto: un <b>PDF di una pagina</b> o un <b>CSV</b> (separatore ;, colonne fisse: lotto, codice, revisione, lavorazione, macchina, serie, esito, limiti). Non contiene dati personali.</p>
       </details>
+      <details class="g-sec" id="gDisegno"><summary><span class="g-ico">📐</span>Leggi il disegno (ISO, tolleranze, simboli)</summary>
+        <p>In <b>Aiuto → 📐 Leggi il disegno</b> trovi: accoppiamenti come <b>40 H7/g6</b> (limiti di foro e albero e gioco o interferenza), le forme in cui sono scritte le tolleranze, le tolleranze generali <b>ISO 2768</b>, i simboli geometrici (○ circolarità = ovalità, ⌭ cilindricità…), la rugosità Ra e il calcolo «pezzo freddo».</p>
+        <p>In <b>Controllo quota → quote ✎</b>: «⇄ Accoppiamento» aggiunge foro e albero; «📋 Dal testo» legge le quote scritte (anche copiate da una foto); le quote tra parentesi (ausiliarie) vengono saltate.</p>
+        <p>Macchine senza tasti dei tocchi (es. <b>Studer favorit CNC</b>): in Macchina ✎ scegli «valore diretto in mm» e l'app scrive il numero da inserire, es. «Inserisci −0.004».</p></details>
       <details class="g-sec" id="gFoglio"><summary><span class="g-ico">📐</span>Foglio «Requisiti Disegno» (foto)</summary>
         <p>Se non hai lo schermo del PC, fotografa il <b>foglio con i requisiti del disegno</b> (tabella con nominale ± tolleranza, limite superiore e inferiore, strumento, riga <b>Accoppiamento</b>). Vale per <b>qualsiasi serie</b>, anche se la foto è girata.</p>
         <ol><li>Tocca <b>📷</b> e scatta, poi <b>Leggi</b>. L'app capisce da sola se è il foglio e prova a ruotare la foto. Puoi anche toccare <b>↻</b> per girarla tu.</li>
@@ -1640,7 +1735,7 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
         <p><b>Guanti?</b><br/>I tasti sono grandi apposta. Ogni bottone foto (📷 Nuovo lavoro, 📷 leggi S, 📷 in Adatta alla femmina) chiede: <b>📷 Scatta foto</b> oppure <b>🖼 Dalla galleria</b> (una foto già fatta). Poi stesso ritaglio e stessa lettura.</p>
       </details>
     </div>
-    <p class="ver">Rettifica Beta v0.9.2</p>
+    <p class="ver">Rettifica Beta v0.9.3</p>
   </section>
   <section class="page" id="page-macchine">
     <button type="button" class="btn btn-sec" id="btnBackSetup1">← Setup</button>

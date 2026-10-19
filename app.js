@@ -1,4 +1,4 @@
-/* Rettifica Beta v0.9.1 (base: Rettifica OmT v2.0.8) */
+/* Rettifica Beta v0.9.3 (base: Rettifica OmT v2.0.8) */
 (function () {
   const STORAGE_KEY = 'rweb_v1';
   const PREFS_KEY = 'rweb_v1_prefs';
@@ -6,7 +6,7 @@
   const CLEAN_KEY = 'rweb_clean_206';       // v2.0.6 one-time clean start done
   const BACKUP_KEY = 'rweb_backup_pre206';
   const BACKUPS_KEY = 'rweb_backups';           // Beta 0.1.0: last 5 automatic backups (before migration / import / wipe)
-  const APP_VERSION = '0.9.2';
+  const APP_VERSION = '0.9.3';
   /** Beta 0.1.0: automatic local backup; also kept as the «hidden restore» backup (Setup). */
   function autoBackup(why, rawData, rawPrefs) {
     try {
@@ -29,10 +29,12 @@
       localStorage.setItem(CLEAN_KEY, new Date().toISOString());
     } catch (e) {}
   })();
-  const STUDER_NOTE = 'Su Studer il tasto + fa il pezzo più piccolo, − più grande.';
+  const STUDER_NOTE = 'Su Studer il tasto + fa il pezzo più piccolo, − più grande.'; // legacy text only: the shown note is generated from the calibration (calNote)
+  /** Beta 0.9.3: free user note without the old fixed Studer sentence (the +/− note comes from the calibration). */
+  const userNote = (m) => String((m && m.note) || '').replace(STUDER_NOTE, '').replace(/^Rettificatrice\.\s*$/, 'Rettificatrice.').trim();
   const $ = (id) => document.getElementById(id);
   const L9 = window.Lavoro; // Beta 0.9.0 helpers (lavoro.js)
-  const QT = window.Quota; // Beta 0.9.1 helpers (quota.js): ISO 286, Controllo quota
+  const QT = window.Quota; // Beta 0.9.1–0.9.2 helpers (quota.js): ISO 286, Controllo quota, streak
   const esc = (t) => String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   let toastTimer = null;
   function clearToast() {
@@ -43,7 +45,7 @@
   function toast(msg, kind) {
     const t = $('toast'); if (!t) return;
     msg = String(msg == null ? '' : msg).split('\n')[0];
-    if (msg.length > 48) msg = msg.slice(0, 46).trim() + '…';
+    if (msg.length > 56) msg = msg.slice(0, 54).trim() + '…';
     t.textContent = msg;
     t.className = 'toast show' + (kind === 'warn' ? ' warn' : '');
     clearTimeout(toastTimer);
@@ -68,7 +70,7 @@
     let seed = false; try { seed = localStorage.getItem(TEST_SEED_KEY) === '1'; } catch (e) {}
     if (seed) return demoData();
     return { version: 2, singleMachine: true,
-      machines: [{ id: 'm_mia', name: '', note: STUDER_NOTE, rule: 'studer', knob: { k: null, L0: null, trials: [], source: null, updatedAt: null } }],
+      machines: [{ id: 'm_mia', name: '', note: '', rule: 'studer', knob: { k: null, L0: null, trials: [], source: null, updatedAt: null } }],
       machinesArchive: [], series: [],
       pezzi: { entries: [], dayHistory: [] },
       turno: { startedAt: new Date().toISOString(), note: '', saves: [], checks: [], correzioni: 0 },
@@ -79,7 +81,7 @@
   function demoData() {
     const mid = 'm_studer_o061';
     return { version: 2, singleMachine: true,
-      machines: [{ id: mid, name: 'Studer O061', note: 'Rettificatrice. ' + STUDER_NOTE, rule: 'studer', knob: { k: null, L0: null, trials: [], source: null, updatedAt: null } }],
+      machines: [{ id: mid, name: 'Studer O061', note: 'Rettificatrice.', rule: 'studer', knob: { k: null, L0: null, trials: [], source: null, updatedAt: null } }],
       machinesArchive: [],
       series: [
         { id: 's_24500', machineId: mid, name: 'Base 24,500', lotto: '', base: 24.5, tolleranza: 0.1, giocoMin: 10, giocoMax: 13, notes: '', history: [], stock: {} },
@@ -525,7 +527,7 @@
     const prevActive = document.querySelector('.page.active');
     document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
     document.querySelectorAll('.nv').forEach((b) => {
-      const map = { macchine: 'setup', serie: 'setup', train: 'setup', guida: 'setup', chat: 'setup', quaderno: 'setup', quota: 'calc', femmina: 'calc', interno: 'calc', manuale: 'calc' };
+      const map = { macchine: 'setup', serie: 'setup', train: 'setup', guida: 'setup', chat: 'setup', quaderno: 'setup', disegno: 'aiuto', quota: 'calc', femmina: 'calc', interno: 'calc', manuale: 'calc' };
       b.classList.toggle('on', b.dataset.page === name || b.dataset.page === map[name]);
     });
     const page = $('page-' + name); if (page) page.classList.add('active');
@@ -715,9 +717,11 @@
   function calOf(m) { return machineCal(m || myMachine()); }
   function calT(o, diffKey, m) { // tocchi from the µm change (configuration only)
     if (!o || o.none) return o; const d = o[diffKey || 'diffUm']; if (d == null) return o;
-    o.presses = tocchiFor(d, calOf(m)); return o;
+    const c = calOf(m); o.presses = tocchiFor(d, c);
+    o.valTxt = c.modo === 'valore' && o.key ? valoreFor(d, o.key, c) : ''; // Beta 0.9.3: «valore diretto» (e.g. Studer favorit CNC)
+    return o;
   }
-  function calHint(h, m) { if (!h || h.none) return h; calT(h, 'diffUm', m); const w = corrWords(h.diffUm, h.presses, h.key, h.none); h.words = w; h.text = w.short; h.full = w.text; return h; }
+  function calHint(h, m) { if (!h || h.none) return h; calT(h, 'diffUm', m); const w = corrWords(h.diffUm, h.presses, h.key, h.none, h.valTxt); h.words = w; h.text = w.short; h.full = w.text; return h; }
   function updateCorr() {
     if (!lastCalc) return;
     const series = seriesById(lastCalc.seriesId), machine = machineById(lastCalc.machineId) || myMachine();
@@ -774,7 +778,9 @@
     const machine = machineById(lastCalc.machineId) || myMachine();
     const k = knobK(machine);
     const th = taperHint(lastCalc.con, lastCalc.conEnd, Object.assign({ studer: isStuder(machine), k, always: true }, taperOpts(machine)));
-    const OVAL_REM = '<div class="rem">Ovalità: si controlla dopo, non alla macchina. Ovalità e conicità devono restare entro circa 2–3 µm.</div>';
+    const serR = seriesById(lastCalc.seriesId) || {}, gR = serR.geo || {}, LR = limOf(serR);
+    const OVAL_REM = (gR.circ != null || gR.cyl != null) ? '<div class="rem" id="ovalRemGeo">Ovalità: si controlla dopo, non alla macchina. Dal disegno: ovalità entro ' + fmtUm(LR.ovalMax) + ' µm, conicità entro ' + fmtUm(LR.conMax) + ' µm.</div>'
+      : '<div class="rem">Ovalità: si controlla dopo, non alla macchina. Ovalità e conicità devono restare entro circa 2–3 µm.</div>';
     if (lastCalc.con == null) {
       box.classList.remove('hidden');
       box.innerHTML = `<div class="rem na-rem">⚠ Conicità non misurata: misura davanti e in fondo e segna di quanti µm è più grande (+ sul lato più grande). Tocca il numero se è 0.</div>${OVAL_REM}`;
@@ -890,11 +896,12 @@
       $('corrKey').textContent = '✓'; $('corrX').textContent = '';
       $('corrTxt').innerHTML = '<span class="cw-next">Per il prossimo pezzo</span>Nessuna correzione<small>pezzo ' + esc(String(lastCalc.corrWant)) + ' centrato nel gioco · tocca per un altro pezzo</small>';
     } else {
-      $('corrKey').textContent = corr.key || '±'; $('corrX').textContent = corr.key ? '×' + corr.presses : corr.presses + ' µm';
-      const w = corrWords(corr.diffUm, corr.presses, corr.key, corr.none);
+      $('corrKey').textContent = corr.valTxt || corr.key || '±'; $('corrX').textContent = corr.valTxt ? 'mm' : corr.key ? '×' + corr.presses : corr.presses + ' µm';
+      $('corrKey').classList.toggle('val', !!corr.valTxt);
+      const w = corrWords(corr.diffUm, corr.presses, corr.key, corr.none, corr.valTxt);
       $('corrTxt').innerHTML = '<span class="cw-next">Per il prossimo pezzo</span><span class="cw-pos">Pezzo ' + esc(String(lastCalc.corrWant)) + ': misura ' + esc(w.pos) + '</span>' +
         '<small class="cw-words">' + esc(corrWordsDiam(corr.diffUm)) + (cal.scala === 'raggio' ? ' (sul raggio: ' + fmtUm(Math.abs(corr.diffUm) / 2) + ' µm)' : '') + '</small>' +
-        '<small class="cw-act">→ ' + esc(w.act) + ': ' + esc(w.keys) + ' (' + esc(fmtTocchi(corr.presses)) + (cal.umPerTocco !== 1 || cal.scala === 'raggio' ? ' · 1 tocco = ' + fmtUm(cal.umPerTocco) + ' µm sul ' + cal.scala : '') + ') · centro gioco ' + fmtUm(corr.centro) + ' µm</small>' +
+        '<small class="cw-act">→ ' + esc(w.act) + ': ' + esc(w.keys) + ' (' + (corr.valTxt ? 'valore in mm sul ' + cal.scala : esc(fmtTocchi(corr.presses)) + (cal.umPerTocco !== 1 || cal.scala === 'raggio' ? ' · 1 tocco = ' + fmtUm(cal.umPerTocco) + ' µm sul ' + cal.scala : '')) + ') · centro gioco ' + fmtUm(corr.centro) + ' µm</small>' +
         (unver ? '<small class="cw-warn" id="corrUnver">⚠ Taratura macchina da verificare: controlla il verso del + sul primo pezzo (Macchina ✎ → Taratura)</small>' : '') +
         `<button type="button" class="corr-done ${lastCalc.corrDone ? 'on' : ''}" id="corrDone">${lastCalc.corrDone ? '✓ Correzione fatta' : 'Segna come fatta'}</button>`;
     }
@@ -922,7 +929,7 @@
     const chip = (x, cls2, extra) => `<button type="button" class="sp-chip ${cls2}" data-pick="${x.n}"><b>${x.n}</b>${x.qty != null ? `<span class="q">×${x.qty}</span>` : ''}<small>gioco ${fmtUm(x.gioco)} µm${extra || ''}</small></button>`;
     const corrRows = cls.dispCorr.map((x) => {
       const c = calT(calcCorrezioneCard(lastCalc.S, series.base, gc.min, gc.max, x.n, (machine && machine.rule) || 'studer', lastCalc.mode), 'diffUm', machine);
-      const w = c.none ? 'nessuna correzione' : (c.key ? c.key + ' ×' + c.presses : c.presses + ' µm ' + c.action);
+      const w = c.none ? 'nessuna correzione' : (c.valTxt ? 'inserisci ' + c.valTxt : c.key ? c.key + ' ×' + c.presses : c.presses + ' µm ' + c.action);
       return `<button type="button" class="sp-chip sp-cr" data-want="${x.n}"><b>${x.n}</b><span class="q">×${x.qty}</span><small>ora gioco ${fmtUm(x.gioco)} µm · correggi ${esc(w)}</small></button>`;
     }).join('');
     box.innerHTML = `<div class="sp-why">${esc(stockReasonText(cls))}</div>
@@ -1006,9 +1013,9 @@
     const copy = matingRangeText(matingRange(lastCalc.S, gc.min, gc.max, 'femmina'));
     let corr = '';
     if (ft.S != null) {
-      const k = ft.none ? '✓' : (ft.key || '±'), x = ft.none ? '' : (ft.key ? '×' + ft.presses : ft.presses + ' µm');
+      const k = ft.none ? '✓' : (ft.valTxt || ft.key || '±'), x = ft.none ? '' : (ft.valTxt ? 'mm' : ft.key ? '×' + ft.presses : ft.presses + ' µm');
       corr = `<div class="ft-corr ${ft.none ? 'ok' : ''}" id="ftCorr"><div class="ft-k cond">${esc(k)}<small>${esc(x)}</small></div>
-        <div class="ft-ct">${ft.none ? 'Maschio già al centro' : 'Maschio ' + esc(corrWords(ft.diffUm, ft.presses, ft.key).pos)} <small>${ft.none ? '' : '→ ' + esc(corrWords(ft.diffUm, ft.presses, ft.key).act + ': ' + corrWords(ft.diffUm, ft.presses, ft.key).keys) + ' · '}ora ${esc(fmtMm4(ft.S))} mm · gioco ${esc(fmtUm(ft.gioco))} µm ${ft.inRange ? '✓' : '(fuori)'}</small></div></div>`;
+        <div class="ft-ct">${ft.none ? 'Maschio già al centro' : 'Maschio ' + esc(corrWords(ft.diffUm, ft.presses, ft.key, ft.none, ft.valTxt).pos)} <small>${ft.none ? '' : '→ ' + esc(corrWords(ft.diffUm, ft.presses, ft.key, ft.none, ft.valTxt).act + ': ' + corrWords(ft.diffUm, ft.presses, ft.key, ft.none, ft.valTxt).keys) + ' · '}ora ${esc(fmtMm4(ft.S))} mm · gioco ${esc(fmtUm(ft.gioco))} µm ${ft.inRange ? '✓' : '(fuori)'}</small></div></div>`;
     }
     el.innerHTML = `<div class="ft-h"><span>Femmina già fatta ${esc(fmtMm4(lastCalc.S))} → <b>Misura da fare (maschio)</b></span><span>gioco ${gc.min}–${gc.max} µm${gc.src === 'foto' ? ' (dalla foto)' : ''}</span></div>
       <div class="ft-big cond" id="ftCentro">${esc(fmtMm4(ft.centro))}<small> mm · centro</small></div>
@@ -1084,8 +1091,8 @@
         <div class="fr-h">Misura da fare (maschio) · centro</div>
         <div class="fr-big cond" id="femCentro">${fmtMm4(ft.centro)}<small> mm</small></div>
         <div class="fr-r cond" id="femRange">da <b>${fmtMm4(ft.min)}</b> a <b>${fmtMm4(ft.max)}</b> mm</div>
-        ${ft.S != null ? `<div class="fr-corr ${ft.none ? 'ok' : ''}" id="femCorr"><span class="fk cond">${ft.none ? '✓' : esc(ft.key || '±') + (ft.key ? '×' + ft.presses : '')}</span>
-          <span>${ft.none ? 'S già al centro' : 'S ' + esc(corrWords(ft.diffUm, ft.presses, ft.key).pos)}<small>${ft.none ? '' : '→ ' + esc(corrWords(ft.diffUm, ft.presses, ft.key).act + ': ' + corrWords(ft.diffUm, ft.presses, ft.key).keys) + ' · '}gioco ${fmtUm(ft.gioco)} µm ${ft.inRange ? '✓' : '(fuori)'}</small></span></div>`
+        ${ft.S != null ? `<div class="fr-corr ${ft.none ? 'ok' : ''}" id="femCorr"><span class="fk cond">${ft.none ? '✓' : ft.valTxt ? esc(ft.valTxt) : esc(ft.key || '±') + (ft.key ? '×' + ft.presses : '')}</span>
+          <span>${ft.none ? 'S già al centro' : 'S ' + esc(corrWords(ft.diffUm, ft.presses, ft.key, ft.none, ft.valTxt).pos)}<small>${ft.none ? '' : '→ ' + esc(corrWords(ft.diffUm, ft.presses, ft.key, ft.none, ft.valTxt).act + ': ' + corrWords(ft.diffUm, ft.presses, ft.key, ft.none, ft.valTxt).keys) + ' · '}gioco ${fmtUm(ft.gioco)} µm ${ft.inRange ? '✓' : '(fuori)'}</small></span></div>`
           : `<div class="fr-empty fr-hint" style="font-size:13px">Facoltativo: tocca <b>Maschio ora S</b> e scrivi la misura per vedere le pressioni.</div>`}`;
     }
     $('femRes').innerHTML = h;
@@ -1266,7 +1273,7 @@
       const gauge = `<div class="int-gauge ${r.state}" id="intGauge" aria-label="foro rispetto alla quota"><div class="ig-bar"><div class="ig-ok" style="left:${pct(n.tgt.lo)}%;right:${100 - pct(n.tgt.hi)}%"></div>
         <div class="ig-c" style="left:${pct(n.tgt.centro)}%"></div><div class="ig-m" style="left:${pct(n.bore)}%"></div></div>
         <div class="ig-lab"><span>stretto</span><span>${fmtMm4(n.tgt.lo)} · ${fmtMm4(n.tgt.hi)}</span><span>largo</span></div></div>`;
-      const adv = r.none ? '✓ nessuna correzione' : (r.key ? `dai ${esc(r.key)} ×${r.presses}` : (r.action === 'allarga' ? 'allarga ' : 'stringi ') + fmtUm(Math.abs(r.needUm)) + ' µm');
+      const adv = r.none ? '✓ nessuna correzione' : r.valTxt ? `inserisci ${esc(r.valTxt)}` : (r.key ? `dai ${esc(r.key)} ×${r.presses}` : (r.action === 'allarga' ? 'allarga ' : 'stringi ') + fmtUm(Math.abs(r.needUm)) + ' µm');
       // Beta 0.4.1: material, literally, on the diameter (grinding a bore only removes material → it only grows)
       const toLo = round1((n.tgt.lo - n.bore) * 1000), toHi = round1((n.tgt.hi - n.bore) * 1000), toC = round1((n.tgt.centro - n.bore) * 1000);
       const mat = r.state === 'largo'
@@ -1369,7 +1376,7 @@
   $('intBack').addEventListener('click', () => showPage('calc'));
   function intShift() { const t0 = (state.turno && state.turno.startedAt) || ''; return (state.interni || []).filter((r) => String(r.ts || '') >= t0).length; }
   // ── Beta 0.8.1: Rettifica manuale (everything by hand; no series, no photo). Math in calc.js: manualTarget / manualStatus ──
-  function calLegend() { const c = calOf(); return '1 tocco = ' + fmtUm(c.umPerTocco) + ' µm sul ' + c.scala; }
+  function calLegend() { const c = calOf(); return c.modo === 'valore' ? 'valore diretto in mm sul ' + c.scala + ' · ' + (c.outer === 'allarga' ? '+ = più grande' : '+ = più piccolo') : '1 tocco = ' + fmtUm(c.umPerTocco) + ' µm sul ' + c.scala; }
   const man = { mode: 'maschio', mk: 'mis', last: null };
   function manNum(id) { const v = $(id) ? parseMmNumber($(id).value) : null; return v == null ? null : v; }
   function manCompute() {
@@ -1408,7 +1415,7 @@
       if (s2.state === 'no') h += `<div class="mr-st no" id="manSt">✗ NON RECUPERABILE<br><small>${esc(s2.words)}</small></div>`;
       else {
         h += `<div class="mr-st ${s2.state}" id="manSt">${s2.state === 'ok' ? '✓ IN QUOTA' : '! DA TOGLIERE ANCORA'} · ${esc(fmtMm4(r.cur))} mm<br><small>${s2.none ? 'al centro: non togliere altro' : 'da togliere ' + fmtUm(s2.removeUm) + ' µm sul Ø · ' + fmtUm(s2.perSideUm) + ' µm per lato'}${s2.state === 'da_togliere' ? ' · ' + fmtUm(s2.toLimitUm) + ' µm al limite' : ''}</small></div>`;
-        if (!s2.none) h += `<div class="mr-c" id="manCorr">${fem ? 'Allarga il foro' : 'Stringi il diametro'}: <span class="mr-k cond">${esc(s2.key)} ×${s2.presses}</span> ${s2.presses === 1 ? 'tocco' : 'tocchi'} <small class="meta">(${esc(calLegend())}${unver ? ' · ⚠ taratura da verificare: controlla il verso del + sul primo pezzo' : ''})</small></div>`;
+        if (!s2.none) h += `<div class="mr-c" id="manCorr">${fem ? 'Allarga il foro' : 'Stringi il diametro'}: ${s2.valTxt ? `inserisci <span class="mr-k cond">${esc(s2.valTxt)}</span> mm` : `<span class="mr-k cond">${esc(s2.key)} ×${s2.presses}</span> ${s2.presses === 1 ? 'tocco' : 'tocchi'}`} <small class="meta">(${esc(calLegend())}${unver ? ' · ⚠ taratura da verificare: controlla il verso del + sul primo pezzo' : ''})</small></div>`;
       }
     }
     box.innerHTML = h; $('manSave').disabled = false;
@@ -1420,7 +1427,7 @@
     const rec = { id: 'm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ts: new Date().toISOString(), lavoro: 'manuale', mode: r.mode,
       mate: r.mate, giocoMin: Math.min(r.gMin, r.gMax), giocoMax: Math.max(r.gMin, r.gMax), draw: r.draw, target: r.t.target, warn: r.t.warn || '',
       cur: r.cur, state: r.st ? r.st.state : null, removeUm: r.st ? r.st.removeUm : null, key: r.st ? r.st.key : '', presses: r.st ? r.st.presses : 0,
-      machineName: (m && m.name) || '', cal: { outer: r.cal.outer, bore: r.cal.bore, umPerTocco: r.cal.umPerTocco, scala: r.cal.scala, stato: r.cal.stato } };
+      machineName: (m && m.name) || '', cal: { outer: r.cal.outer, bore: r.cal.bore, umPerTocco: r.cal.umPerTocco, scala: r.cal.scala, stato: r.cal.stato, modo: r.cal.modo } };
     state.manuali = (state.manuali || []).concat([rec]).slice(-500); saveData(state); haptic(30);
     showUndo('Salvato nello Storico · rettifica manuale', () => { state.manuali = (state.manuali || []).filter((x) => x.id !== rec.id); saveData(state); toast('Annullato'); });
   }
@@ -1545,7 +1552,7 @@
     if (e.target.closest('#hintMore')) {
       openHintPicker(lastCalc, hintCenter(), lastCalc.hintExtra, (n) => {
         lastCalc.hintExtra = n; lastCalc.wantPezzo = n; updateCorr(); renderResult();
-        const h = lastCalc.corr; toast('Pezzo ' + n + ': ' + (h.none ? 'nessuna correzione' : (h.key ? h.key + ' ×' + h.presses : h.presses + ' µm')));
+        const h = lastCalc.corr; toast('Pezzo ' + n + ': ' + (h.none ? 'nessuna correzione' : corrKeysTxt(h)));
       });
       return;
     }
@@ -1600,8 +1607,9 @@
       <button type="button" class="btn btn-sec" id="vaNo" data-prev="${prev == null ? '' : prev}" style="flex:1">Annulla</button></div>`;
   }
   /** v2.0.8: one key legend for the active machine: «1 tocco = 1 µm · − = più grande» (Studer). */
-  function keyLegend() { const m = myMachine(); const r = (m && m.rule) || 'studer';
-    return r === 'plus_bigger' ? '1 tocco = 1 µm · + = più grande' : r === 'studer' || r === 'plus_smaller' ? '1 tocco = 1 µm · − = più grande' : '1 tocco = 1 µm'; }
+  function keyLegend() { const c = calOf(); // Beta 0.9.3: from the calibration (tocchi or valore diretto)
+    const dir = c.outer === 'allarga' ? '+ = più grande' : '− = più grande';
+    return (c.modo === 'valore' ? 'valore in mm sul ' + c.scala : '1 tocco = ' + fmtUm(c.umPerTocco) + ' µm' + (c.scala === 'raggio' ? ' sul raggio' : '')) + ' · ' + dir; }
   /** v2.0.8: in-app confirm with glove-sized buttons (replaces the browser's small confirm()). Resolves true/false. */
   function askBig(o) {
     return new Promise((resolve) => {
@@ -1676,6 +1684,8 @@
     newMeasure(); clearToast();
     renderFatti(); renderRiepilogo(); dressAfterSave(); // Beta 0.9.0: promemoria diamantatura
     showUndo(fmtSaveMsg(n, gioco, status));
+    // Beta 0.9.2: promemoria ovalità/conicità after pairing save (skip Corpo/Spillo / forma === false)
+    if (series.forma !== false) setTimeout(() => toast(formReminderTxt(series), 'warn'), 450);
   }
 
   function showUndo(msg, fn, kind) {
@@ -1818,10 +1828,10 @@
       ? `<div class="sub of-fh">Femmina già fatta ${fmtMm4(lastCalc.S)} → misura da fare (maschio)</div><div class="big cond of-fc">${fmtMm4(mO.centro)}</div><div class="sub of-mt cond">Maschio da ${fmtMm4(mO.min)} a ${fmtMm4(mO.max)} mm</div>`
       : `<div class="sub of-mt cond">Femmina da ${fmtMm4(mO.min)} a ${fmtMm4(mO.max)} mm</div><div class="sub of-mc">centro ${fmtMm4(mO.centro)} mm</div>`) : '';
     const ftO = femO && lastCalc.femTarget && lastCalc.femTarget.S != null ? lastCalc.femTarget : null;
-    const ftLine = ftO ? `<div class="sub of-fcorr cond">${ftO.none ? '✓ maschio già al centro' : `Maschio ora ${fmtMm4(ftO.S)}: ${esc(corrWords(ftO.diffUm, ftO.presses, ftO.key).text)}`}</div>` : '';
+    const ftLine = ftO ? `<div class="sub of-fcorr cond">${ftO.none ? '✓ maschio già al centro' : `Maschio ora ${fmtMm4(ftO.S)}: ${esc(corrWords(ftO.diffUm, ftO.presses, ftO.key, ftO.none, ftO.valTxt).text)}`}</div>` : '';
     v.innerHTML = femO
       ? `${matO}${ftLine}<div class="sub" style="margin-top:10px">pezzo maschio <b>${sel == null ? '—' : esc(String(sel))}</b> · ${esc(accTxt)}</div>`
-      : `<div class="big cond">${sel == null ? '—' : esc(String(sel))}</div><div class="sub">${esc(accTxt)}</div>${matO}${(() => { const c = lastCalc.corr; if (!c) return ''; const w = corrWords(c.diffUm, c.presses, c.key, c.none);
+      : `<div class="big cond">${sel == null ? '—' : esc(String(sel))}</div><div class="sub">${esc(accTxt)}</div>${matO}${(() => { const c = lastCalc.corr; if (!c) return ''; const w = corrWords(c.diffUm, c.presses, c.key, c.none, c.valTxt);
         return `<div class="sub of-corr cond">${c.none ? '✓ Pezzo ' + esc(String(lastCalc.corrWant)) + ' al centro: nessuna correzione' : 'Pezzo ' + esc(String(lastCalc.corrWant)) + ': misura ' + esc(w.text)}</div>`; })()}`;
     v.innerHTML += `
       ${forma.length ? `<div class="sub" style="font-size:24px;margin-top:16px;font-weight:800">⚠ CONTROLLA CONICITÀ</div><div class="sub" style="font-size:19px;margin-top:4px">${forma.map(esc).join('<br/>')}</div>` : ''}${na}
@@ -1871,14 +1881,17 @@
       ${series ? `<button type="button" class="knob-row" id="mdQuote"><span class="ci">✎</span><span class="kr-t">Quote serie in uso<small>Base ${esc(fmtMm3(series.base))} · gioco ${series.giocoMin}–${series.giocoMax} µm · tol ±${esc(fmtMm3(seriesTol(series)))}</small></span><span class="chev">›</span></button>` : ''}
       ${(() => { const c = machineCal(m); const sel = (a, b) => (a === b ? 'selected' : '');
         return `<div class="cal-box ${c.stato === 'verificata' ? 'ok' : 'unver'}" id="mdCal"><div class="cal-h">Taratura macchina <span class="cal-st" id="mdCalSt">${c.stato === 'verificata' ? '✓ verificata' : '⚠ da verificare'}</span></div>
+        <label>Preimpostazioni</label><div class="md-pre" id="mdPre"><button type="button" data-pre="studer_o061">Studer O061<small>+ stringe · tocchi</small></button><button type="button" data-pre="studer_favorit">Studer favorit CNC<small>+ allarga · valore in mm</small></button></div>
+        <label for="mdModo">Come scrivi la correzione</label><select id="mdModo"><option value="tocchi" ${sel(c.modo, 'tocchi')}>tocchi (tasti + / −)</option><option value="valore" ${sel(c.modo, 'valore')}>valore diretto in mm (es. −0.004)</option></select>
+        <p class="meta md-note" id="mdNote">${esc(calNote(c))}</p>
         <label for="mdRule">Tasto + sul diametro esterno (maschio)</label><select id="mdRule">
           <option value="studer" ${sel(c.outer, 'stringe')}>+ stringe (diametro più piccolo) · − allarga</option>
           <option value="plus_bigger" ${sel(c.outer, 'allarga')}>+ allarga (diametro più grande) · − stringe</option></select>
         <label for="mdBore">Tasto + sul foro (interno)</label><select id="mdBore">
           <option value="stringe" ${sel(c.bore, 'stringe')}>+ stringe il foro · − allarga</option>
           <option value="allarga" ${sel(c.bore, 'allarga')}>+ allarga il foro · − stringe</option></select>
-        <div class="field-row"><div><label for="mdUm">µm per tocco</label><input id="mdUm" inputmode="decimal" value="${esc(fmtUm(c.umPerTocco))}"/></div>
-        <div><label for="mdScala">Il tocco vale sul</label><select id="mdScala"><option value="diametro" ${sel(c.scala, 'diametro')}>diametro</option><option value="raggio" ${sel(c.scala, 'raggio')}>raggio (per lato)</option></select></div></div>
+        <div class="field-row"><div><label for="mdUm">µm per tocco <small>(solo modo tocchi)</small></label><input id="mdUm" inputmode="decimal" value="${esc(fmtUm(c.umPerTocco))}"/></div>
+        <div><label for="mdScala">Il tocco / valore vale sul</label><select id="mdScala"><option value="diametro" ${sel(c.scala, 'diametro')}>diametro</option><option value="raggio" ${sel(c.scala, 'raggio')}>raggio (per lato)</option></select></div></div>
         <label for="mdTaper">Manopola conicità</label><select id="mdTaper"><option value="normale" ${sel(c.taper, 'normale')}>verso normale (come in Guida)</option><option value="invertito" ${sel(c.taper, 'invertito')}>verso invertito</option></select>
         <label for="mdStato">Stato</label><select id="mdStato"><option value="da_verificare" ${sel(c.stato, 'da_verificare')}>da verificare</option><option value="verificata" ${sel(c.stato, 'verificata')}>verificata sul primo pezzo</option></select>
         <p class="meta">Finché è «da verificare» l'app scrive la correzione anche a parole (diametro da ridurre / aumentare) con un avviso.</p></div>`; })()}
@@ -1894,7 +1907,7 @@
       m.name = name;
       const umv = Number(String($('mdUm').value).replace(',', '.'));
       if (!(umv > 0 && umv <= 50)) { $('mdErr').textContent = 'µm per tocco non valido (es. 1)'; $('mdErr').classList.remove('hidden'); return false; }
-      m.cal = { outer: $('mdRule').value === 'plus_bigger' ? 'allarga' : 'stringe', bore: $('mdBore').value, umPerTocco: umv, scala: $('mdScala').value, taper: $('mdTaper').value, stato: $('mdStato').value };
+      m.cal = { outer: $('mdRule').value === 'plus_bigger' ? 'allarga' : 'stringe', bore: $('mdBore').value, umPerTocco: umv, scala: $('mdScala').value, taper: $('mdTaper').value, stato: $('mdStato').value, modo: $('mdModo').value === 'valore' ? 'valore' : 'tocchi' };
       const rr = calRules(machineCal(m)); m.rule = rr.rule; m.internoRule = rr.internoRule;
       if (old !== name) { const kn = knobForMachineName(state, name); if (kn) m.knob = kn; } // v1.9.6: knob k follows the machine name
       if (old !== name) { prefs.recentMachineNames = [old].concat((prefs.recentMachineNames || []).filter((n) => n !== old && n !== name)).slice(0, 5); savePrefs(prefs); }
@@ -1903,6 +1916,13 @@
       return true;
     };
     $('mdSave').onclick = () => { if (save()) { $('modalRoot').innerHTML = ''; toast('Macchina: ' + m.name); } };
+    // Beta 0.9.3: presets + live note from the calibration fields
+    const formCal = () => machineCal({ cal: { outer: $('mdRule').value === 'plus_bigger' ? 'allarga' : 'stringe', bore: $('mdBore').value, umPerTocco: Number(String($('mdUm').value).replace(',', '.')), scala: $('mdScala').value, taper: $('mdTaper').value, stato: $('mdStato').value, modo: $('mdModo').value } });
+    const upNote = () => { const c = formCal(); $('mdNote').textContent = calNote(c); $('mdCalSt').textContent = c.stato === 'verificata' ? '✓ verificata' : '⚠ da verificare'; $('mdCal').classList.toggle('ok', c.stato === 'verificata'); $('mdCal').classList.toggle('unver', c.stato !== 'verificata'); };
+    ['mdRule', 'mdBore', 'mdUm', 'mdScala', 'mdTaper', 'mdStato', 'mdModo'].forEach((id) => { $(id).addEventListener('change', upNote); $(id).addEventListener('input', upNote); });
+    $('mdPre').querySelectorAll('[data-pre]').forEach((b) => { b.onclick = () => { haptic(12); const p = MACHINE_PRESETS[b.dataset.pre]; if (!p) return; const c = p.cal;
+      $('mdRule').value = c.outer === 'allarga' ? 'plus_bigger' : 'studer'; $('mdBore').value = c.bore; $('mdUm').value = fmtUm(c.umPerTocco); $('mdScala').value = c.scala; $('mdTaper').value = c.taper; $('mdStato').value = 'da_verificare'; $('mdModo').value = c.modo;
+      if (!inp.value.trim() || /^studer/i.test(inp.value.trim())) inp.value = p.name; upNote(); toast(p.name + ': controlla sul primo pezzo'); }; });
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('mdSave').click(); } });
     $('mdCancel').onclick = () => { $('modalRoot').innerHTML = ''; };
     $('modalBg').onclick = (ev) => { if (ev.target.id === 'modalBg') $('modalRoot').innerHTML = ''; };
@@ -1913,7 +1933,7 @@
   }
   $('pillMach').addEventListener('click', (e) => { e.stopPropagation(); openMachineDialog(); });
   $('btnSpeak').addEventListener('click', () => { if (!lastCalc) return; const n = lastCalc.selected; const c = lastCalc.corr;
-    speakIt('Pezzo ' + (n != null ? n : '') + (c && !c.none && c.key ? ', correzione ' + (c.key === '+' ? 'più' : 'meno') + ' ' + c.presses : '')); });
+    speakIt('Pezzo ' + (n != null ? n : '') + (c && !c.none && c.valTxt ? ', inserisci ' + (c.valTxt[0] === '−' ? 'meno ' : 'più ') + c.valTxt.slice(1).replace('.', ' virgola ') : c && !c.none && c.key ? ', correzione ' + (c.key === '+' ? 'più' : 'meno') + ' ' + c.presses : '')); });
   addEventListener('resize', () => fitPads());
   $('pillSerie').addEventListener('click', (e) => { e.stopPropagation(); openSeriesSheet(); });
   $('btnVoice').addEventListener('click', (e) => {
@@ -1968,7 +1988,7 @@
   // Old machine list page: kept (not linked) — single machine, no delete.
   function renderMachines() {
     $('machineList').innerHTML = state.machines.map((m) => { const k = knobK(m);
-      return `<div class="item"><h3 style="font-size:1.1rem">${esc(m.name)}</h3><div class="meta">${esc(m.note || '')}</div>
+      return `<div class="item"><h3 style="font-size:1.1rem">${esc(m.name)}</h3><div class="meta">${esc(calNote(machineCal(m)))}${userNote(m) ? ' · ' + esc(userNote(m)) : ''}</div>
       <button type="button" class="knob-row ${k == null ? 'unk' : ''}" data-calib-m="${esc(m.id)}"><span class="ci">⟲</span>
         <span class="kr-t">Manopola conicità<small>${k == null ? 'Non tarata · tocca per la taratura' : esc(fmtK(k)) + ' µm per tacca'}</small></span><span class="chev">›</span></button>
       <div class="actions"><button type="button" class="btn btn-sec" data-edit-m="${esc(m.id)}" style="flex:1">Rinomina</button></div></div>`; }).join('') || '<div class="empty">Nessuna</div>';
@@ -2143,7 +2163,10 @@
       <div><label>Gioco max µm</label><input id="sGmax" inputmode="numeric" value="${s.giocoMax}"/></div></div>
       ${(() => { const L = jobLimits(s); return `<div class="lim-h">Tolleranze di forma del lavoro (µm)</div>
       <div class="field-row"><div><label>Conicità ok ≤ µm</label><input id="sConOk" inputmode="decimal" value="${esc(fmtUm(L.conOk))}"/></div><div><label>Conicità max µm</label><input id="sConMax" inputmode="decimal" value="${esc(fmtUm(L.conMax))}"/></div></div>
-      <div class="field-row"><div><label>Ovalità ok ≤ µm</label><input id="sOvOk" inputmode="decimal" value="${esc(fmtUm(L.ovalOk))}"/></div><div><label>Ovalità max µm</label><input id="sOvMax" inputmode="decimal" value="${esc(fmtUm(L.ovalMax))}"/></div></div>`; })()}
+      <div class="field-row"><div><label>Ovalità ok ≤ µm</label><input id="sOvOk" inputmode="decimal" value="${esc(fmtUm(L.ovalOk))}"/></div><div><label>Ovalità max µm</label><input id="sOvMax" inputmode="decimal" value="${esc(fmtUm(L.ovalMax))}"/></div></div>
+      <div class="lim-h">Riquadro del disegno (facoltativo)</div>
+      <div class="field-row"><div><label for="sCirc">○ Circolarità</label><input id="sCirc" inputmode="decimal" placeholder="es. 0,003 o 3" value="${s.geo && s.geo.circ != null ? esc(fmtUm(s.geo.circ)) : ''}"/></div><div><label for="sCyl">⌭ Cilindricità</label><input id="sCyl" inputmode="decimal" placeholder="es. 0,005 o 5" value="${s.geo && s.geo.cyl != null ? esc(fmtUm(s.geo.cyl)) : ''}"/></div></div>
+      <p class="meta">Se li scrivi, il promemoria usa questi valori (µm) al posto di 2–3 µm: circolarità → ovalità, cilindricità → ovalità e conicità.</p>`; })()}
       <div class="lim-h">Pezzo consigliato (facoltativo)</div>
       <div class="field-row"><div><label>Gioco obiettivo µm</label><input id="sObj" inputmode="decimal" placeholder="centro" value="${s.obiettivo != null ? esc(fmtUm(s.obiettivo)) : ''}"/></div>
       <div><label>Fascia consigliata µm</label><div style="display:flex;gap:6px"><input id="sFLo" inputmode="decimal" placeholder="da" value="${s.fasciaLo != null ? esc(fmtUm(s.fasciaLo)) : ''}"/><input id="sFHi" inputmode="decimal" placeholder="a" value="${s.fasciaHi != null ? esc(fmtUm(s.fasciaHi)) : ''}"/></div></div></div>
@@ -2176,11 +2199,13 @@
       const nv = (id2) => { const x = Number(String($(id2).value).replace(',', '.')); return Number.isFinite(x) && x >= 0 && x <= 50 ? x : null; };
       const lim = { conOk: nv('sConOk'), conMax: nv('sConMax'), ovalOk: nv('sOvOk'), ovalMax: nv('sOvMax') };
       if (Object.values(lim).some((x) => x == null) || lim.conMax < lim.conOk || lim.ovalMax < lim.ovalOk) { const er = $('sErr'); er.textContent = 'Tolleranze di forma non valide: numeri in µm, max ≥ ok (es. 2 e 3)'; er.classList.remove('hidden'); haptic(60); return; }
+      const gT = (id4) => String($(id4).value).trim(), gC = gT('sCirc'), gY = gT('sCyl'), geo = { circ: gC ? QT.geoUm(gC) : null, cyl: gY ? QT.geoUm(gY) : null };
+      if ((gC && geo.circ == null) || (gY && geo.cyl == null)) { const er = $('sErr'); er.textContent = 'Circolarità / cilindricità: scrivi il valore del riquadro (es. 0,003 mm o 3 µm)'; er.classList.remove('hidden'); haptic(60); return; }
       const mid = myMachine() ? myMachine().id : null;
       const on = (id3) => { const t = String($(id3).value).trim(); if (!t) return null; const x = Number(t.replace(',', '.')); return Number.isFinite(x) && x >= 0 && x <= 100 ? x : NaN; };
       const obiettivo = on('sObj'), fasciaLo = on('sFLo'), fasciaHi = on('sFHi'), fxT = String($('sFixF').value).trim(), fixedF = fxT ? parseMmNumber(fxT) : null;
       if ([obiettivo, fasciaLo, fasciaHi].some((x) => Number.isNaN(x)) || (fxT && fixedF == null)) { const er = $('sErr'); er.textContent = 'Obiettivo / fascia in µm (es. 20 e 20–25), femmina fissa in mm (es. 10,009)'; er.classList.remove('hidden'); haptic(60); return; }
-      const payload = Object.assign({ lim, obiettivo, fasciaLo, fasciaHi, fixedF: fixedF != null ? round4(fixedF) : null, forma: $('sForma').checked ? true : false, machineId: mid, name: 'Base ' + fmtMm3(v.value.base), lotto: $('sLotto').value.trim(), codice: $('sCod').value.trim().slice(0, 40), rev: $('sRev').value.trim().slice(0, 12), lav: $('sLav').value.trim().slice(0, 40), notes: $('sNotes').value }, v.value);
+      const payload = Object.assign({ lim, geo: geo.circ != null || geo.cyl != null ? geo : null, obiettivo, fasciaLo, fasciaHi, fixedF: fixedF != null ? round4(fixedF) : null, forma: $('sForma').checked ? true : false, machineId: mid, name: 'Base ' + fmtMm3(v.value.base), lotto: $('sLotto').value.trim(), codice: $('sCod').value.trim().slice(0, 40), rev: $('sRev').value.trim().slice(0, 12), lav: $('sLav').value.trim().slice(0, 40), notes: $('sNotes').value }, v.value);
       let sid = id;
       if (id) Object.assign(seriesById(id), payload);
       else { sid = uid(); state.series.push(Object.assign({ id: sid, history: [], stock: {} }, payload)); }
@@ -3230,31 +3255,9 @@
 
   function shareFile(filename, content, mime) {
     try { if (window.RettificaAndroid && RettificaAndroid.shareText) { RettificaAndroid.shareText(filename, content); return; } } catch (e) {}
-    const isBackup = /^rettifica-beta-backup/.test(filename);
-    const done = () => {
-      if (!isBackup) return;
-      try { localStorage.setItem('rweb_lastBackup', String(Date.now())); } catch (e) {}
-      try { window.dispatchEvent(new Event('rweb-backup-done')); } catch (e) {}
-    };
-    const download = () => {
-      const blob = new Blob([content], { type: mime });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-      toast('File creato: ' + filename); done();
-    };
-    // 0.9.2 web: on the phone open the share sheet (Drive, WhatsApp, email…) instead of a download hidden in a folder
-    try {
-      const touch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
-      if (touch && navigator.share && navigator.canShare && typeof File !== 'undefined') {
-        const file = new File([content], filename, { type: mime });
-        if (navigator.canShare({ files: [file] })) {
-          navigator.share({ files: [file], title: filename })
-            .then(() => { toast('Inviato: ' + filename); done(); })
-            .catch((e) => { if (!e || e.name !== 'AbortError') download(); });
-          return;
-        }
-      }
-    } catch (e) {}
-    download();
+    const blob = new Blob([content], { type: mime });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    toast('File creato: ' + filename);
   }
   $('btnExport').addEventListener('click', () => {
     shareFile('rettifica-beta-backup-' + todayKey() + '.json', JSON.stringify(wrapBackup(state, APP_VERSION, new Date().toISOString()), null, 2), 'application/json');
@@ -3384,7 +3387,7 @@
     if (lastCalc && lastCalc.acc) {
       const a = lastCalc.acc, v = a.valid || [], co = lastCalc.corr;
       c.calc = `misura ${lastCalc.display} mm; pezzi validi ${v.length ? v[0] + '…' + v[v.length - 1] : 'nessuno'}; centro ${fmtUm(a.ideal)}; scelto ${lastCalc.selected != null ? lastCalc.selected : '—'}`
-        + (co ? (co.none ? '; correzione: nessuna' : `; correzione: ${co.key} ×${co.presses} tocchi (${fmtUm(Math.abs(co.diffUm))} µm sul diametro)`) : '');
+        + (co ? (co.none ? '; correzione: nessuna' : co.valTxt ? `; correzione: inserisci ${co.valTxt} mm (${fmtUm(Math.abs(co.diffUm))} µm sul diametro, valore diretto)` : `; correzione: ${co.key} ×${co.presses} tocchi (${fmtUm(Math.abs(co.diffUm))} µm sul diametro)`) : '');
     }
     try { const n = intNow(); if (n.tgt) c.interno = `quota foro ${fmtMm4(n.tgt.lo)}–${fmtMm4(n.tgt.hi)} mm` + (n.r ? `; foro ${fmtMm4(n.bore)} → ${n.r.state}; ${internoWords(n.r)}` : ''); const r = intRule(); c.intDir = r ? (r === 'plus_smaller' ? '+ stringe il foro, − allarga' : '+ allarga il foro, − stringe') : 'non impostato'; } catch (e) {}
     return AI.buildContext(c);
@@ -4184,14 +4187,14 @@
     const q = $('qdLabel'); if (q) { const i = L9.dressInfo(state, mKey(), nameOfHist); q.textContent = i.on ? 'Promemoria diamantatura: ogni ' + i.every + ' pezzi (' + i.count + ' fatti)' : 'Diamantatura, cambio mola, note · promemoria spento'; }
   }
 
-  /* ───────── Beta 0.9.1: Controllo quota (lavoro senza accoppiamento: DENTRO / FUORI per quota) ───────── */
-  const qS = { buf: '', sel: null, vals: {}, ctl: null, lock: false };
+  /* ───────── Beta 0.9.1–0.9.2: Controllo quota (lavoro senza accoppiamento: DENTRO / FUORI per quota) ───────── */
+  const qS = { buf: '', sel: null, vals: {}, ctl: null, lock: false, live: { spoken: null, haptic: null } };
   const qtUnlocked = new Set();
   const numTxt = (x) => (x == null ? '' : String(x).replace('.', ','));
   function qtList() { if (!Array.isArray(state.controlli)) state.controlli = []; return state.controlli; }
   function qtPezzi() { if (!Array.isArray(state.quotaPezzi)) state.quotaPezzi = []; return state.quotaPezzi; }
   function qtCur() { const l = qtList(); return l.find((c) => c.id === prefs.controlloId) || l[0] || null; }
-  function qtSetCur(id) { prefs.controlloId = id; savePrefs(prefs); qS.ctl = null; qS.buf = ''; qS.vals = {}; qS.sel = null; }
+  function qtSetCur(id) { prefs.controlloId = id; savePrefs(prefs); qS.ctl = null; qS.buf = ''; qS.vals = {}; qS.sel = null; qS.live = { spoken: null, haptic: null }; }
   function qtMachine() { return (myMachine() || {}).name || ''; }
   function qtMeta(c) { return { codice: c.codice || '', rev: c.rev || '', lav: c.lav || '', lotto: c.lotto || '' }; }
   function qtActive(c) { return (c.quote || []).find((q) => q.id === qS.sel) || (c.quote || []).find((q) => qS.vals[q.id] == null) || (c.quote || [])[0] || null; }
@@ -4207,19 +4210,35 @@
     const next = cr.next ? `<div style="margin-top:4px">${esc(cr.next.words)}</div>` : '';
     return `<div class="qt-corr ${cr.recoverable ? '' : 'no'}" id="qtCorr"><b>${esc(cr.words)}</b>${next}${note}</div>`;
   }
+
+  function qtStreakHtml(c) {
+    if (!c) return { html: '<span class="qs-lab">Ultimi:</span><span class="qs-ok">Nessun pezzo ancora</span>', empty: true, label: 'Nessun pezzo ancora' };
+    const pieces = QT.lastPieces(qtPezzi(), c.id, c.lotto || '', 12);
+    const st = QT.streakOf(pieces);
+    if (!st.n) return { html: '<span class="qs-lab">Ultimi:</span><span class="qs-ok">Nessun pezzo ancora</span>', empty: true, label: 'Nessun pezzo ancora' };
+    const dots = st.states.map((s) => `<span class="qs-dot ${s}" title="${s === 'fuori' ? 'FUORI' : 'DENTRO'}"></span>`).join('');
+    return { html: `<span class="qs-lab">Ultimi:</span><span class="qs-dots">${dots}</span><span class="qs-ok">di fila OK: <b>${st.streakOk}</b></span>`, empty: false, label: 'Ultimi ' + st.n + ' pezzi, di fila OK ' + st.streakOk, streakOk: st.streakOk, n: st.n };
+  }
+  function qtApplyLive(ev) {
+    if (!ev || (ev.state !== 'dentro' && ev.state !== 'fuori')) return;
+    const fb = QT.liveFeedback(qS.live, ev.state);
+    qS.live = fb.next;
+    if (fb.hapticMs) haptic(fb.hapticMs);
+    if (fb.speak && prefs.voiceAuto) speakIt(fb.speak === 'fuori' ? 'fuori' : 'dentro');
+  }
   function renderQuota() {
     const c = qtCur(), cal = calOf();
     const hide = (ids, on) => ids.forEach((i) => $(i).classList.toggle('hidden', on));
     $('qtCfgTxt').textContent = c ? c.nome : 'nessun controllo';
     if (!c || !(c.quote || []).length) {
-      hide(['qtList', 'qtField', 'qtRes', 'qKeypad', 'qtDet'], true); $('qtMeta').classList.toggle('hidden', !c); hide(['qtEmpty'], false);
+      hide(['qtList', 'qtField', 'qtRes', 'qKeypad', 'qtDet', 'qtStreak'], true); $('qtMeta').classList.toggle('hidden', !c); hide(['qtEmpty'], false);
       if (c) { $('qtMeta').textContent = metaLine(qtMeta(c)) || '＋ Lotto · codice · lavorazione'; $('qtMeta').classList.toggle('empty', !metaLine(qtMeta(c))); }
       $('qtEmpty').innerHTML = c ? `<h2>${esc(c.nome)}</h2><p class="meta">Questo controllo non ha ancora quote. Aggiungi la prima: nominale e tolleranza, oppure un codice ISO (h6, H7…).</p><button type="button" class="btn btn-orange" id="qtAddFirst">＋ Aggiungi quota</button>`
         : `<h2>📏 Controllo quota</h2><p class="meta">Per i pezzi <b>senza accoppiamento</b>: misuri e l'app dice <b>DENTRO</b> o <b>FUORI</b> tolleranza, con quanto correggere.</p><button type="button" class="btn btn-orange" id="qtTpl">📐 Usa il modello del disegno A-A<br/><small>Ø42 h6 · 29,5 ± 0,02</small></button><button type="button" class="btn btn-sec" id="qtNew">＋ Nuovo controllo vuoto</button><button type="button" class="btn btn-sec" id="qtRecv">📥 Ricevi un lavoro (file, QR, codice)</button>`;
       fitPads(); return;
     }
-    hide(['qtEmpty'], true); hide(['qtList', 'qtField', 'qtRes', 'qKeypad', 'qtMeta'], false);
-    if (qS.ctl !== c.id) { qS.ctl = c.id; qS.vals = {}; qS.buf = ''; qS.sel = null; }
+    hide(['qtEmpty'], true); hide(['qtList', 'qtField', 'qtRes', 'qKeypad', 'qtMeta', 'qtStreak'], false);
+    if (qS.ctl !== c.id) { qS.ctl = c.id; qS.vals = {}; qS.buf = ''; qS.sel = null; qS.live = { spoken: null, haptic: null }; }
     const act = qtActive(c); qS.sel = act ? act.id : null;
     const vals = qtVals(c), ec = QT.evalControllo(c, vals, cal), live = qtLive(c);
     const ml = metaLine(qtMeta(c)); $('qtMeta').textContent = (ml ? ml + ' · ' : '') + (qtMachine() || 'macchina?'); $('qtMeta').classList.toggle('empty', !ml);
@@ -4237,7 +4256,7 @@
     if (av == null) h = `<div class="fr-empty" id="qtHint">${esc(QT.TIPI[q.tipo])}: da <b>${QT.fmtN(QT.quotaLimits(q).lo, 3)}</b> a <b>${QT.fmtN(QT.quotaLimits(q).hi, 3)}</b> mm, centro <b>${QT.fmtN(QT.quotaLimits(q).centro, 3)}</b>. Scrivi la misura (anche solo le ultime cifre, es. <b>${QT.fmtN(QT.quotaLimits(q).centro, 4).split(',')[1].slice(0, 3)}</b>).<br/><small>Pezzo n. ${nPz + 1}${c.lotto ? ' · lotto ' + esc(c.lotto) : ''}</small></div>`;
     else {
       const ev = QT.evalQuota(q, av, cal), l = QT.quotaLimits(q), um = QT.fmtUm;
-      const vf = ev.verify && ev.tipo !== 'posizione' && (ev.corr.key || (ev.corr.next && ev.corr.next.key)) ? ' · tocchi da verificare' : '';
+      const vf = ev.verify && ev.tipo !== 'posizione' && (ev.corr.key || (ev.corr.next && ev.corr.next.key)) ? (cal && cal.modo === 'valore' ? ' · segno da verificare' : ' · tocchi da verificare') : '';
       const big = ev.state === 'fuori' ? `<div class="qt-big fuori" id="qtBig"><b>FUORI</b><small>${um(ev.outByUm)} µm ${ev.side === 'sotto' ? 'sotto il minimo' : 'sopra il massimo'}${vf}</small></div>`
         : `<div class="qt-big ${ev.near ? 'limite' : 'dentro'}" id="qtBig"><b>DENTRO</b><small>${ev.near ? 'vicino al limite ' + (ev.marginLoUm <= ev.marginHiUm ? 'inferiore' : 'superiore') : 'in tolleranza'} · margini ${um(ev.marginLoUm)} / ${um(ev.marginHiUm)} µm${vf}</small></div>`;
       const mg = (x, nm) => (x >= 0 ? 'restano ' + um(x) + ' µm' : 'oltre di ' + um(x) + ' µm');
@@ -4248,9 +4267,12 @@
       const span = Math.max(l.hi - l.lo, 0.002), g0 = l.lo - span, g1 = l.hi + span, pct = (v) => Math.max(0, Math.min(100, ((v - g0) / (g1 - g0)) * 100));
       const gauge = `<div class="int-gauge ${ev.state}" id="qtGauge" aria-label="misura rispetto ai limiti"><div class="ig-bar"><div class="ig-ok" style="left:${pct(l.lo)}%;right:${100 - pct(l.hi)}%"></div><div class="ig-c" style="left:${pct(l.centro)}%"></div><div class="ig-m" id="qtNeedle" style="left:${pct(av)}%"></div></div>
         <div class="ig-lab"><span>sotto</span><span>${QT.fmtN(l.lo, 3)} · ${QT.fmtN(l.hi, 3)}</span><span>sopra</span></div></div>`;
-      h = big + gauge + qtAdvice(ev, cal); det = nums + (c.forma && q.tipo !== 'posizione' ? '<div class="qt-forma" id="qtForma">Ovalità e conicità: controllale sempre, devono restare entro circa 2–3 µm.</div>' : '') + `<div class="qt-rem">Pezzo n. ${nPz + 1}${c.lotto ? ' · lotto ' + esc(c.lotto) : ''}</div>`;
+      h = big + gauge + qtAdvice(ev, cal); det = nums + (q.tipo !== 'posizione' && QT.formLimitsOf(q) ? '<div class="qt-forma" id="qtForma">' + esc(QT.formLimitsOf(q).txt) + '</div>' : c.forma && q.tipo !== 'posizione' ? '<div class="qt-forma" id="qtForma">Ovalità e conicità: controllale sempre, devono restare entro circa 2–3 µm.</div>' : '') + `<div class="qt-rem">Pezzo n. ${nPz + 1}${c.lotto ? ' · lotto ' + esc(c.lotto) : ''}</div>`;
     }
     $('qtRes').innerHTML = h; $('qtDet').innerHTML = det; $('qtDet').classList.toggle('hidden', !det);
+    // Beta 0.9.2: striscia ultimi pezzi + live haptic/voce (solo misura completa, debounce per flip di stato)
+    const sk = $('qtStreak'); if (sk) { const info = qtStreakHtml(c); sk.innerHTML = info.html; sk.classList.toggle('empty', !!info.empty); sk.classList.remove('hidden'); sk.setAttribute('aria-label', info.label || ''); }
+    if (av != null) { const lev = QT.evalQuota(q, av, cal); if (lev) qtApplyLive(lev); }
     // contextual OK / SALVA key
     const go = $('qGo'), typed = !!qS.buf, ok = typed ? live.v != null : ec.measured > 0;
     const nextQ = (() => { const i = c.quote.findIndex((x) => x.id === q.id); for (let k = 1; k <= c.quote.length; k++) { const n = c.quote[(i + k) % c.quote.length]; if (n.id !== q.id && qS.vals[n.id] == null) return n; } return null; })();
@@ -4263,7 +4285,7 @@
     if (k === 'GO') { qtGo(); return; }
     const q = qtActive(c);
     if (k === 'BS') qS.buf = qS.buf.slice(0, -1);
-    else if (k === 'AC') { if (qS.buf) qS.buf = ''; else if (q && qS.vals[q.id] != null) delete qS.vals[q.id]; }
+    else if (k === 'AC') { if (qS.buf) { qS.buf = ''; qS.live = { spoken: null, haptic: null }; } else if (q && qS.vals[q.id] != null) { delete qS.vals[q.id]; qS.live = { spoken: null, haptic: null }; } }
     else if (k === ',') { if (qS.buf && !/[,]/.test(qS.buf)) qS.buf += ','; }
     else if (qS.buf.replace(/,/g, '').length < 9) qS.buf += k;
     renderQuota();
@@ -4273,7 +4295,7 @@
     if (qS.buf) {
       const v = QT.parseMeasure(qS.buf, q);
       if (v == null) { toast('Scrivi almeno 3 cifre (es. 9915) oppure il valore con la virgola', 'warn'); haptic(60); return; }
-      qS.vals[q.id] = v; qS.buf = '';
+      qS.vals[q.id] = v; qS.buf = ''; qS.live = { spoken: null, haptic: null };
       const i = c.quote.findIndex((x) => x.id === q.id); let nx = null;
       for (let k = 1; k < c.quote.length; k++) { const n = c.quote[(i + k) % c.quote.length]; if (qS.vals[n.id] == null) { nx = n; break; } }
       qS.sel = nx ? nx.id : q.id; renderQuota(); return;
@@ -4287,7 +4309,7 @@
     qS.lock = true; setTimeout(() => { qS.lock = false; }, 700);
     qtPezzi().push(rec); saveData(state);
     const n = qtPezzi().filter((p) => p.controlloId === c.id && (p.lotto || '') === (c.lotto || '')).length;
-    qS.vals = {}; qS.buf = ''; qS.sel = null; renderQuota(); renderFatti(); dressAfterSave();
+    qS.vals = {}; qS.buf = ''; qS.sel = null; qS.live = { spoken: null, haptic: null }; renderQuota(); renderFatti(); dressAfterSave();
     const lab = rec.esito === 'fuori' ? 'FUORI' : 'DENTRO';
     showUndo(`Salvato pezzo ${n} · ${lab}${rec.parziale ? ' (quote misurate ' + rec.quote.length + ' di ' + c.quote.length + ')' : ''}`, () => {
       const before = qtPezzi().length; state.quotaPezzi = qtPezzi().filter((x) => x.id !== rec.id);
@@ -4296,7 +4318,7 @@
     if (prefs.voiceAuto) speakIt('Pezzo ' + (rec.esito === 'fuori' ? 'fuori tolleranza' : 'dentro'));
   }
   $('qKeypad').addEventListener('click', (e) => { const b = e.target.closest('[data-qk]'); if (b) qtKey(b.dataset.qk); });
-  $('qtList').addEventListener('click', (e) => { const r = e.target.closest('[data-qid]'); if (!r) return; haptic(10); qS.sel = r.dataset.qid; qS.buf = ''; renderQuota(); });
+  $('qtList').addEventListener('click', (e) => { const r = e.target.closest('[data-qid]'); if (!r) return; haptic(10); qS.sel = r.dataset.qid; qS.buf = ''; qS.live = { spoken: null, haptic: null }; renderQuota(); });
   $('qtBack').addEventListener('click', () => showPage('calc'));
   $('qtCfgBtn').addEventListener('click', () => openControlli());
   $('qtMeta').addEventListener('click', () => { const c = qtCur(); if (c) openControlloData(c.id); });
@@ -4350,46 +4372,134 @@
       saveData(state); close(); renderQuota(); toast('Dati salvati');
     };
   }
+  /* ───────── Beta 0.9.3: «Leggi il disegno» page, fit tool, drawing text → quote ───────── */
+  let disegnoFrom = 'aiuto';
+  function openDisegno(from) { disegnoFrom = from || 'aiuto'; showPage('disegno'); }
+  function fitHtml(f) {
+    if (!f.ok) return { bad: true, html: esc(f.error) };
+    const lim = (r) => `${QT.fmtN(r.lo, 3)}–${QT.fmtN(r.hi, 3)} mm <small>(${QT.sg(r.esUm)} / ${QT.sg(r.eiUm)} µm)</small>`;
+    return { bad: false, html: `Foro <b>${esc(f.hole.code)}</b>: ${lim(f.hole)}<br/>Albero <b>${esc(f.shaft.code)}</b>: ${lim(f.shaft)}<br/><b>${esc(f.words)}</b>${f.sys ? '<br/><small>sistema ' + esc(f.sys) + '</small>' : ''}` };
+  }
+  function fitInput(t) { const p = QT.fitParse(String(t || '').trim()); return p ? QT.fitLimits(p.nom, p.hole, p.shaft) : { ok: false, error: 'Scrivi nominale, foro e albero, es. 40 H7/g6 (maiuscola = foro, minuscola = albero)' }; }
+  if ($('ldBack')) {
+    $('ldBack').addEventListener('click', () => { if (disegnoFrom === 'quota') { showPage('quota'); const c = qtCur(); if (c) openQuoteList(c.id); } else showPage(disegnoFrom); });
+    $('btnDisegno').addEventListener('click', () => { haptic(12); openDisegno('aiuto'); });
+    const fitGo = () => { const o = $('ldFitOut'), r = fitHtml(fitInput($('ldFitIn').value)); o.classList.remove('hidden'); o.classList.toggle('bad', r.bad); o.innerHTML = r.html; };
+    $('ldFitGo').addEventListener('click', fitGo); $('ldFitIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); fitGo(); } });
+    const genUp = () => { const o = $('ldGenOut'), t = String($('ldGenNom').value).trim(); if (!t) { o.classList.add('hidden'); return; }
+      const g = QT.genTol(t.replace(',', '.'), $('ldGenCls').value); o.classList.remove('hidden'); o.classList.toggle('bad', !g.ok);
+      o.innerHTML = g.ok ? `ISO 2768-${esc(g.cls)}: <b>± ${esc(QT.fmtN(g.tol, g.tol < 0.1 ? 2 : 1))} mm</b> → ${QT.fmtN(g.lo, 3)}–${QT.fmtN(g.hi, 3)} mm` : esc(g.error); };
+    $('ldGenNom').addEventListener('input', genUp); $('ldGenCls').addEventListener('change', genUp);
+    const tUp = () => { const o = $('ldTOut'), L = String($('ldTL').value).trim(), T = String($('ldTT').value).trim(); if (!L || !T) { o.classList.add('hidden'); return; }
+      const um = QT.thermalUm(L.replace(',', '.'), T.replace(',', '.'), $('ldTM').value); o.classList.remove('hidden'); o.classList.toggle('bad', um == null);
+      o.innerHTML = um == null ? 'Scrivi misura (mm) e quanti gradi è più caldo' : `Il pezzo è circa <b>${esc(QT.fmtUm(um))} µm</b> più grande da caldo.<br/><small>Aspetta che si raffreddi prima di misurare (o misura sempre alla stessa temperatura).</small>`; };
+    ['ldTL', 'ldTT'].forEach((id) => $(id).addEventListener('input', tUp)); $('ldTM').addEventListener('change', tUp);
+  }
+  function openFitTool(cid) {
+    const c = qtList().find((x) => x.id === cid); if (!c) return;
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="fitModal"><h2>⇄ Accoppiamento ISO</h2>
+      <p class="meta">Maiuscola = foro, minuscola = albero. L'app aggiunge due quote: il foro e l'albero.</p>
+      <label for="fitIn">Accoppiamento</label><input id="fitIn" class="big-input" autocomplete="off" autocapitalize="none" placeholder="es. 40 H7/g6"/>
+      <div class="ld-out hidden" id="fitOut"></div><div id="fitErr" class="form-err hidden"></div>
+      <div class="actions" style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn btn-sec" id="fitNo" style="flex:1;min-height:56px">Annulla</button><button type="button" class="btn btn-primary" id="fitOk" style="flex:1.4;min-height:56px">＋ Aggiungi foro e albero</button></div></div></div>`;
+    const back = () => openQuoteList(cid);
+    $('fitNo').onclick = back; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') back(); };
+    const up = () => { const o = $('fitOut'); if (!$('fitIn').value.trim()) { o.classList.add('hidden'); return; } const r = fitHtml(fitInput($('fitIn').value)); o.classList.remove('hidden'); o.classList.toggle('bad', r.bad); o.innerHTML = r.html; };
+    $('fitIn').addEventListener('input', up);
+    $('fitOk').onclick = () => {
+      const f = fitInput($('fitIn').value);
+      if (!f.ok) { const e = $('fitErr'); e.textContent = f.error; e.classList.remove('hidden'); haptic(60); return; }
+      if (c.quote.length + 2 > QT.MAX_QUOTE) { const e = $('fitErr'); e.textContent = 'Massimo ' + QT.MAX_QUOTE + ' quote'; e.classList.remove('hidden'); return; }
+      const note = f.code + ': ' + f.words;
+      const a = QT.normalizeQuota({ tipo: 'foro', mode: 'iso', nom: f.nom, iso: f.hole.code, note }), b = QT.normalizeQuota({ tipo: 'esterno', mode: 'iso', nom: f.nom, iso: f.shaft.code, note });
+      if (!a.ok || !b.ok) return; c.quote.push(a.q, b.q); saveData(state); qS.sel = b.q.id; toast(f.code + ' aggiunto'); back();
+    };
+    setTimeout(() => { try { $('fitIn').focus(); } catch (e) {} }, 60);
+  }
+  function openDrawingText(cid) {
+    const c = qtList().find((x) => x.id === cid); if (!c) return;
+    let parsed = null;
+    $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="dtModal"><h2>📋 Quote dal testo del disegno</h2>
+      <p class="meta">Una quota per riga, come sul disegno (puoi copiare il testo da una foto, es. con Google Lens). Esempi: Ø42 h6 · 29,5 ±0,02 · Ø30 0/−0,016 · 42,000/41,984 · 40 H7/g6 · ISO 2768-mK · circolarità 0,003. Le quote tra parentesi (ausiliarie) vengono saltate.</p>
+      <textarea id="dtIn" class="neu" rows="6" placeholder="Ø42 h6&#10;29,5 ±0,02"></textarea>
+      <button type="button" class="btn btn-orange ld-btn" id="dtRead">Leggi</button>
+      <div id="dtList"></div><div id="dtErr" class="form-err hidden"></div>
+      <div class="actions" style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn btn-sec" id="dtNo" style="flex:1;min-height:56px">Annulla</button><button type="button" class="btn btn-primary" id="dtOk" style="flex:1.4;min-height:56px" disabled>＋ Aggiungi le spuntate</button></div></div></div>`;
+    const back = () => openQuoteList(cid);
+    $('dtNo').onclick = back; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') back(); };
+    const defsOf = (it) => [it.def, it.pair].filter(Boolean).map((d) => Object.assign({}, d, it.fit ? { note: it.fit.code + ': ' + it.fit.words } : {}, parsed.geo && d.tipo !== 'posizione' && d.circ == null && d.cyl == null ? { circ: parsed.geo.circ, cyl: parsed.geo.cyl } : {}));
+    $('dtRead').onclick = () => {
+      parsed = QT.parseDrawingText($('dtIn').value); const box = $('dtList');
+      if (!parsed.items.length) { box.innerHTML = '<p class="meta">Nessuna quota riconosciuta: controlla il testo o aggiungile a mano.</p>'; $('dtOk').disabled = true; return; }
+      box.innerHTML = (parsed.gen ? `<p class="meta">Tolleranza generale del cartiglio: <b>ISO 2768-${esc(parsed.gen.cls)}${esc(parsed.gen.geo)}</b></p>` : '') + parsed.items.map((it, i) => {
+        if (it.aux) return `<div class="dt-item aux"><span>—</span><span>${esc(it.raw)}<small>quota ausiliaria (tra parentesi): non si controlla</small></span></div>`;
+        if (!it.def) return `<div class="dt-item aux"><span>—</span><span>${esc(it.raw)}<small>${esc(it.warn || (it.noTol ? 'senza tolleranza e nessuna ISO 2768 nel testo: scrivila a mano' : 'non riconosciuta'))}</small></span></div>`;
+        const qs = defsOf(it).map((d) => QT.normalizeQuota(d)), ok = qs.every((r) => r.ok);
+        const txt = ok ? qs.map((r) => `${esc(r.q.nome)} · ${esc(QT.TIPI[r.q.tipo])} · ${esc(QT.quotaText(r.q))}`).join('<br/>') : esc(qs.find((r) => !r.ok).error);
+        return `<label class="dt-item"><input type="checkbox" data-i="${i}" ${ok ? 'checked' : 'disabled'}/><span><b>${esc(it.raw)}</b><small>${txt}${it.fit ? '<br/>' + esc(it.fit.words) : ''}${it.general ? '<br/>tolleranza generale del cartiglio' : ''}${it.tipoGuess === false ? '<br/>senza Ø: messa come posizione / lunghezza (cambiala se è un diametro)' : ''}${it.warn ? '<br/>⚠ ' + esc(it.warn) : ''}</small></span></label>`;
+      }).join('');
+      $('dtOk').disabled = !box.querySelector('input[data-i]:checked');
+      box.querySelectorAll('input[data-i]').forEach((x) => { x.onchange = () => { $('dtOk').disabled = !box.querySelector('input[data-i]:checked'); }; });
+    };
+    $('dtOk').onclick = () => {
+      if (!parsed) return; const add = [];
+      $('dtList').querySelectorAll('input[data-i]:checked').forEach((x) => { defsOf(parsed.items[Number(x.dataset.i)]).forEach((d) => { const r = QT.normalizeQuota(d); if (r.ok) add.push(r.q); }); });
+      if (!add.length) return;
+      if (c.quote.length + add.length > QT.MAX_QUOTE) { const e = $('dtErr'); e.textContent = 'Massimo ' + QT.MAX_QUOTE + ' quote: togli qualche spunta'; e.classList.remove('hidden'); haptic(60); return; }
+      c.quote.push(...add); saveData(state); toast(add.length + (add.length === 1 ? ' quota aggiunta' : ' quote aggiunte')); back();
+    };
+  }
+  /** «0,003» mm or «3» µm (as typed in the frame field) → value for QT.normalizeQuota (circ/cyl). */
+  function geoIn(v) { const t = String(v == null ? '' : v).trim(); return t ? t : null; }
   function openQuoteList(cid) {
     const c = qtList().find((x) => x.id === cid); if (!c) return;
     $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="qlModal"><h2>✎ Quote · ${esc(c.nome)}</h2>
       <p class="meta">Una quota per riga. Per ognuna: nominale e tolleranza a mano, oppure codice ISO. Massimo ${QT.MAX_QUOTE}.</p>
       ${c.quote.map((q) => `<div class="qt-qrow"><div class="qq-t"><b>${esc(q.nome)}</b><small>${esc(QT.TIPI[q.tipo])} · ${esc(QT.quotaText(q))}</small></div><button type="button" class="btn btn-sec" data-qe="${esc(q.id)}" aria-label="Modifica quota">✎</button><button type="button" class="btn btn-sec" data-qd="${esc(q.id)}" aria-label="Elimina quota">🗑</button></div>`).join('') || '<p class="meta">Nessuna quota.</p>'}
       <button type="button" class="btn btn-orange" id="qlAdd" style="width:100%;min-height:56px" ${c.quote.length >= QT.MAX_QUOTE ? 'disabled' : ''}>＋ Aggiungi quota</button>
+      <div class="ld-row" style="margin-top:8px"><button type="button" class="btn btn-sec" id="qlFit" style="min-height:56px" ${c.quote.length >= QT.MAX_QUOTE - 1 ? 'disabled' : ''}>⇄ Accoppiamento<small style="display:block;font-weight:600">es. 40 H7/g6</small></button>
+      <button type="button" class="btn btn-sec" id="qlText" style="min-height:56px" ${c.quote.length >= QT.MAX_QUOTE ? 'disabled' : ''}>📋 Dal testo<small style="display:block;font-weight:600">del disegno</small></button></div>
+      <button type="button" class="btn btn-sec" id="qlGuide" style="width:100%;min-height:52px;margin-top:8px">📐 Leggi il disegno (guida)</button>
       <div class="actions" style="display:flex;margin-top:10px"><button type="button" class="btn btn-sec" id="qlClose" style="flex:1">Fatto</button></div></div></div>`;
     const close = () => { $('modalRoot').innerHTML = ''; renderQuota(); };
     $('qlClose').onclick = close; $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') close(); };
     $('qlAdd').onclick = () => openQuotaEdit(cid, null);
+    $('qlFit').onclick = () => openFitTool(cid); $('qlText').onclick = () => openDrawingText(cid); $('qlGuide').onclick = () => { close(); openDisegno('quota'); };
     $('qlModal').querySelectorAll('[data-qe]').forEach((b) => { b.onclick = () => openQuotaEdit(cid, b.dataset.qe); });
     $('qlModal').querySelectorAll('[data-qd]').forEach((b) => { b.onclick = async () => { const q = c.quote.find((x) => x.id === b.dataset.qd); if (q && await askBig({ title: 'Eliminare la quota «' + q.nome + '»?', ok: '🗑 Elimina', danger: true })) { c.quote = c.quote.filter((x) => x.id !== q.id); delete qS.vals[q.id]; qS.sel = null; saveData(state); } openQuoteList(cid); }; });
   }
   function openQuotaEdit(cid, qid) {
     const c = qtList().find((x) => x.id === cid); if (!c) return;
     const old = qid ? c.quote.find((x) => x.id === qid) : null;
-    const f = old ? { nome: old.nome, tipo: old.tipo, mode: old.mode, nom: numTxt(old.nom), iso: old.iso || '', tol: numTxt(old.tol), up: numTxt(old.up), low: numTxt(old.low) } : { nome: '', tipo: 'esterno', mode: 'iso', nom: '', iso: '', tol: '', up: '', low: '' };
-    const grab = () => { ['nom', 'iso', 'tol', 'up', 'low'].forEach((k) => { const el = $('eq_' + k); if (el) f[k] = el.value; }); const n = $('eq_nome'); if (n) f.nome = n.value; };
-    const model = () => ({ id: old ? old.id : undefined, nome: f.nome, tipo: f.tipo, mode: f.mode, nom: String(f.nom).replace(/^Ø/, ''), iso: f.iso, tol: String(f.tol).replace(/^±/, ''), up: f.up, low: f.low });
+    const f = old ? { nome: old.nome, tipo: old.tipo, mode: old.mode, nom: numTxt(old.nom), iso: old.iso || '', tol: numTxt(old.tol), up: numTxt(old.up), low: numTxt(old.low), gen: old.gen || 'm', circ: old.circ != null ? numTxt(old.circ) : '', cyl: old.cyl != null ? numTxt(old.cyl) : '' } : { nome: '', tipo: 'esterno', mode: 'iso', nom: '', iso: '', tol: '', up: '', low: '', gen: 'm', circ: '', cyl: '' };
+    const grab = () => { ['nom', 'iso', 'tol', 'up', 'low', 'circ', 'cyl'].forEach((k) => { const el = $('eq_' + k); if (el) f[k] = el.value; }); const n = $('eq_nome'); if (n) f.nome = n.value; };
+    const model = () => ({ id: old ? old.id : undefined, nome: f.nome, tipo: f.tipo, mode: f.mode, nom: String(f.nom).replace(/^Ø/, ''), iso: f.iso, tol: String(f.tol).replace(/^±/, ''), up: f.up, low: f.low, gen: f.gen, circ: f.tipo !== 'posizione' ? geoIn(f.circ) : null, cyl: f.tipo !== 'posizione' ? geoIn(f.cyl) : null });
     const prev = () => {
       const el = $('eqPrev'); if (!el) return; const m = model();
+      if ((String(f.circ).trim() && QT.geoUm(geoIn(f.circ)) == null) || (String(f.cyl).trim() && QT.geoUm(geoIn(f.cyl)) == null)) { el.className = 'qt-prev bad'; el.textContent = 'Circolarità / cilindricità: scrivi il valore del riquadro (es. 0,003 o 3 µm)'; return; }
       if (!String(f.nom).trim()) { el.className = 'qt-prev'; el.textContent = 'Scrivi il nominale'; return; }
       const r = QT.normalizeQuota(Object.assign({}, m, { nome: '' }));
       if (!r.ok) { el.className = 'qt-prev bad'; el.textContent = r.error; return; }
       const iso = r.q.mode === 'iso' ? QT.isoLimits(r.q.nom, r.q.iso) : null;
-      el.className = 'qt-prev'; el.innerHTML = `${esc(r.q.nome)}: <b>${QT.fmtN(r.q.lo, 3)}–${QT.fmtN(r.q.hi, 3)}</b> mm · centro <b>${QT.fmtN(r.q.centro, 3)}</b>${iso ? `<br/><small>IT${QT.isoParse(r.q.iso).grade} = ${iso.it} µm · ${iso.kind === 'foro' ? 'ES' : 'es'} ${QT.sg(iso.esUm)} / ${iso.kind === 'foro' ? 'EI' : 'ei'} ${QT.sg(iso.eiUm)} µm</small>` : ''}${r.q.warn ? `<br/><small>⚠ ${esc(r.q.warn)}</small>` : ''}`;
+      const fl = QT.formLimitsOf(r.q);
+      el.className = 'qt-prev'; el.innerHTML = (fl ? `<small>${esc(fl.txt)}</small><br/>` : '') + `${esc(r.q.nome)}: <b>${QT.fmtN(r.q.lo, 3)}–${QT.fmtN(r.q.hi, 3)}</b> mm · centro <b>${QT.fmtN(r.q.centro, 3)}</b>${iso ? `<br/><small>IT${QT.isoParse(r.q.iso).grade} = ${iso.it} µm · ${iso.kind === 'foro' ? 'ES' : 'es'} ${QT.sg(iso.esUm)} / ${iso.kind === 'foro' ? 'EI' : 'ei'} ${QT.sg(iso.eiUm)} µm</small>` : ''}${r.q.warn ? `<br/><small>⚠ ${esc(r.q.warn)}</small>` : ''}`;
     };
     const draw = () => {
       $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="eqModal"><h2>${old ? 'Modifica quota' : 'Nuova quota'}</h2>
         <label>Tipo di quota</label><div class="qt-chips" id="eqTipo">${[['esterno', 'Diametro esterno'], ['foro', 'Foro'], ['posizione', 'Posizione / lunghezza']].map(([k, t]) => `<button type="button" data-t="${k}" class="${f.tipo === k ? 'on' : ''}">${t}</button>`).join('')}</div>
-        <label>Come scrivi la tolleranza</label><div class="qt-chips" id="eqMode">${[['iso', 'Codice ISO'], ['sim', '± simmetrica'], ['asim', 'Sup. / inf.']].map(([k, t]) => `<button type="button" data-m="${k}" class="${f.mode === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+        <label>Come scrivi la tolleranza</label><div class="qt-chips" id="eqMode">${[['iso', 'Codice ISO'], ['sim', '± simmetrica'], ['asim', 'Sup. / inf.'], ['gen', 'Generale ISO 2768']].map(([k, t]) => `<button type="button" data-m="${k}" class="${f.mode === k ? 'on' : ''}">${t}</button>`).join('')}</div>
         <label for="eq_nom">Nominale mm</label><input id="eq_nom" class="big-input" inputmode="decimal" autocomplete="off" value="${esc(f.nom)}" placeholder="es. 42 oppure 29,5"/>
         ${f.mode === 'iso' ? `<label for="eq_iso">Codice ISO ${f.tipo === 'foro' ? '(maiuscolo: H6, H7…)' : '(minuscolo: h6, g6, js6…)'}</label><input id="eq_iso" class="big-input" autocomplete="off" autocapitalize="none" value="${esc(f.iso)}" placeholder="${f.tipo === 'foro' ? 'es. H7' : 'es. h6'}"/>`
+          : f.mode === 'gen' ? `<label>Classe ISO 2768 (scritta nel cartiglio, es. «ISO 2768-mK» = m)</label><div class="qt-chips" id="eqGen">${['f', 'm', 'c', 'v'].map((k) => `<button type="button" data-g="${k}" class="${f.gen === k ? 'on' : ''}">${k} · ${QT.GEN_NAMES[k]}</button>`).join('')}</div>`
           : f.mode === 'sim' ? `<label for="eq_tol">Tolleranza ± mm</label><input id="eq_tol" class="big-input" inputmode="decimal" autocomplete="off" value="${esc(f.tol)}" placeholder="es. 0,02"/>`
           : `<div class="field-row"><div><label for="eq_up">Scostamento sup. mm</label><input id="eq_up" class="big-input" inputmode="text" autocomplete="off" value="${esc(f.up)}" placeholder="es. 0 o +0,02"/></div><div><label for="eq_low">Scostamento inf. mm</label><input id="eq_low" class="big-input" inputmode="text" autocomplete="off" value="${esc(f.low)}" placeholder="es. −0,016"/></div></div>`}
+        ${f.tipo !== 'posizione' ? `<div class="field-row qt-geo"><div><label for="eq_circ">○ Circolarità (facolt.)</label><input id="eq_circ" class="big-input" inputmode="decimal" autocomplete="off" value="${esc(f.circ)}" placeholder="es. 0,003"/></div><div><label for="eq_cyl">⌭ Cilindricità (facolt.)</label><input id="eq_cyl" class="big-input" inputmode="decimal" autocomplete="off" value="${esc(f.cyl)}" placeholder="es. 0,005"/></div></div>` : ''}
         <label for="eq_nome">Nome (facoltativo)</label><input id="eq_nome" class="big-input" maxlength="40" autocomplete="off" value="${esc(f.nome)}" placeholder="automatico, es. Ø42 h6"/>
         <div class="qt-prev" id="eqPrev"></div><div id="eqErr" class="form-err hidden"></div>
         <div class="actions" style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn btn-sec" id="eqNo" style="flex:1;min-height:52px">Annulla</button><button type="button" class="btn btn-primary" id="eqOk" style="flex:1.4;min-height:52px">✓ Salva quota</button></div></div></div>`;
       $('eqTipo').onclick = (e) => { const b = e.target.closest('[data-t]'); if (b) { grab(); f.tipo = b.dataset.t; draw(); } };
       $('eqMode').onclick = (e) => { const b = e.target.closest('[data-m]'); if (b) { grab(); f.mode = b.dataset.m; draw(); } };
+      if ($('eqGen')) $('eqGen').onclick = (e) => { const b = e.target.closest('[data-g]'); if (b) { grab(); f.gen = b.dataset.g; draw(); } };
       $('eqModal').addEventListener('input', () => { grab(); prev(); });
       $('eqNo').onclick = () => openQuoteList(cid); $('modalBg').onclick = (e) => { if (e.target.id === 'modalBg') openQuoteList(cid); };
       $('eqOk').onclick = () => {
@@ -4406,10 +4516,11 @@
   function renderQuotaList() {
     const el = $('quotaList'); if (!el) return;
     const l = qtPezzi().slice().reverse().slice(0, 50);
-    el.innerHTML = l.length ? l.map((p) => `<div class="hist-row fem-row qt-hrow"><span class="mono">${esc(dmHm(p.ts))}</span>
+    const andStrip = (() => { const last = qtPezzi().slice(-12); if (last.length < 1) return ''; const st = QT.streakOf(last); const dots = st.states.map((s) => `<span class="qs-dot ${s}"></span>`).join(''); return `<div class="qt-streak" style="margin-bottom:8px"><span class="qs-lab">Andamento:</span><span class="qs-dots">${dots}</span><span class="qs-ok">di fila OK: <b>${st.streakOk}</b></span></div>`; })();
+    el.innerHTML = andStrip + (l.length ? l.map((p) => `<div class="hist-row fem-row qt-hrow"><span class="mono">${esc(dmHm(p.ts))}</span>
       <span><b class="cond">${esc(p.nome)}</b> ${p.esito === 'fuori' ? '<b style="color:#ff8a8a">FUORI</b>' : '✓ DENTRO'}${p.parziale ? ' <small>(parziale)</small>' : ''}${metaLine({ codice: p.codice, rev: p.rev, lav: p.lav, lotto: p.lotto }) ? '<small class="hist-meta"> ' + esc(metaLine({ codice: p.codice, rev: p.rev, lav: p.lav, lotto: p.lotto })) + '</small>' : ''}
       ${p.quote.map((q) => `<small> ${esc(q.nome)} ${esc(QT.fmtN(q.misura, 4))} (${esc(QT.sg(q.devUm))} µm${q.esito === 'fuori' ? ' · FUORI' : ''})</small>`).join('')}<small> ${esc(p.machineName || '')}</small></span></div>`).join('')
-      : '<p class="meta">Nessun controllo quota salvato.</p>';
+      : '<p class="meta">Nessun controllo quota salvato.</p>');
   }
   function qtQuotaRows() { return QT.pieceRows(qtPezzi()); }
   $('btnQuota').addEventListener('click', openQuota);
