@@ -1098,10 +1098,138 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
 .pin-in{letter-spacing:6px;text-align:center}.linkish{background:none;border:0;color:var(--orange);font:inherit;font-weight:700;text-decoration:underline;min-height:44px;padding:0 4px}
 .js-tools{display:flex;gap:6px;margin-top:8px}.js-tools .btn{flex:1;min-height:52px;font-size:13px;padding:0 4px;white-space:nowrap}
 .hist-meta{color:var(--orange)}.lock-ic{font-size:14px}.rp-scope{margin:6px 0}
-.web-install{margin:0 0 12px;padding:12px 14px}.web-install p{margin:4px 0 8px}
+.web-install,.web-data{margin:0 0 12px;padding:12px 14px}.web-install p,.web-data p{margin:4px 0 10px}
+
+
+/* Beta 0.9.6 design ① Calcolo: tasti più grandi e leggibili coi guanti, stato misura a pillola, pezzo da usare marcato */
+.pad .k{font-size:36px;font-weight:800;border-radius:20px;transition:transform .08s ease,background-color .12s ease,box-shadow .12s ease}
+.pad .k.fn{font-size:24px}
+.pad .k[data-k=","],.pad .k[data-fk=","],.pad .k[data-ik=","],.pad .k[data-qk=","]{font-size:40px}
+.pad .k:is([data-k="AC"],[data-fk="AC"],[data-ik="AC"],[data-qk="AC"]){color:#ff8a8a}
+.pad .k:is([data-k="BS"],[data-fk="BS"],[data-ik="BS"],[data-qk="BS"]){color:var(--amber)}
+.pad .k:not(.go):active{background:rgba(255,138,31,.16);border-color:rgba(255,138,31,.55)}
+.pad .k.go{font-size:18px;letter-spacing:1px;border-radius:22px}
+.pad .k.go span{font-size:40px}
+.pad .k.go:active{filter:brightness(1.08);transform:scale(.97)}
+.disp .status{display:inline-flex;width:auto;max-width:calc(100% - 68px);padding:5px 12px 5px 10px;border-radius:999px;font-size:15px;
+  background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.35)}
+.disp .status.bad{background:rgba(255,197,61,.12);border-color:rgba(255,197,61,.4)}
+.pz{position:relative}
+.pz.sel{padding-top:24px}
+.pz.sel::before{content:'✓ DA USARE';position:absolute;top:6px;left:50%;transform:translateX(-50%);font-family:"Barlow Condensed",system-ui,sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:1.5px;color:#1a0d00;background:var(--orange);padding:1px 8px;border-radius:999px;white-space:nowrap}
+.pz.sel .n{font-size:68px}
+html[data-theme="light"] .pad .k:is([data-k="AC"],[data-fk="AC"],[data-ik="AC"],[data-qk="AC"]){color:#c62828}
+html[data-theme="light"] .pad .k:is([data-k="BS"],[data-fk="BS"],[data-ik="BS"],[data-qk="BS"]){color:#b45309}
+html[data-theme="light"] .disp .status{background:rgba(21,128,61,.08);border-color:rgba(21,128,61,.35);color:#15803d}
+html[data-theme="light"] .disp .status .dot{background:#15803d;box-shadow:none}
+html[data-theme="light"] .disp .status.bad{background:rgba(180,83,9,.08);border-color:rgba(180,83,9,.4);color:#b45309}
+html[data-theme="light"] .disp .status.bad .dot{background:#b45309}
+
+/* Beta 0.9.6 design ② barra in basso e intestazioni */
+.nav{bottom:calc(10px + env(safe-area-inset-bottom,0px));background:rgba(20,23,29,.92);border-color:rgba(255,255,255,.1)}
+@media (min-height:760px){.nav{height:68px}}
+.nv{position:relative;gap:3px;font-size:11.5px;letter-spacing:.2px;transition:color .15s ease,background-color .15s ease}
+.nv svg{width:23px;height:23px;transition:transform .15s ease}
+.nv.on{background:linear-gradient(160deg,rgba(255,176,77,.22),rgba(255,122,26,.14));box-shadow:inset 0 0 0 1px rgba(255,138,31,.35)}
+.nv.on svg{transform:translateY(-1px) scale(1.06);stroke-width:2.2}
+.nv.on::after{content:'';position:absolute;bottom:3px;left:50%;width:16px;height:3px;margin-left:-8px;border-radius:3px;background:var(--orange)}
+.nv:active svg{transform:scale(.92)}
+.page-head{margin:6px 0 14px;min-height:44px}
+.page-head h2{font-size:28px;position:relative;padding-left:14px}
+.page-head h2::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:4px;border-radius:4px;background:linear-gradient(180deg,var(--orange2),var(--orange))}
+.page-head .ib + h2{margin-left:10px;margin-right:auto}
+.sec-title{letter-spacing:1.6px}
+html[data-theme="light"] .nav{background:rgba(255,255,255,.94);border-color:rgba(0,0,0,.08);box-shadow:0 10px 30px rgba(15,23,42,.14)}
+html[data-theme="light"] .nv.on{background:rgba(255,138,31,.14);box-shadow:inset 0 0 0 1px rgba(196,90,0,.3)}
+html[data-theme="light"] .nv.on::after{background:#c45a00}
+/* Beta 0.9.6 design ④ tema chiaro più leggibile */
+html[data-theme="light"]{
+  --bg:#e6eaf0;--bg2:#f8fafc;--surface:#f8fafc;--surface2:#ffffff;
+  --neu-hi:rgba(255,255,255,.95);--neu-lo:rgba(15,23,42,.14);
+  --line:rgba(15,23,42,.12);--line2:rgba(15,23,42,.22);
+  --text:#0b1220;--muted:#475569;
+  --orange:#c2410c;--orange2:#b45309;--green:#15803d;--amber:#a16207;--red:#b91c1c;--teal:#0f766e;
+  --shadow-out:0 1px 2px rgba(15,23,42,.08),0 3px 8px rgba(15,23,42,.08);
+  --shadow-in:inset 0 1px 3px rgba(15,23,42,.10);
+  --shadow-btn:0 1px 2px rgba(15,23,42,.10),0 2px 5px rgba(15,23,42,.07);
+  --glow-orange:0 4px 12px rgba(234,88,12,.28);
+}
+html[data-theme="light"] .card{background:#fff;border-color:var(--line)}
+html[data-theme="light"] .k:not(.go){border-color:rgba(15,23,42,.14)}
+html[data-theme="light"] .k.fn,html[data-theme="light"] .ib,html[data-theme="light"] .rc,html[data-theme="light"] .chip{color:#1e293b}
+html[data-theme="light"] .rc b{color:#c2410c}
+html[data-theme="light"] .pill,html[data-theme="light"] .ib,html[data-theme="light"] .rc,html[data-theme="light"] .chip,html[data-theme="light"] .btn-sec,html[data-theme="light"] .new{background:#fff;border-color:rgba(15,23,42,.16)}
+html[data-theme="light"] .pre,html[data-theme="light"] .pre i,html[data-theme="light"] .toast{color:#b45309}
+html[data-theme="light"] .status .dot,html[data-theme="light"] .status.bad .dot,html[data-theme="light"] .cur,html[data-theme="light"] .badge-live .dot{box-shadow:none}
+html[data-theme="light"] .status.bad{color:#92400e}
+html[data-theme="light"] .nv{color:#334155}
+html[data-theme="light"] .nv.on{color:#c2410c}
+html[data-theme="light"] .nav{border:1px solid rgba(15,23,42,.14)}
+html[data-theme="light"] .modal{background:#f8fafc;border-color:rgba(15,23,42,.16)}
+html[data-theme="light"] .modal label,html[data-theme="light"] .ctx-panel label,html[data-theme="light"] .job-setup .js-f label{color:#334155}
+html[data-theme="light"] .modal input,html[data-theme="light"] .modal select,html[data-theme="light"] .modal textarea,html[data-theme="light"] .f-input,html[data-theme="light"] select.neu,html[data-theme="light"] textarea.neu,html[data-theme="light"] .ctx-panel select{background:#fff;border:1.5px solid rgba(15,23,42,.24);box-shadow:none;color:#0b1220}
+html[data-theme="light"] .modal input:focus,html[data-theme="light"] .modal select:focus,html[data-theme="light"] .modal textarea:focus,html[data-theme="light"] .f-input:focus,html[data-theme="light"] textarea.neu:focus{outline:none;border-color:#c2410c;box-shadow:0 0 0 3px rgba(234,88,12,.18)}
+html[data-theme="light"] .modal input::placeholder,html[data-theme="light"] .modal textarea::placeholder,html[data-theme="light"] .f-input::placeholder{color:#64748b}
+html[data-theme="light"] .form-err{color:#b91c1c}
+html[data-theme="light"] .setup-row{border-bottom-color:rgba(15,23,42,.10)}
+html[data-theme="light"] .setup-row .row-ico{background:rgba(234,88,12,.10);color:#c2410c}
+html[data-theme="light"] .setup-row .chev{color:#475569}
+html[data-theme="light"] .toggle{background:#cbd5e1;border-color:rgba(15,23,42,.28)}
+html[data-theme="light"] .toggle i{background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.35)}
+html[data-theme="light"] .toggle.on{background:#ea580c;border-color:#c2410c}
+html[data-theme="light"] .toggle.on i{background:#fff}
+html[data-theme="light"] .save.done{color:#fff}
+html[data-theme="light"] .undo-bar .ub-ok{color:#fff}
+html[data-theme="light"] .tk.no,html[data-theme="light"] .fm-res .fr-st .pillst.no,html[data-theme="light"] .int-res .is-big.stretto,html[data-theme="light"] .ai-err,html[data-theme="light"] .ai-warn,html[data-theme="light"] .bub.err,html[data-theme="light"] .ld-out.bad,html[data-theme="light"] .pad .k:is([data-k="AC"],[data-fk="AC"],[data-ik="AC"],[data-qk="AC"]),html[data-theme="light"] .qt-row.fuori .qr-r small,html[data-theme="light"] .qt-all.fuori,html[data-theme="light"] .qt-big.fuori b,html[data-theme="light"] .qt-prev.bad,html[data-theme="light"] .int-mat.largo b{color:#b91c1c}
+html[data-theme="light"] .qt-row{background:#fff;border-color:rgba(15,23,42,.16)}
+html[data-theme="light"] .qt-row.on{border-color:#0f766e;box-shadow:0 0 0 2px rgba(15,118,110,.18)}
+html[data-theme="light"] .fm-field{border-color:rgba(15,23,42,.22)}
+html[data-theme="light"] .fm-field.on{border-color:#0f766e;background:#f0fdfa}
+html[data-theme="light"] .fm-fields .fm-g{border-color:rgba(194,65,12,.5)}
+html[data-theme="light"] .fm-fields .fm-g.on{border-color:#c2410c;background:#fff7ed}
+html[data-theme="light"] .nv-aiuto svg{stroke:#dc2626}
+/* Beta 0.9.6: «Altro» e le altre sezioni apribili mostrano una freccetta */
+.adv summary{list-style:none;gap:8px}
+.adv summary::-webkit-details-marker{display:none}
+.adv summary::before{content:'▸';color:var(--orange);font-size:18px;transition:transform .15s ease}
+.adv[open] summary::before{transform:rotate(90deg)}
+/* Beta 0.9.5: logo all'avvio (solo a freddo, tocca per saltare) */
+.splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  background:#19295a;color:#fff;transition:opacity .45s ease,visibility .45s;padding:24px}
+.splash.out{opacity:0;visibility:hidden}
+.splash img{width:min(78vw,340px);max-height:52vh;object-fit:contain;animation:spIn .7s cubic-bezier(.2,.8,.2,1) both}
+.splash .sp-word{font-family:"Barlow",system-ui,sans-serif;font-weight:800;font-size:clamp(64px,22vw,120px);letter-spacing:.08em;line-height:1;color:#fff;animation:spIn .7s cubic-bezier(.2,.8,.2,1) both}
+.splash .sp-bar{width:120px;height:4px;border-radius:4px;background:rgba(255,255,255,.18);overflow:hidden}
+.splash .sp-bar b{display:block;height:100%;width:40%;border-radius:4px;background:#fff;animation:spBar 1.1s ease-in-out infinite}
+.splash .sp-sub{font-family:"Barlow Condensed",system-ui,sans-serif;font-weight:600;font-size:15px;letter-spacing:.28em;text-transform:uppercase;color:rgba(255,255,255,.75);animation:spIn .7s .15s cubic-bezier(.2,.8,.2,1) both}
+@keyframes spIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes spBar{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+@media (prefers-reduced-motion:reduce){.splash img,.splash .sp-word,.splash .sp-sub,.splash .sp-bar b{animation:none}}
 </style>
 </head>
 <body>
+<div class="splash" id="splash" role="img" aria-label="OMT · Rettifica">
+  <div class="sp-word" id="spWord" hidden>OMT</div>
+  <img id="spLogo" src="logo-azienda.jpg" alt="" onerror="var w=document.getElementById('spWord');if(w)w.hidden=false;this.remove()"/>
+  <div class="sp-sub">Rettifica</div>
+  <div class="sp-bar"><b></b></div>
+</div>
+<script>
+/* Beta 0.9.5: logo only on a cold start; off in Setup; skipped when the WebView reloads for a photo */
+(function () {
+  var p = {}; try { p = JSON.parse(localStorage.getItem('rweb_v1_prefs') || '{}') || {}; } catch (e) {}
+  var el = document.getElementById('splash');
+  document.documentElement.setAttribute('data-theme', p.theme === 'light' ? 'light' : 'dark');
+  var photo = false; try { var o = JSON.parse(localStorage.getItem('rweb_photo_purpose') || 'null'); photo = !!(o && Date.now() - o.t < 20 * 60 * 1000); } catch (e) {}
+  if (p.splash === false || photo) { el.remove(); return; }
+  var t0 = Date.now(), done = false;
+  function hide() { if (done) return; done = true; el.classList.add('out'); setTimeout(function () { el.remove(); }, 500); }
+  el.addEventListener('click', hide);
+  window.addEventListener('load', function () { setTimeout(hide, Math.max(0, 1400 - (Date.now() - t0))); });
+  setTimeout(hide, 4000);
+})();
+</script>
 <div class="wrap" id="mainWrap">
   <section class="page active" id="page-calc">
     <div class="ctx-pills" id="ctxBar">
@@ -1384,6 +1512,11 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
         <span class="row-txt"><b>Tema</b><span id="themeLabel">Scuro</span></span>
         <span class="chev">›</span>
       </button>
+      <button type="button" class="setup-row" id="btnSplash" style="cursor:pointer">
+        <span class="row-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 12h8M12 8v8"/></svg></span>
+        <span class="row-txt"><b>Logo all'avvio</b><span id="splashLabel">On</span></span>
+        <span class="toggle" id="splashToggle"><i></i></span>
+      </button>
       <button type="button" class="setup-row" id="btnVoiceAuto" style="cursor:pointer">
         <span class="row-ico"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></span>
         <span class="row-txt"><b>Voce automatica</b><span id="voiceLabel">Off</span></span>
@@ -1464,7 +1597,7 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
     </div>
     <input type="file" id="importFile" accept="application/json,.json,text/plain" class="hidden"/>
     <button type="button" class="btn btn-danger" id="btnReset" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗑 Azzera tutto</button>
-    <p class="ver">Rettifica Beta v0.9.4 · diametri in mm · giochi e correzioni in µm</p>
+    <p class="ver">Rettifica Beta v0.9.7 · diametri in mm · giochi e correzioni in µm</p>
   </section>
 
   <section class="page" id="page-aiuto">
@@ -1739,7 +1872,7 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
         <p><b>Guanti?</b><br/>I tasti sono grandi apposta. Ogni bottone foto (📷 Nuovo lavoro, 📷 leggi S, 📷 in Adatta alla femmina) chiede: <b>📷 Scatta foto</b> oppure <b>🖼 Dalla galleria</b> (una foto già fatta). Poi stesso ritaglio e stessa lettura.</p>
       </details>
     </div>
-    <p class="ver">Rettifica Beta v0.9.4</p>
+    <p class="ver">Rettifica Beta v0.9.7</p>
   </section>
   <section class="page" id="page-macchine">
     <button type="button" class="btn btn-sec" id="btnBackSetup1">← Setup</button>
