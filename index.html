@@ -1102,14 +1102,13 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
 
 /* Beta 0.9.5: logo all'avvio (solo a freddo, tocca per saltare) */
 .splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
-  background:radial-gradient(600px 420px at 50% 38%,rgba(255,138,31,.16),transparent 70%),var(--bg);transition:opacity .45s ease,visibility .45s;padding:24px}
+  background:#19295a;color:#fff;transition:opacity .45s ease,visibility .45s;padding:24px}
 .splash.out{opacity:0;visibility:hidden}
-.splash img{max-width:min(72vw,320px);max-height:38vh;object-fit:contain;animation:spIn .7s cubic-bezier(.2,.8,.2,1) both}
-.splash .sp-word{font-family:"Barlow",system-ui,sans-serif;font-weight:800;font-size:clamp(64px,22vw,120px);letter-spacing:.08em;line-height:1;color:var(--text);animation:spIn .7s cubic-bezier(.2,.8,.2,1) both}
-.splash .sp-word i{font-style:normal;color:var(--orange)}
-.splash .sp-bar{width:120px;height:4px;border-radius:4px;background:var(--line2);overflow:hidden}
-.splash .sp-bar b{display:block;height:100%;width:40%;border-radius:4px;background:linear-gradient(90deg,var(--orange2),var(--orange));animation:spBar 1.1s ease-in-out infinite}
-.splash .sp-sub{font-family:"Barlow Condensed",system-ui,sans-serif;font-weight:600;font-size:15px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);animation:spIn .7s .15s cubic-bezier(.2,.8,.2,1) both}
+.splash img{width:min(78vw,340px);max-height:52vh;object-fit:contain;animation:spIn .7s cubic-bezier(.2,.8,.2,1) both}
+.splash .sp-word{font-family:"Barlow",system-ui,sans-serif;font-weight:800;font-size:clamp(64px,22vw,120px);letter-spacing:.08em;line-height:1;color:#fff;animation:spIn .7s cubic-bezier(.2,.8,.2,1) both}
+.splash .sp-bar{width:120px;height:4px;border-radius:4px;background:rgba(255,255,255,.18);overflow:hidden}
+.splash .sp-bar b{display:block;height:100%;width:40%;border-radius:4px;background:#fff;animation:spBar 1.1s ease-in-out infinite}
+.splash .sp-sub{font-family:"Barlow Condensed",system-ui,sans-serif;font-weight:600;font-size:15px;letter-spacing:.28em;text-transform:uppercase;color:rgba(255,255,255,.75);animation:spIn .7s .15s cubic-bezier(.2,.8,.2,1) both}
 @keyframes spIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
 @keyframes spBar{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
 @media (prefers-reduced-motion:reduce){.splash img,.splash .sp-word,.splash .sp-sub,.splash .sp-bar b{animation:none}}
@@ -1117,8 +1116,8 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
 </head>
 <body>
 <div class="splash" id="splash" role="img" aria-label="OMT · Rettifica">
-  <div class="sp-word" id="spWord" hidden>OM<i>T</i></div>
-  <img id="spLogo" src="logo-azienda.png" alt="" onerror="var w=document.getElementById('spWord');if(w)w.hidden=false;this.remove()"/>
+  <div class="sp-word" id="spWord" hidden>OMT</div>
+  <img id="spLogo" src="logo-azienda.jpg" alt="" onerror="var w=document.getElementById('spWord');if(w)w.hidden=false;this.remove()"/>
   <div class="sp-sub">Rettifica</div>
   <div class="sp-bar"><b></b></div>
 </div>
