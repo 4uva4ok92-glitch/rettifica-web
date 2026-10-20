@@ -8,7 +8,7 @@
   function draw() {
     var page = document.getElementById('page-setup'); if (!page) return;
     var box = document.getElementById('webInstall');
-    if (!box) { box = document.createElement('div'); box.id = 'webInstall'; box.className = 'card web-install'; page.insertBefore(box, page.firstChild); }
+    if (!box) { box = document.createElement('div'); box.id = 'webInstall'; box.className = 'card web-install'; afterHead(page, box); }
     if (standalone) { box.innerHTML = '<b>📲 App installata</b><p class="meta">Funziona anche senza rete (tranne l’AI).</p>'; return; }
     box.innerHTML = '<b>📲 Aggiungi a Home</b><p class="meta">' + (deferred ? 'Installa l’app sul telefono: si apre a schermo intero e funziona senza rete.' :
       ios ? 'Su iPhone: tocca Condividi ⬆︎ e poi «Aggiungi alla schermata Home».' : 'Nel menu del browser (⋮) tocca «Aggiungi a schermata Home» o «Installa app».') + '</p>' +
@@ -25,10 +25,11 @@
         '<button type="button" class="btn btn-orange web-bk" style="width:100%;min-height:56px;font-size:17px">💾 Fai backup adesso</button>';
       box.querySelector('.web-bk').onclick = function () { var b = document.getElementById('btnExport'); if (b) b.click(); };
       var after = pair[0] === 'page-setup' ? document.getElementById('webInstall') : null;
-      if (after && after.nextSibling) page.insertBefore(box, after.nextSibling); else page.insertBefore(box, page.firstChild);
+      if (after) page.insertBefore(box, after.nextSibling); else afterHead(page, box);
     });
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
   }
+  function afterHead(page, box) { var h = page.querySelector('.page-head'); if (h) page.insertBefore(box, h.nextSibling); else page.insertBefore(box, page.firstChild); }
   function init() { draw(); drawData(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
