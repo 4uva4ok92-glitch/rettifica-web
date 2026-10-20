@@ -1100,6 +1100,31 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
 .hist-meta{color:var(--orange)}.lock-ic{font-size:14px}.rp-scope{margin:6px 0}
 .web-install{margin:0 0 12px;padding:12px 14px}.web-install p{margin:4px 0 8px}
 
+
+/* Beta 0.9.6 design ① Calcolo: tasti più grandi e leggibili coi guanti, stato misura a pillola, pezzo da usare marcato */
+.pad .k{font-size:36px;font-weight:800;border-radius:20px;transition:transform .08s ease,background-color .12s ease,box-shadow .12s ease}
+.pad .k.fn{font-size:24px}
+.pad .k[data-k=","],.pad .k[data-fk=","],.pad .k[data-ik=","],.pad .k[data-qk=","]{font-size:40px}
+.pad .k:is([data-k="AC"],[data-fk="AC"],[data-ik="AC"],[data-qk="AC"]){color:#ff8a8a}
+.pad .k:is([data-k="BS"],[data-fk="BS"],[data-ik="BS"],[data-qk="BS"]){color:var(--amber)}
+.pad .k:not(.go):active{background:rgba(255,138,31,.16);border-color:rgba(255,138,31,.55)}
+.pad .k.go{font-size:18px;letter-spacing:1px;border-radius:22px}
+.pad .k.go span{font-size:40px}
+.pad .k.go:active{filter:brightness(1.08);transform:scale(.97)}
+.disp .status{display:inline-flex;width:auto;max-width:calc(100% - 68px);padding:5px 12px 5px 10px;border-radius:999px;font-size:15px;
+  background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.35)}
+.disp .status.bad{background:rgba(255,197,61,.12);border-color:rgba(255,197,61,.4)}
+.pz{position:relative}
+.pz.sel{padding-top:24px}
+.pz.sel::before{content:'✓ DA USARE';position:absolute;top:6px;left:50%;transform:translateX(-50%);font-family:"Barlow Condensed",system-ui,sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:1.5px;color:#1a0d00;background:var(--orange);padding:1px 8px;border-radius:999px;white-space:nowrap}
+.pz.sel .n{font-size:68px}
+html[data-theme="light"] .pad .k:is([data-k="AC"],[data-fk="AC"],[data-ik="AC"],[data-qk="AC"]){color:#c62828}
+html[data-theme="light"] .pad .k:is([data-k="BS"],[data-fk="BS"],[data-ik="BS"],[data-qk="BS"]){color:#b45309}
+html[data-theme="light"] .disp .status{background:rgba(21,128,61,.08);border-color:rgba(21,128,61,.35);color:#15803d}
+html[data-theme="light"] .disp .status .dot{background:#15803d;box-shadow:none}
+html[data-theme="light"] .disp .status.bad{background:rgba(180,83,9,.08);border-color:rgba(180,83,9,.4);color:#b45309}
+html[data-theme="light"] .disp .status.bad .dot{background:#b45309}
 /* Beta 0.9.5: logo all'avvio (solo a freddo, tocca per saltare) */
 .splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
   background:#19295a;color:#fff;transition:opacity .45s ease,visibility .45s;padding:24px}
@@ -1503,7 +1528,7 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
     </div>
     <input type="file" id="importFile" accept="application/json,.json,text/plain" class="hidden"/>
     <button type="button" class="btn btn-danger" id="btnReset" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗑 Azzera tutto</button>
-    <p class="ver">Rettifica Beta v0.9.5 · diametri in mm · giochi e correzioni in µm</p>
+    <p class="ver">Rettifica Beta v0.9.6 · diametri in mm · giochi e correzioni in µm</p>
   </section>
 
   <section class="page" id="page-aiuto">
@@ -1778,7 +1803,7 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
         <p><b>Guanti?</b><br/>I tasti sono grandi apposta. Ogni bottone foto (📷 Nuovo lavoro, 📷 leggi S, 📷 in Adatta alla femmina) chiede: <b>📷 Scatta foto</b> oppure <b>🖼 Dalla galleria</b> (una foto già fatta). Poi stesso ritaglio e stessa lettura.</p>
       </details>
     </div>
-    <p class="ver">Rettifica Beta v0.9.5</p>
+    <p class="ver">Rettifica Beta v0.9.6</p>
   </section>
   <section class="page" id="page-macchine">
     <button type="button" class="btn btn-sec" id="btnBackSetup1">← Setup</button>

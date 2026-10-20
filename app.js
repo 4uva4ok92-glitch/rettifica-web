@@ -6,7 +6,7 @@
   const CLEAN_KEY = 'rweb_clean_206';       // v2.0.6 one-time clean start done
   const BACKUP_KEY = 'rweb_backup_pre206';
   const BACKUPS_KEY = 'rweb_backups';           // Beta 0.1.0: last 5 automatic backups (before migration / import / wipe)
-  const APP_VERSION = '0.9.5';
+  const APP_VERSION = '0.9.6';
   /** Beta 0.1.0: automatic local backup; also kept as the «hidden restore» backup (Setup). */
   function autoBackup(why, rawData, rawPrefs) {
     try {
@@ -254,7 +254,7 @@
         if (!h || !h.offsetParent || h.classList.contains('hidden')) return;
         const gap = innerHeight < 700 ? 5 : 8;
         const top = pad.getBoundingClientRect().top;
-        const row = Math.max(44, Math.min(64, Math.floor((limit - top - 3 * gap) / 4)));
+        const row = Math.max(44, Math.min(innerHeight >= 800 ? 74 : 64, Math.floor((limit - top - 3 * gap) / 4))); // Beta 0.9.6: taller keys on tall phones
         pad.style.gap = gap + 'px'; pad.style.gridTemplateRows = `repeat(4,${row}px)`;
       });
     });
