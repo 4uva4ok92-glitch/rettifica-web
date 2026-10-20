@@ -2168,6 +2168,9 @@
       <div><label>Tol ± mm</label><input id="sTol" inputmode="decimal" placeholder="0,1" value="${s.tolleranza != null ? esc(String(s.tolleranza).replace('.', ',')) : ''}"/></div></div>
       <div class="field-row"><div><label>Gioco min µm</label><input id="sGmin" inputmode="numeric" value="${s.giocoMin}"/></div>
       <div><label>Gioco max µm</label><input id="sGmax" inputmode="numeric" value="${s.giocoMax}"/></div></div>
+      ${id ? '<p class="meta" id="sHistNote">Le misure già salvate tengono le quote di quando sono state fatte: modificare qui non le ricalcola.</p>' : ''}
+      <label>Lotto / codice</label><input id="sLotto" value="${esc(s.lotto || '')}"/>
+      <details class="adv" id="sMore"${id ? ' open' : ''}><summary>Altro: forma, disegno, pezzo consigliato, note</summary>
       ${(() => { const L = jobLimits(s); return `<div class="lim-h">Tolleranze di forma del lavoro (µm)</div>
       <div class="field-row"><div><label>Conicità ok ≤ µm</label><input id="sConOk" inputmode="decimal" value="${esc(fmtUm(L.conOk))}"/></div><div><label>Conicità max µm</label><input id="sConMax" inputmode="decimal" value="${esc(fmtUm(L.conMax))}"/></div></div>
       <div class="field-row"><div><label>Ovalità ok ≤ µm</label><input id="sOvOk" inputmode="decimal" value="${esc(fmtUm(L.ovalOk))}"/></div><div><label>Ovalità max µm</label><input id="sOvMax" inputmode="decimal" value="${esc(fmtUm(L.ovalMax))}"/></div></div>
@@ -2179,11 +2182,9 @@
       <div><label>Fascia consigliata µm</label><div style="display:flex;gap:6px"><input id="sFLo" inputmode="decimal" placeholder="da" value="${s.fasciaLo != null ? esc(fmtUm(s.fasciaLo)) : ''}"/><input id="sFHi" inputmode="decimal" placeholder="a" value="${s.fasciaHi != null ? esc(fmtUm(s.fasciaHi)) : ''}"/></div></div></div>
       <div class="field-row"><div><label>Femmina fissa mm <small>(vuoto = no)</small></label><input id="sFixF" inputmode="decimal" placeholder="es. 10,009" value="${s.fixedF != null ? esc(fmtMm4(s.fixedF)) : ''}"/></div>
       <div><label class="chk-big" style="margin-top:22px"><input type="checkbox" id="sForma" ${s.forma === false ? '' : 'checked'}/><span>Controlla ovalità/conicità</span></label></div></div>
-      ${id ? '<p class="meta" id="sHistNote">Le misure già salvate tengono le quote di quando sono state fatte: modificare qui non le ricalcola.</p>' : ''}
-      <label>Lotto / codice</label><input id="sLotto" value="${esc(s.lotto || '')}"/>
       <div class="field-row"><div><label>Codice disegno</label><input id="sCod" value="${esc(s.codice || '')}" maxlength="40" placeholder="es. 12345-A"/></div><div><label>Revisione</label><input id="sRev" value="${esc(s.rev || '')}" maxlength="12" placeholder="es. B"/></div></div>
       <label>Lavorazione / operazione</label><input id="sLav" value="${esc(s.lav || '')}" maxlength="40" placeholder="es. 0522"/>
-      <label>Note</label><textarea id="sNotes">${esc(s.notes || '')}</textarea>
+      <label>Note</label><textarea id="sNotes">${esc(s.notes || '')}</textarea></details>
       <div id="sErr" class="form-err hidden"></div>
       <div class="actions" style="margin-top:10px"><button type="button" class="btn btn-sec" id="sCancel" style="flex:1">Annulla</button>
       <button type="button" class="btn btn-teal" id="sSave" style="flex:1">Salva</button></div>
@@ -2193,7 +2194,7 @@
     const serPhoto = (mode) => { unlockedSess.clear(); pendingFem = false; pendingInt = false; pendingJob = { machineName: (myMachine() || {}).name || '', seriesOnly: true }; $('modalRoot').innerHTML = ''; openFoto(mode); };
     if ($('sPhoto')) { $('sPhoto').onclick = () => { haptic(12); serPhoto('camera'); }; $('sGallery').onclick = () => { haptic(12); serPhoto('gallery'); }; }
     if ($('sPreset10')) $('sPreset10').onclick = () => { const p = presetCorpoSpillo10(); $('sBase').value = '10,000'; $('sTol').value = '0,1'; $('sGmin').value = p.giocoMin; $('sGmax').value = p.giocoMax;
-      $('sObj').value = p.obiettivo; $('sFLo').value = p.fasciaLo; $('sFHi').value = p.fasciaHi; $('sForma').checked = false; $('sLotto').value = p.lotto; $('sNotes').value = p.notes; haptic(15); toast('Preset Corpo/Spillo Ø10: controlla e Salva'); };
+      $('sObj').value = p.obiettivo; $('sFLo').value = p.fasciaLo; $('sFHi').value = p.fasciaHi; $('sForma').checked = false; $('sLotto').value = p.lotto; $('sNotes').value = p.notes; $('sMore').open = true; haptic(15); toast('Preset Corpo/Spillo Ø10: controlla e Salva'); };
     if ($('sDelete')) $('sDelete').onclick = () => { haptic(15); openSeriesDelete(id); };
     // Beta 0.9.0: locked series (PIN) – fields read-only until the PIN is typed (protection against mistakes)
     const lockedUI = !!(id && lockedNow(s) && !unlockedSess.has(id));
@@ -2208,13 +2209,13 @@
       if (!v.ok) { const er = $('sErr'); er.textContent = v.error; er.classList.remove('hidden'); haptic(60); return; }
       const nv = (id2) => { const x = Number(String($(id2).value).replace(',', '.')); return Number.isFinite(x) && x >= 0 && x <= 50 ? x : null; };
       const lim = { conOk: nv('sConOk'), conMax: nv('sConMax'), ovalOk: nv('sOvOk'), ovalMax: nv('sOvMax') };
-      if (Object.values(lim).some((x) => x == null) || lim.conMax < lim.conOk || lim.ovalMax < lim.ovalOk) { const er = $('sErr'); er.textContent = 'Tolleranze di forma non valide: numeri in µm, max ≥ ok (es. 2 e 3)'; er.classList.remove('hidden'); haptic(60); return; }
+      if (Object.values(lim).some((x) => x == null) || lim.conMax < lim.conOk || lim.ovalMax < lim.ovalOk) { $('sMore').open = true; const er = $('sErr'); er.textContent = 'Tolleranze di forma non valide: numeri in µm, max ≥ ok (es. 2 e 3)'; er.classList.remove('hidden'); haptic(60); return; }
       const gT = (id4) => String($(id4).value).trim(), gC = gT('sCirc'), gY = gT('sCyl'), geo = { circ: gC ? QT.geoUm(gC) : null, cyl: gY ? QT.geoUm(gY) : null };
-      if ((gC && geo.circ == null) || (gY && geo.cyl == null)) { const er = $('sErr'); er.textContent = 'Circolarità / cilindricità: scrivi il valore del riquadro (es. 0,003 mm o 3 µm)'; er.classList.remove('hidden'); haptic(60); return; }
+      if ((gC && geo.circ == null) || (gY && geo.cyl == null)) { $('sMore').open = true; const er = $('sErr'); er.textContent = 'Circolarità / cilindricità: scrivi il valore del riquadro (es. 0,003 mm o 3 µm)'; er.classList.remove('hidden'); haptic(60); return; }
       const mid = myMachine() ? myMachine().id : null;
       const on = (id3) => { const t = String($(id3).value).trim(); if (!t) return null; const x = Number(t.replace(',', '.')); return Number.isFinite(x) && x >= 0 && x <= 100 ? x : NaN; };
       const obiettivo = on('sObj'), fasciaLo = on('sFLo'), fasciaHi = on('sFHi'), fxT = String($('sFixF').value).trim(), fixedF = fxT ? parseMmNumber(fxT) : null;
-      if ([obiettivo, fasciaLo, fasciaHi].some((x) => Number.isNaN(x)) || (fxT && fixedF == null)) { const er = $('sErr'); er.textContent = 'Obiettivo / fascia in µm (es. 20 e 20–25), femmina fissa in mm (es. 10,009)'; er.classList.remove('hidden'); haptic(60); return; }
+      if ([obiettivo, fasciaLo, fasciaHi].some((x) => Number.isNaN(x)) || (fxT && fixedF == null)) { $('sMore').open = true; const er = $('sErr'); er.textContent = 'Obiettivo / fascia in µm (es. 20 e 20–25), femmina fissa in mm (es. 10,009)'; er.classList.remove('hidden'); haptic(60); return; }
       const payload = Object.assign({ lim, geo: geo.circ != null || geo.cyl != null ? geo : null, obiettivo, fasciaLo, fasciaHi, fixedF: fixedF != null ? round4(fixedF) : null, forma: $('sForma').checked ? true : false, machineId: mid, name: 'Base ' + fmtMm3(v.value.base), lotto: $('sLotto').value.trim(), codice: $('sCod').value.trim().slice(0, 40), rev: $('sRev').value.trim().slice(0, 12), lav: $('sLav').value.trim().slice(0, 40), notes: $('sNotes').value }, v.value);
       let sid = id;
       if (id) Object.assign(seriesById(id), payload);
