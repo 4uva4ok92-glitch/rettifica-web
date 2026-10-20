@@ -6,7 +6,7 @@
   const CLEAN_KEY = 'rweb_clean_206';       // v2.0.6 one-time clean start done
   const BACKUP_KEY = 'rweb_backup_pre206';
   const BACKUPS_KEY = 'rweb_backups';           // Beta 0.1.0: last 5 automatic backups (before migration / import / wipe)
-  const APP_VERSION = '0.9.6';
+  const APP_VERSION = '0.9.7';
   /** Beta 0.1.0: automatic local backup; also kept as the «hidden restore» backup (Setup). */
   function autoBackup(why, rawData, rawPrefs) {
     try {
@@ -3278,10 +3278,32 @@
   }
 
   function shareFile(filename, content, mime) {
-    try { if (window.RettificaAndroid && RettificaAndroid.shareText) { RettificaAndroid.shareText(filename, content); return; } } catch (e) {}
-    const blob = new Blob([content], { type: mime });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-    toast('File creato: ' + filename);
+    const isBackup = /^rettifica-beta-backup/.test(filename);
+    const done = () => {
+      if (!isBackup) return;
+      try { localStorage.setItem('rweb_lastBackup', String(Date.now())); } catch (e) {}
+      try { window.dispatchEvent(new Event('rweb-backup-done')); } catch (e) {}
+    };
+    try { if (window.RettificaAndroid && RettificaAndroid.shareText) { RettificaAndroid.shareText(filename, content); done(); return; } } catch (e) {} // APK: the share sheet opened
+    const download = () => {
+      const blob = new Blob([content], { type: mime });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      toast('File creato: ' + filename); done();
+    };
+    // 0.9.2 web: on the phone open the share sheet (Drive, WhatsApp, email…) instead of a download hidden in a folder
+    try {
+      const touch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+      if (touch && navigator.share && navigator.canShare && typeof File !== 'undefined') {
+        const file = new File([content], filename, { type: mime });
+        if (navigator.canShare({ files: [file] })) {
+          navigator.share({ files: [file], title: filename })
+            .then(() => { toast('Inviato: ' + filename); done(); })
+            .catch((e) => { if (!e || e.name !== 'AbortError') download(); });
+          return;
+        }
+      }
+    } catch (e) {}
+    download();
   }
   $('btnExport').addEventListener('click', () => {
     shareFile('rettifica-beta-backup-' + todayKey() + '.json', JSON.stringify(wrapBackup(state, APP_VERSION, new Date().toISOString()), null, 2), 'application/json');

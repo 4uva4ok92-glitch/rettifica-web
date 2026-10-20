@@ -165,6 +165,13 @@ function parseMisura(raw, base, tolleranza) {
     const tol = tolleranza != null && tolleranza > 0 ? tolleranza : 0.1;
     if (delta > tol) {
       warning = `Misura incoerente con la base ${fmtMm(base)}, controlla`;
+      // 0.9.2: most common slip at the machine = the leading 0 after the comma is missing (10,12 meant 10,012)
+      const vsZ = String(value);
+      const dot = vsZ.indexOf('.');
+      if (dot > 0 && vsZ.length - dot - 1 >= 2 && vsZ.length - dot - 1 <= 3) {
+        const z = parseFloat(vsZ.slice(0, dot + 1) + '0' + vsZ.slice(dot + 1));
+        if (Math.abs(z - base) <= tol && Math.abs(z - value) > 1e-9) return { value, warning, suggestion: round4(z) };
+      }
       // v1.9.4: first try the same decimals with the whole number next to the base (22,9966 → 21,9966)
       const frac4 = Math.round((value - Math.floor(value)) * 10000) / 10000;
       const bi0 = Math.floor(base);
