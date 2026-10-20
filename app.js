@@ -6,7 +6,7 @@
   const CLEAN_KEY = 'rweb_clean_206';       // v2.0.6 one-time clean start done
   const BACKUP_KEY = 'rweb_backup_pre206';
   const BACKUPS_KEY = 'rweb_backups';           // Beta 0.1.0: last 5 automatic backups (before migration / import / wipe)
-  const APP_VERSION = '0.9.4';
+  const APP_VERSION = '0.9.3';
   /** Beta 0.1.0: automatic local backup; also kept as the «hidden restore» backup (Setup). */
   function autoBackup(why, rawData, rawPrefs) {
     try {
@@ -174,8 +174,7 @@
   let undoFn = null; // v2.0.3: generic undo (job / machine / series delete); null → undo of the last save
 
   /* ---------- v1.9.6: Lavori (jobs) ---------- */
-  let pendingJob = null; // { machineName, seriesOnly? } while «Nuovo lavoro» (or «Nuova serie» from the photo) waits for the photo
-  const pjCancelMsg = () => (pendingJob && pendingJob.seriesOnly ? 'Nuova serie annullata' : 'Nuovo lavoro annullato');
+  let pendingJob = null; // { machineName } while «Nuovo lavoro» waits for the photo
   function activeJob() { return (state.jobs || []).find((j) => j.id === prefs.jobId) || null; }
   /** Keep the active job in sync with the context in use (machine name, knob k, series). */
   function captureJob(touch) {
@@ -532,7 +531,6 @@
       b.classList.toggle('on', b.dataset.page === name || b.dataset.page === map[name]);
     });
     const page = $('page-' + name); if (page) page.classList.add('active');
-    if (prefs.lastPage !== name) { prefs.lastPage = name; savePrefs(prefs); } // Beta 0.9.4: reopen «Controllo quota» after a restart
     document.body.dataset.page = name; // v2.0.6: the undo bar leaves the ← of «Adatta alla femmina» free
     if (!prevActive || prevActive !== page) $('mainWrap').scrollTop = 0; // v1.9.4: new page opens at the top
     if (name === 'calc') { renderEmpty(); updateChip(); updatePrefix(); refreshDisplay(); renderRecent(); }
@@ -2158,9 +2156,7 @@
     const s = id ? seriesById(id) : { lotto: '', base: '', tolleranza: 0.1, giocoMin: 10, giocoMax: 13, notes: '', history: [], stock: {} };
     if (!s) return;
     $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal"><h2>${id ? 'Modifica quote' : 'Nuova serie'}</h2>
-      ${id ? '' : `<button type="button" class="btn-job wide" id="sPhoto"><span class="ji">📷</span><span><b>Foto del foglio</b><small>Legge base, tolleranza, gioco, codice e lotto (come Nuovo lavoro)</small></span></button>
-      <button type="button" class="btn btn-sec src-gal" id="sGallery" style="width:100%;margin:8px 0 10px;min-height:52px">🖼 Dalla galleria <small>(foto già fatta)</small></button>
-      <button type="button" class="btn btn-sec preset-btn" id="sPreset10">⚡ Preset Corpo/Spillo Ø10 (gioco 10–30, obiettivo 20)</button>`}
+      ${id ? '' : '<button type="button" class="btn btn-sec preset-btn" id="sPreset10">⚡ Preset Corpo/Spillo Ø10 (gioco 10–30, obiettivo 20)</button>'}
       <div class="field-row"><div><label>Base mm</label><input id="sBase" inputmode="decimal" placeholder="es. 24,600" value="${s.base === '' ? '' : esc(String(s.base).replace('.', ','))}"/></div>
       <div><label>Tol ± mm</label><input id="sTol" inputmode="decimal" placeholder="0,1" value="${s.tolleranza != null ? esc(String(s.tolleranza).replace('.', ',')) : ''}"/></div></div>
       <div class="field-row"><div><label>Gioco min µm</label><input id="sGmin" inputmode="numeric" value="${s.giocoMin}"/></div>
@@ -2186,9 +2182,6 @@
       <button type="button" class="btn btn-teal" id="sSave" style="flex:1">Salva</button></div>
       ${id ? `<button type="button" class="btn btn-danger del-btn" id="sDelete">${TRASH}<span>Elimina serie</span></button>` : ''}</div></div>`;
     $('sCancel').onclick = () => { unlockedSess.clear(); $('modalRoot').innerHTML = ''; };
-    // «Nuova serie» from the sheet photo: same reading as «Nuovo lavoro», but only the series is saved (no new job)
-    const serPhoto = (mode) => { unlockedSess.clear(); pendingFem = false; pendingInt = false; pendingJob = { machineName: (myMachine() || {}).name || '', seriesOnly: true }; $('modalRoot').innerHTML = ''; openFoto(mode); };
-    if ($('sPhoto')) { $('sPhoto').onclick = () => { haptic(12); serPhoto('camera'); }; $('sGallery').onclick = () => { haptic(12); serPhoto('gallery'); }; }
     if ($('sPreset10')) $('sPreset10').onclick = () => { const p = presetCorpoSpillo10(); $('sBase').value = '10,000'; $('sTol').value = '0,1'; $('sGmin').value = p.giocoMin; $('sGmax').value = p.giocoMax;
       $('sObj').value = p.obiettivo; $('sFLo').value = p.fasciaLo; $('sFHi').value = p.fasciaHi; $('sForma').checked = false; $('sLotto').value = p.lotto; $('sNotes').value = p.notes; haptic(15); toast('Preset Corpo/Spillo Ø10: controlla e Salva'); };
     if ($('sDelete')) $('sDelete').onclick = () => { haptic(15); openSeriesDelete(id); };
@@ -2615,13 +2608,13 @@
   function cancelCrop() {
     closeCrop(); lastPhoto = null;
     try { if (window.RettificaAndroid && RettificaAndroid.ocrCancel) RettificaAndroid.ocrCancel(); } catch (e) {}
-    pendingFem = false; pendingInt = false; if (pendingJob) { toast(pjCancelMsg()); pendingJob = null; } else toast('Foto annullata');
+    pendingFem = false; pendingInt = false; if (pendingJob) { pendingJob = null; toast('Nuovo lavoro annullato'); } else toast('Foto annullata');
   }
   function openCrop(photo, startBox) {
     lastPhoto = photo;
     const box = Object.assign(FULL_BOX(), startBox || {});
     $('cropRoot').innerHTML = `<div class="crop-bg" id="cropBg" role="dialog" aria-label="Ritaglio foto">
-      <div class="crop-head"><h2>${pendingJob ? (pendingJob.seriesOnly ? 'Nuova serie' : 'Nuovo lavoro') + ' · ritaglio' : 'Scegli cosa leggere'}</h2>
+      <div class="crop-head"><h2>${pendingJob ? 'Nuovo lavoro · ritaglio' : 'Scegli cosa leggere'}</h2>
       <p class="crop-hint" id="cropHint">Trascina gli angoli sulle righe <b>F1A · S1A · G1A</b> (etichette e valori). Lascia fuori barre e «Buono». Per tutta la foto tocca subito <b>Leggi</b>.</p></div>
       <div class="crop-stage" id="cropStage"><img id="cropImg" alt="Foto da leggere" draggable="false"/>
         <div class="crop-box" id="cropBox"><div class="crop-guide" id="cropGuide"><i class="gl" style="top:33.3%"></i><i class="gl" style="top:66.6%"></i>
@@ -2705,7 +2698,7 @@
   // (activity killed) still routes the result correctly; stale flags never survive a new Calcolo photo.
   const PURPOSE_KEY = 'rweb_photo_purpose';
   function savePhotoPurpose() {
-    const p = pendingJob ? (pendingJob.seriesOnly ? 'serie' : 'job') : pendingInt ? 'int' : pendingFem ? 'fem' : 'calc';
+    const p = pendingJob ? 'job' : pendingInt ? 'int' : pendingFem ? 'fem' : 'calc';
     try { localStorage.setItem(PURPOSE_KEY, JSON.stringify({ p, machineName: pendingJob ? pendingJob.machineName : null, t: Date.now() })); } catch (e) {}
   }
   function clearPhotoPurpose() { try { localStorage.removeItem(PURPOSE_KEY); } catch (e) {} }
@@ -2713,7 +2706,6 @@
     let o = null; try { o = JSON.parse(localStorage.getItem(PURPOSE_KEY) || 'null'); } catch (e) {}
     if (!o || !(Date.now() - o.t < 20 * 60 * 1000)) { clearPhotoPurpose(); return; }
     if (o.p === 'job') pendingJob = { machineName: o.machineName };
-    else if (o.p === 'serie') pendingJob = { machineName: o.machineName, seriesOnly: true };
     else if (o.p === 'int') pendingInt = true;
     else if (o.p === 'fem') pendingFem = true;
   }
@@ -2760,21 +2752,19 @@
     const v = (x, fmt) => (x == null ? '' : esc(fmt ? fmt(x) : String(x)));
     const fld = (id, label, val, mode, ph, cls) => `<div class="js-f"><label for="${id}">${label}</label><input id="${id}" class="big-input cond${val === '' ? ' empty' : ''}${cls ? ' ' + cls : ''}" inputmode="${mode}" value="${val}" placeholder="${esc(ph || '')}" autocomplete="off"/></div>`;
     const tolStr = (t) => fmtMm3(t).replace(/0+$/, '').replace(/,$/, ',0');
-    const serOnly = !!(pendingJob && pendingJob.seriesOnly); // «Nuova serie» from the photo: same sheet reading, no job
     $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal job-setup" id="jobSetup">
-      <h2>${serOnly ? 'Nuova serie' : 'Nuovo lavoro'} · dati dal foglio</h2>
-      <p class="meta js-sub">${serOnly ? 'Controlla e correggi base, tolleranza e gioco: servono per la serie. Il lavoro in corso non cambia.' : 'Controlla e correggi. Se un campo è vuoto scrivilo tu (o lascialo vuoto). Nessun calcolo qui: dopo scrivi le misure dei pezzi.'}</p>
-      ${serOnly ? `<input type="hidden" id="jsMach" value="${v(f.machineName)}"/>` : fld('jsMach', 'Macchina', v(f.machineName), 'text', 'es. S33 O060')}
+      <h2>Nuovo lavoro · dati dal foglio</h2>
+      <p class="meta js-sub">Controlla e correggi. Se un campo è vuoto scrivilo tu (o lascialo vuoto). Nessun calcolo qui: dopo scrivi le misure dei pezzi.</p>
+      ${fld('jsMach', 'Macchina', v(f.machineName), 'text', 'es. S33 O060')}
       <div class="field-row">${fld('jsBase', 'Nominale / base mm', v(f.base, fmtMm3), 'decimal', 'es. 18,000')}${fld('jsTol', 'Tolleranza ± mm', v(f.tol, tolStr), 'decimal', '0,1')}</div>
       ${f.base == null && f.baseGuess != null ? `<button type="button" class="chip js-guess" id="jsGuess">Usa base ${esc(fmtMm3(f.baseGuess))}? <small>(dalla misura letta)</small></button>` : ''}
       <label class="js-gl">Gioco µm (riga G)</label>
       <div class="field-row">${fld('jsGmin', 'min', v(f.gmin), 'numeric', 'es. 8')}${fld('jsGmax', 'max', v(f.gmax), 'numeric', 'es. 11')}</div>
       <div class="field-row">${fld('jsCod', 'Codice', v(f.codice), 'text', '')}${fld('jsLotto', 'Lotto', v(f.lotto), 'text', '')}</div>
       <div class="meta js-plan" id="jsPlan"></div>
-      <div id="jsErr" class="form-err hidden"></div>
       ${lastPhoto ? '<button type="button" class="btn btn-sec js-recrop" id="jsRecrop">✂ Ritaglia di nuovo</button>' : ''}
       <div class="actions js-act"><button type="button" class="btn btn-sec" id="jsCancel">Annulla</button>
-      <button type="button" class="btn btn-primary" id="jsSave">${serOnly ? '✓ Salva serie' : '✓ Salva lavoro'}</button></div></div></div>`;
+      <button type="button" class="btn btn-primary" id="jsSave">✓ Salva lavoro</button></div></div></div>`;
     const read = () => ({ machineName: $('jsMach').value.replace(/\s+/g, ' ').trim(), base: setupNum($('jsBase').value), tol: (() => { const t = setupNum($('jsTol').value); return t != null && t > 0 && t < 5 ? t : null; })(),
       gmin: setupInt($('jsGmin').value), gmax: setupInt($('jsGmax').value), codice: $('jsCod').value.trim(), lotto: $('jsLotto').value.trim() });
     const showPlan = () => {
@@ -2782,7 +2772,6 @@
       document.querySelectorAll('#jobSetup .big-input').forEach((i) => i.classList.toggle('empty', !i.value.trim()));
       el.textContent = pl.action === 'create' ? `Nuova serie Base ${fmtMm3(pl.base)} · gioco ${pl.gioco.min}–${pl.gioco.max} µm · tol ±${tolStr(pl.tol)}`
         : pl.action === 'use' ? `Serie Base ${fmtMm3(pl.base)}${pl.gioco ? ' · gioco ' + pl.gioco.min + '–' + pl.gioco.max + ' µm' : ' · gioco ' + pl.series.giocoMin + '–' + pl.series.giocoMax + ' µm'}${pl.changes ? ' (aggiornata dal foglio)' : ''}`
-        : serOnly ? (pl.reason === 'base' ? 'Scrivi la base (mm) della serie.' : 'Scrivi gioco min e max (µm) della serie.')
         : pl.reason === 'base' ? 'Base vuota: la scegli dopo in Calcolo (serie).' : 'Gioco vuoto: lo completi dopo in Calcolo (serie).';
     };
     document.querySelectorAll('#jobSetup input').forEach((i) => i.addEventListener('input', showPlan));
@@ -2791,16 +2780,15 @@
       document.querySelectorAll('#jobSetup [data-jslav]').forEach((x) => x.classList.toggle('on', x === b)); }; });
     if ($('jsGuess')) $('jsGuess').onclick = () => { $('jsBase').value = fmtMm3(f.baseGuess); $('jsGuess').remove(); showPlan(); };
     showPlan();
-    const cancel = () => { $('modalRoot').innerHTML = ''; lastPhoto = null; try { if (window.RettificaAndroid && RettificaAndroid.ocrCancel) RettificaAndroid.ocrCancel(); } catch (e) {} toast(pjCancelMsg()); pendingJob = null; };
+    const cancel = () => { $('modalRoot').innerHTML = ''; lastPhoto = null; try { if (window.RettificaAndroid && RettificaAndroid.ocrCancel) RettificaAndroid.ocrCancel(); } catch (e) {} pendingJob = null; toast('Nuovo lavoro annullato'); };
     $('jsCancel').onclick = cancel;
     if ($('jsRecrop')) $('jsRecrop').onclick = () => { $('modalRoot').innerHTML = ''; if (lastPhoto) openCrop(lastPhoto, lastPhoto.box); };
     $('jsSave').onclick = () => {
       haptic(20);
       const r = read(); const pl = planJobSetup(state.series, r);
-      if (serOnly && pl.action !== 'create' && pl.action !== 'use') { const er = $('jsErr'); er.textContent = pl.reason === 'base' ? 'Scrivi la base (mm): serve per la serie.' : 'Scrivi gioco min e max (µm): servono per la serie.'; er.classList.remove('hidden'); haptic(60); return; }
       let ser = null, note = '';
       if (pl.action === 'create') {
-        ser = { id: uid(), machineId: myMachine() ? myMachine().id : null, name: 'Base ' + fmtMm3(pl.base), lotto: r.lotto, notes: serOnly ? 'Creata dal foglio (Nuova serie)' : 'Creata dal foglio (Nuovo lavoro)',
+        ser = { id: uid(), machineId: myMachine() ? myMachine().id : null, name: 'Base ' + fmtMm3(pl.base), lotto: r.lotto, notes: 'Creata dal foglio (Nuovo lavoro)',
           base: pl.base, tolleranza: pl.tol, giocoMin: pl.gioco.min, giocoMax: pl.gioco.max, history: [], stock: {} };
         state.series.push(ser); note = 'Nuova serie Base ' + fmtMm3(ser.base);
       } else if (pl.action === 'use') {
@@ -2808,13 +2796,6 @@
         if (lockedNow(ser)) { if (pl.gioco || pl.tol != null) toast('Serie bloccata dal PIN: quote non cambiate', 'warn'); } else {
         if (pl.gioco) { ser.giocoMin = pl.gioco.min; ser.giocoMax = pl.gioco.max; }
         if (pl.tol != null) ser.tolleranza = pl.tol; }
-      }
-      if (serOnly) {
-        if (pl.action === 'create' && r.codice) ser.codice = r.codice.slice(0, 40);
-        pendingJob = null; lastPhoto = null; saveData(state); $('modalRoot').innerHTML = '';
-        setContext(null, ser.id, false); fillSetupSelects(); renderSeriesIfOpen(); newMeasure(); showPage('calc');
-        toast(`${pl.action === 'create' ? 'Nuova serie' : 'Serie'} Base ${fmtMm3(ser.base)} · gioco ${ser.giocoMin}–${ser.giocoMax} µm · scrivi la misura`);
-        return;
       }
       const name = r.machineName || (pendingJob && pendingJob.machineName) || (myMachine() || {}).name || 'Macchina';
       pendingJob = null; lastPhoto = null;
@@ -2989,7 +2970,7 @@
     $('ocrS').addEventListener('input', checkPlaus); $('ocrF').addEventListener('input', checkPlaus);
     refreshGSave(); checkPlaus();
     if (plan.action === 'block' && S != null) warn(esc(plan.note));
-    $('ocrCancel').onclick = () => { $('modalRoot').innerHTML = ''; lastPhoto = null; try { if (window.RettificaAndroid && RettificaAndroid.ocrCancel) RettificaAndroid.ocrCancel(); } catch (e) {} if (pendingJob) { toast(pjCancelMsg()); pendingJob = null; } };
+    $('ocrCancel').onclick = () => { $('modalRoot').innerHTML = ''; lastPhoto = null; try { if (window.RettificaAndroid && RettificaAndroid.ocrCancel) RettificaAndroid.ocrCancel(); } catch (e) {} if (pendingJob) { pendingJob = null; toast('Nuovo lavoro annullato'); } };
     if ($('ocrRotate')) $('ocrRotate').onclick = () => { haptic(12); rotateReread(); };
     if ($('ocrRecrop')) $('ocrRecrop').onclick = () => { $('modalRoot').innerHTML = ''; if (lastPhoto) openCrop(lastPhoto, lastPhoto.box); };
     $('ocrGo').onclick = () => {
@@ -3183,7 +3164,7 @@
     const seriesOpts = (near ? '' : `<option value="${NEW}" selected>＋ Nuova serie «${esc(fm.name || 'dal foglio')}»</option>`) + state.series.map((s) => `<option value="${esc(s.id)}" ${near && near.id === s.id ? 'selected' : ''}>${esc(s.name || 'Base ' + fmtMm3(s.base))} · Base ${fmtMm3(s.base)} · gioco ${s.giocoMin}–${s.giocoMax}</option>`).join('');
     const cfgAi = AI ? AI.cfgOf(prefs) : null, whyAi = !AI ? 'AI non disponibile' : (!cfgAi.vision ? cfgAi.label + ' non legge le foto: scegli Gemini, OpenRouter, Qwen o xAI in Setup' : (!AI.hasKey(cfgAi.provider) ? 'Manca la chiave API (Setup → Intelligenza artificiale)' : ''));
     $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal ocr-confirm sheet-confirm" id="sheetConfirm">
-      <h2>${pendingJob ? (pendingJob.seriesOnly ? 'Nuova serie · ' : 'Nuovo lavoro · ') : ''}Foglio disegno · conferma</h2>
+      <h2>${pendingJob ? 'Nuovo lavoro · ' : ''}Foglio disegno · conferma</h2>
       <div class="ocr-sum" id="shSum">
         <div>Macchina <b>${esc((pendingJob && pendingJob.machineName) || (mNow && mNow.name) || '—')}</b> · Lavoro <b>${esc(jNow ? (jNow.name || jNow.machineName || '—') : 'nessuno')}</b></div>
         <div>Letto ${sheet.source === 'ai' ? 'con <b>AI</b>' : sheet.source === 'testo' ? 'dal <b>testo</b>' : 'con <b>lettura offline</b>'}${sheet.rotation ? ' · foto girata di ' + sheet.rotation + '°' : ''}</div>
@@ -3233,7 +3214,7 @@
     $('shSwap').onclick = () => { haptic(12); ['Name', 'Nom', 'Up', 'Lo', 'In'].forEach((s) => { const a = $('shF' + s), b = $('shS' + s), t = a.value; a.value = b.value; b.value = t; }); refresh(); };
     refresh();
     const close = () => { $('modalRoot').innerHTML = ''; };
-    $('shCancel').onclick = () => { close(); lastPhoto = null; try { if (window.RettificaAndroid && RettificaAndroid.ocrCancel) RettificaAndroid.ocrCancel(); } catch (e) {} if (pendingJob) { toast(pjCancelMsg()); pendingJob = null; } };
+    $('shCancel').onclick = () => { close(); lastPhoto = null; try { if (window.RettificaAndroid && RettificaAndroid.ocrCancel) RettificaAndroid.ocrCancel(); } catch (e) {} if (pendingJob) { pendingJob = null; toast('Nuovo lavoro annullato'); } };
     if ($('shRotate')) $('shRotate').onclick = () => { haptic(12); rotateReread(); };
     if ($('shAi')) $('shAi').onclick = async () => {
       const btn = $('shAi'); if (btn.classList.contains('off')) { toast(btn.dataset.why || 'Non disponibile', 'warn'); return; }
@@ -3264,7 +3245,6 @@
         if (r.notes && !String(ser.notes || '').includes(r.notes)) ser.notes = (ser.notes ? ser.notes + '\n' : '') + r.notes;
       } else if (!$('shApplyBox').classList.contains('hidden')) jobOnly = true;
       saveData(state);
-      if (pendingJob && pendingJob.seriesOnly) pendingJob = null; // «Nuova serie» from the photo: no job
       if (pendingJob) { const j = startJob({ machineName: pendingJob.machineName, series: ser, codice: '', lotto: '' }); pendingJob = null; note = (note ? note + ' · ' : '') + 'Lavoro: ' + j.machineName; }
       setContext(null, ser.id, false);
       if (jobOnly) { const jj = activeJob(); if (jj) { jj.giocoOv = { seriesId: ser.id, min: gmin, max: gmax }; saveData(state); note = `Gioco ${gmin}–${gmax} µm solo per questo lavoro (la serie resta ${ser.giocoMin}–${ser.giocoMax})`; } else note = `Gioco ${gmin}–${gmax} µm: serve un lavoro attivo per applicarlo solo a questo lavoro`; }
@@ -3388,14 +3368,11 @@
     const none = !state.series.length;
     iv.classList.toggle('is-empty', none);
     el.classList.toggle('hidden', !none);
-    const qb = $('emQuota'), qc = none && qtCur(); // Beta 0.9.4: a saved Controllo quota is never «lost» behind the welcome card
-    if (qb) { qb.classList.toggle('hidden', !qc); if (qc) $('emQuotaTxt').textContent = qc.nome + ' · ' + (qc.quote || []).length + ' ' + ((qc.quote || []).length === 1 ? 'quota' : 'quote') + (qtList().length > 1 ? ' · altri ' + (qtList().length - 1) : ''); }
     if (none) $('actBar').classList.add('hidden');
     fitPads();
   }
   $('emNewJob').addEventListener('click', () => { haptic(12); openNewJob(); });
   $('emAddBase').addEventListener('click', () => { haptic(12); openSeriesModal(null); });
-  $('emQuota').addEventListener('click', () => { haptic(12); openQuota(); });
 
   // ── Beta 0.5.0: AI (Assistente + Leggi foto con AI). The AI never computes: the app's numbers are shown, the AI explains. ──
   const AI = window.RettificaAI;
@@ -4212,10 +4189,6 @@
 
   /* ───────── Beta 0.9.1–0.9.2: Controllo quota (lavoro senza accoppiamento: DENTRO / FUORI per quota) ───────── */
   const qS = { buf: '', sel: null, vals: {}, ctl: null, lock: false, live: { spoken: null, haptic: null } };
-  // Beta 0.9.4: the piece being measured survives leaving the page or a reloaded WebView (app closed, camera, Back)
-  const QT_DRAFT_KEY = 'rweb_quota_draft';
-  (function qtLoadDraft() { try { const d = JSON.parse(localStorage.getItem(QT_DRAFT_KEY) || 'null'); if (d && d.ctl && d.vals && typeof d.vals === 'object') { qS.ctl = d.ctl; qS.vals = d.vals; qS.sel = d.sel || null; qS.buf = typeof d.buf === 'string' ? d.buf.slice(0, 12) : ''; } } catch (e) {} })();
-  function qtSaveDraft() { try { if (qS.ctl && (Object.keys(qS.vals).length || qS.buf)) localStorage.setItem(QT_DRAFT_KEY, JSON.stringify({ ctl: qS.ctl, vals: qS.vals, sel: qS.sel, buf: qS.buf })); else localStorage.removeItem(QT_DRAFT_KEY); } catch (e) {} }
   const qtUnlocked = new Set();
   const numTxt = (x) => (x == null ? '' : String(x).replace('.', ','));
   function qtList() { if (!Array.isArray(state.controlli)) state.controlli = []; return state.controlli; }
@@ -4305,7 +4278,7 @@
     const nextQ = (() => { const i = c.quote.findIndex((x) => x.id === q.id); for (let k = 1; k <= c.quote.length; k++) { const n = c.quote[(i + k) % c.quote.length]; if (n.id !== q.id && qS.vals[n.id] == null) return n; } return null; })();
     go.innerHTML = typed ? `<span>→</span>OK<small>${nextQ ? 'prossima quota' : 'conferma'}</small>` : `<span>✓</span>SALVA<small>pezzo</small>`;
     go.classList.toggle('off', !ok);
-    qtSaveDraft(); fitPads();
+    fitPads();
   }
   function qtKey(k) {
     haptic(10); const c = qtCur(); if (!c || !(c.quote || []).length) return;
@@ -4589,8 +4562,6 @@
   initJobs();
   const ctx = currentContext();
   if (ctx.series) setContext(null, ctx.series.id, false);
-  const lastPage0 = prefs.lastPage;
   showPage('calc'); showInputView(); refreshDisplay(); renderRecent();
-  if (lastPage0 === 'quota' && qtCur()) showPage('quota'); // Beta 0.9.4: the app was closed on Controllo quota → back there
   setTimeout(() => window.__pkgCheck(), 0); // Beta 0.9.0: a package opened from a file / the share sheet
 })();

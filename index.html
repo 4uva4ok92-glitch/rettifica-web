@@ -703,7 +703,6 @@ html[data-theme="light"] .photo-note{color:#1f2937}
 .btn-job b{display:block;font-size:17px;font-weight:800}
 .btn-job small{display:block;font-size:12px;font-weight:600;opacity:.8}
 .btn-job.wide{width:100%;min-height:64px}
-.btn-job.em-quota{background:var(--surface2);color:var(--text);border:2px solid var(--teal);box-shadow:none}
 .job-pill{flex:1;border-radius:18px;min-height:58px}
 .job-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .job-card{display:flex;flex-direction:column;gap:3px;width:100%;min-height:72px;padding:12px 14px;border-radius:16px;border:1px solid var(--line2);background:var(--surface);color:var(--text);text-align:left;font-family:inherit;cursor:pointer}
@@ -1131,7 +1130,6 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
         <h2>Benvenuto 👋</h2>
         <p>Per iniziare serve il lavoro: macchina, base e gioco.</p>
         <button type="button" class="btn-job wide" id="emNewJob"><span class="ji">📷</span><span><b>Nuovo lavoro</b><small>Foto del foglio → dati del lavoro (o a mano)</small></span></button>
-        <button type="button" class="btn-job wide em-quota hidden" id="emQuota" style="margin-top:10px"><span class="ji">📏</span><span><b>Riprendi Controllo quota</b><small id="emQuotaTxt"></small></span></button>
         <button type="button" class="btn btn-sec" id="emAddBase" style="width:100%;min-height:56px;margin-top:10px">+ Aggiungi base a mano</button>
         <p class="meta" style="margin-top:10px">Poi scrivi le misure dei pezzi qui. Guida: tasto <b>?</b> in alto.</p>
       </div>
@@ -1464,7 +1462,7 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
     </div>
     <input type="file" id="importFile" accept="application/json,.json,text/plain" class="hidden"/>
     <button type="button" class="btn btn-danger" id="btnReset" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗑 Azzera tutto</button>
-    <p class="ver">Rettifica Beta v0.9.4 · diametri in mm · giochi e correzioni in µm</p>
+    <p class="ver">Rettifica Beta v0.9.3 · diametri in mm · giochi e correzioni in µm</p>
   </section>
 
   <section class="page" id="page-aiuto">
@@ -1565,8 +1563,6 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
         <img class="g-img" src="guide/g-newjob.jpg" alt="Nuovo lavoro" loading="lazy"/>
         <p class="g-tip">💡 Se la base della foto è nuova (es. 18,000), l'app <b>crea da sola la serie</b> con base, tolleranza e gioco del foglio.</p>
         <p class="g-tip">💡 Senza foto: <b>Nuovo lavoro → Senza foto: scrivo a mano</b> e scegli la serie.</p>
-        <p class="g-tip">💡 <b>Nuova serie dalla foto</b>: Setup → Serie → <b>+ Nuova serie</b> (o <b>+ Aggiungi base a mano</b>) → <b>📷 Foto del foglio</b> / <b>🖼 Dalla galleria</b>. Stessa lettura di Nuovo lavoro (base, tolleranza, gioco, codice, lotto), ma salva solo la serie: il lavoro in corso non cambia.</p>
-        <p class="g-tip">💡 <b>Controllo quota</b>: i controlli e il pezzo che stai misurando restano salvati anche se esci con ← o chiudi l'app. Per tornarci: <b>📏 Riprendi Controllo quota</b> nella schermata Benvenuto, oppure <b>Lavoro ▾ → Controllo quota</b>. Se chiudi l'app mentre sei in Controllo quota, si riapre lì.</p>
         <p class="g-tip">💡 Il bottone <b>📷 leggi S</b> sulla misura invece legge S dalla foto e calcola il pezzo.</p>
         <p class="g-tip">💡 In alto in Calcolo ci sono solo 3 pulsanti: <b>Lavoro ▾</b> (lavori di oggi, nuovo lavoro, macchina), <b>Serie ▾</b> e <b>?</b> (Guida). La voce si accende in Setup; il 🔊 nel risultato ripete il pezzo e la correzione.</p>
         <p><b>Eliminare un lavoro</b>: in <b>Lavori di oggi</b> tocca il cestino 🗑 accanto al lavoro. I pezzi salvati <b>restano</b> nello Storico e nei conteggi del Turno; il bottone rosso <b>Elimina anche i pezzi</b> li cancella. Se elimini il lavoro in corso, l'app passa a un altro lavoro. La taratura della manopola (k) resta, a meno che spunti <b>Elimina anche la taratura</b>. Hai <b>8 secondi</b> per <b>↶ Annulla</b>.</p>
@@ -1739,7 +1735,7 @@ html[data-theme="light"] .dress-banner .db-t{color:#b45309}
         <p><b>Guanti?</b><br/>I tasti sono grandi apposta. Ogni bottone foto (📷 Nuovo lavoro, 📷 leggi S, 📷 in Adatta alla femmina) chiede: <b>📷 Scatta foto</b> oppure <b>🖼 Dalla galleria</b> (una foto già fatta). Poi stesso ritaglio e stessa lettura.</p>
       </details>
     </div>
-    <p class="ver">Rettifica Beta v0.9.4</p>
+    <p class="ver">Rettifica Beta v0.9.3</p>
   </section>
   <section class="page" id="page-macchine">
     <button type="button" class="btn btn-sec" id="btnBackSetup1">← Setup</button>
