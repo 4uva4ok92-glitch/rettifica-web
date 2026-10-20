@@ -6,7 +6,7 @@
   const CLEAN_KEY = 'rweb_clean_206';       // v2.0.6 one-time clean start done
   const BACKUP_KEY = 'rweb_backup_pre206';
   const BACKUPS_KEY = 'rweb_backups';           // Beta 0.1.0: last 5 automatic backups (before migration / import / wipe)
-  const APP_VERSION = '0.9.4';
+  const APP_VERSION = '0.9.5';
   /** Beta 0.1.0: automatic local backup; also kept as the «hidden restore» backup (Setup). */
   function autoBackup(why, rawData, rawPrefs) {
     try {
@@ -1955,6 +1955,9 @@
     const lab = $('themeLabel'); if (lab) lab.textContent = t === 'light' ? 'Chiaro' : 'Scuro';
   }
   $('btnTheme').addEventListener('click', () => { prefs.theme = prefs.theme === 'light' ? 'dark' : 'light'; savePrefs(prefs); applyTheme(); });
+  function updateSplashBtn() { const on = prefs.splash !== false; $('splashLabel').textContent = on ? 'On' : 'Off'; $('splashToggle').classList.toggle('on', on); }
+  $('btnSplash').addEventListener('click', () => { prefs.splash = prefs.splash === false; savePrefs(prefs); updateSplashBtn(); toast(prefs.splash ? 'Logo all\'avvio ON' : 'Logo all\'avvio OFF'); });
+  updateSplashBtn();
   $('btnVoiceAuto').addEventListener('click', () => { prefs.voiceAuto = !prefs.voiceAuto; savePrefs(prefs); updateVoiceBtn(); toast(prefs.voiceAuto ? 'Voce automatica ON' : 'Voce automatica OFF'); });
 
   function fillSetupSelects() {
