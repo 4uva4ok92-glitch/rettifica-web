@@ -1994,6 +1994,7 @@
     const t = prefs.theme === 'light' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', t);
     const lab = $('themeLabel'); if (lab) lab.textContent = t === 'light' ? 'Chiaro' : 'Scuro';
+    try { if (window.RettificaAndroid && RettificaAndroid.setLightBars) RettificaAndroid.setLightBars(t === 'light'); } catch (e) {} // Web 0.9.8: status/navigation bars follow the theme
   }
   $('btnTheme').addEventListener('click', () => { prefs.theme = prefs.theme === 'light' ? 'dark' : 'light'; savePrefs(prefs); applyTheme(); });
   function updateSplashBtn() { const on = prefs.splash !== false; $('splashLabel').textContent = on ? 'On' : 'Off'; $('splashToggle').classList.toggle('on', on); }

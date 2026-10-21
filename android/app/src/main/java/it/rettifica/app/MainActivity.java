@@ -35,6 +35,8 @@ import android.widget.Toast;
 import androidx.core.content.FileProvider;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.webkit.WebViewAssetLoader;
 import androidx.webkit.WebViewClientCompat;
@@ -58,6 +60,7 @@ public class MainActivity extends Activity {
     private static final int REQ_FILE = 1, REQ_CAM_PERM = 2, REQ_CAM_PERM_PICK = 3;
 
     private WebView web;
+    private FrameLayout root;
     private ValueCallback<Uri[]> fileCallback;
     private WebChromeClient.FileChooserParams pendingParams;
     private Uri cameraUri;
@@ -73,7 +76,7 @@ public class MainActivity extends Activity {
         web.setBackgroundColor(0xFF121418);
         // 0.9.8: a WebView ignores its own padding, so the insets go on a container around it:
         // the page then really shrinks above the keyboard (bottom sheets stay visible) and below the status bar
-        FrameLayout root = new FrameLayout(this);
+        root = new FrameLayout(this);
         root.setBackgroundColor(0xFF121418);
         root.addView(web, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         setContentView(root);
@@ -352,5 +355,16 @@ public class MainActivity extends Activity {
             MainActivity.this.openExternal(url);
         }
         @JavascriptInterface public boolean isApk() { return true; }
+        /** 0.9.8: status and navigation bars take the page colour (light theme → light bars with dark icons) */
+        @JavascriptInterface public void setLightBars(boolean light) {
+            runOnUiThread(() -> {
+                int c = light ? 0xFFE6EAF0 : 0xFF121418;
+                root.setBackgroundColor(c);
+                web.setBackgroundColor(c);
+                WindowInsetsControllerCompat w = WindowCompat.getInsetsController(getWindow(), root);
+                w.setAppearanceLightStatusBars(light);
+                w.setAppearanceLightNavigationBars(light);
+            });
+        }
     }
 }
