@@ -543,6 +543,23 @@ html[data-theme="light"] .sticky-corr{background:#fff}
 .fm-field .fl i{font-style:normal;text-transform:none;font-weight:600}
 .disp .lbl,.disp .status{margin-right:68px}
 .disp .status{margin-top:4px;min-height:22px}
+.hid-badge{display:inline-block;margin-top:4px;padding:1px 8px;border-radius:999px;border:1.5px solid var(--teal);color:var(--teal);font-size:12px;font-weight:800;letter-spacing:0;text-transform:none;white-space:nowrap}
+.df-card{margin-bottom:10px;padding:0;overflow:hidden}
+.df-card>summary{list-style:none;display:flex;align-items:center;gap:12px;min-height:68px;padding:10px 16px;cursor:pointer;font-size:20px;font-weight:800}
+.df-card>summary::-webkit-details-marker{display:none}
+.df-card>summary::after{content:"▾";margin-left:auto;color:var(--muted);font-size:16px;transition:transform .15s}
+.df-card[open]>summary::after{transform:rotate(180deg)}
+.df-card .df-ic{font-size:26px;width:34px;text-align:center}
+.df-bd{padding:0 16px 16px}
+.df-bd h3{font-size:12px;letter-spacing:1.4px;font-weight:800;color:var(--muted);text-transform:uppercase;margin:14px 0 6px}
+.df-vede{margin:0;font-size:16px;font-weight:600}
+.df-bd ul{margin:0;padding-left:20px;font-size:16px;line-height:1.4}
+.df-bd li{margin:4px 0}
+.df-rim{display:flex;align-items:flex-start;gap:10px;width:100%;min-height:56px;margin:6px 0;padding:10px 12px;border-radius:14px;border:1.5px solid var(--line);background:transparent;color:var(--text);font:inherit;font-size:16px;font-weight:600;text-align:left;cursor:pointer}
+.df-rim .df-n{flex:0 0 28px;height:28px;border-radius:50%;border:2px solid var(--muted);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--muted)}
+.df-rim.on{border-color:var(--green)}
+.df-rim.on .df-n{background:var(--green);border-color:var(--green);color:#002b12}
+.df-note{width:100%;min-height:60px;margin-top:10px;font-size:18px}
 .disp .val{margin-top:4px}
 .fem-open{position:static;display:block;width:100%;margin-top:8px;min-height:44px;padding:0 12px;border-radius:12px;border:1.5px solid var(--teal);background:transparent;color:var(--teal);font-weight:800;font-size:13px;font-family:inherit;cursor:pointer}
 html[data-theme="light"] .fem-open{color:#0b7d73;border-color:#0b9d90}
@@ -676,6 +693,9 @@ html[data-theme="light"] .okm.na,html[data-theme="light"] .na-rem{color:#a15c00!
 .stock-cell.empty{opacity:.7}
 .stock-cell.empty .n,.stock-cell.empty .c{color:var(--muted)}
 .big-input{font-size:28px!important;font-weight:700;min-height:60px!important}
+/* Web 0.9.8: big fields outside the modals (Quaderno, Leggi il disegno) had the browser's white box and ran off the screen */
+.page input.big-input{width:100%;box-sizing:border-box;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 12px;font-family:inherit}
+.field-row>div{min-width:0}
 .mach-dialog .knob-row{margin-top:10px}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .chip{min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line2);background:var(--surface);color:var(--text);font-weight:700;font-family:inherit}
@@ -1266,8 +1286,7 @@ html[data-theme="light"] .nv-aiuto svg{stroke:#dc2626}
       <button type="button" class="last-hint hidden" id="lastHint"></button>
       <div class="card disp">
         <div class="lbl"><span id="dispLbl">Misura maschio S</span></div>
-        <div class="status" id="liveStatus"><span class="dot"></span><span id="liveStatusTxt">inserisci misura</span></div>
-        <button type="button" class="ib cam cam-lbl" id="btnFoto" title="Leggi la misura S da foto" aria-label="Foto: leggi misura S"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><small>leggi S</small></button>
+        <div class="status" id="liveStatus"><span class="dot"></span><span id="liveStatusTxt">inserisci misura</span></div>        <button type="button" class="ib cam cam-lbl" id="btnFoto" title="Leggi la misura S da foto" aria-label="Foto: leggi misura S"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><small>leggi S</small></button>
         <div class="val cond">
           <span class="pre" id="measurePrefix">24,<i>▾</i></span>
           <span class="dig" id="digDisplay"></span><span class="cur" id="curBlink"></span><span class="u">mm</span>
@@ -1289,7 +1308,7 @@ html[data-theme="light"] .nv-aiuto svg{stroke:#dc2626}
 
     <div id="calcResultView" class="hidden">
       <div class="card sum">
-        <div class="lbl" style="width:100%;justify-content:center;margin-bottom:4px"><span id="resSLbl">Misura maschio S</span></div>
+        <div class="lbl" style="width:100%;justify-content:center;margin-bottom:4px"><span id="resSLbl">Misura maschio S</span><span class="hid-badge hidden" id="hidBadge" title="Misura arrivata dallo strumento" style="margin:0 0 0 8px">⌨ strumento</span></div>
         <div class="m cond" id="resS">—</div>
         <div class="d cond"><b id="resD">—</b><span class="mono">DALLA BASE</span></div>
         <button type="button" class="ib edit" id="btnRimisura" title="Modifica"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button>
@@ -1597,7 +1616,7 @@ html[data-theme="light"] .nv-aiuto svg{stroke:#dc2626}
     </div>
     <input type="file" id="importFile" accept="application/json,.json,text/plain" class="hidden"/>
     <button type="button" class="btn btn-danger" id="btnReset" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🗑 Azzera tutto</button>
-    <p class="ver">Rettifica Beta v0.9.7 · diametri in mm · giochi e correzioni in µm</p>
+    <p class="ver">Rettifica Beta v0.9.8 · diametri in mm · giochi e correzioni in µm</p>
   </section>
 
   <section class="page" id="page-aiuto">
@@ -1605,6 +1624,7 @@ html[data-theme="light"] .nv-aiuto svg{stroke:#dc2626}
     <button type="button" class="help-big" id="helpAsk"><span class="hb-t">🆘 Chiedi aiuto</span><span class="hb-s" id="helpAskSub">—</span></button>
     <p class="meta help-ctx" id="helpSub"></p>
     <button type="button" class="btn btn-sec ld-btn" id="btnDisegno" style="min-height:60px;font-size:18px">📐 Leggi il disegno <small style="display:block;font-weight:600">ISO, tolleranze, simboli, Ra, pezzo freddo</small></button>
+    <button type="button" class="btn btn-sec ld-btn" id="btnDifetti" style="min-height:60px;font-size:18px">🔧 Difetti di rettifica <small style="display:block;font-weight:600">vibrazioni, bruciature, conicità, ovalità, spirale, finitura</small></button>
     <div class="sec-title">Contatti</div>
     <div id="ctList"></div>
     <button type="button" class="btn btn-teal ct-add" id="ctAdd">＋ Aggiungi contatto</button>
@@ -1623,8 +1643,15 @@ html[data-theme="light"] .nv-aiuto svg{stroke:#dc2626}
       <div class="qd-count" id="qdCount"></div></div>
     <div class="sec-title">Registra</div>
     <div class="qd-btns" id="qdBtns"><button type="button" data-ev="diamantatura"><span>💎</span>Diamantatura</button><button type="button" data-ev="mola"><span>🔄</span>Cambio mola</button><button type="button" data-ev="manopola"><span>🎛</span>Regolazione manopola</button><button type="button" data-ev="nota"><span>📝</span>Nota libera</button></div>
+    <button type="button" class="btn btn-sec ld-btn" id="qdDifetti">🔧 Guida ai difetti</button>
     <div class="sec-title">Voci</div>
     <div id="qdList"></div>
+  </section>
+  <section class="page" id="page-difetti">
+    <div class="page-head"><button type="button" class="ib" id="dfBack" aria-label="Indietro">←</button><h2>🔧 Difetti di rettifica</h2></div>
+    <p class="meta" style="margin:0 2px 10px">Tocca un difetto: cause probabili e rimedi, dal primo da provare. Spunta quello che hai fatto e annotalo nel <b>Quaderno macchina</b>. Funziona anche senza rete.</p>
+    <div id="dfList"></div>
+    <p class="meta" style="margin:14px 2px 0">Sono indicazioni generali: valgono sempre le istruzioni della macchina e del responsabile.</p>
   </section>
   <section class="page" id="page-disegno">
     <div class="page-head"><button type="button" class="ib" id="ldBack" aria-label="Indietro">←</button><h2>📐 Leggi il disegno</h2></div>
@@ -1795,6 +1822,10 @@ html[data-theme="light"] .nv-aiuto svg{stroke:#dc2626}
         <p>In <b>Setup → Quaderno macchina</b> scegli <b>ogni quanti pezzi</b> (es. 50) ricordare la diamantatura. Il conteggio usa i pezzi salvati dall'ultima diamantatura. Quando arriva il momento compare in Calcolo un avviso grande, <b>senza bloccare niente</b>: <b>💎 Fatta</b> (azzera il conteggio e lo registra) oppure <b>Rimanda di X pezzi</b>.</p>
         <p>Dopo la diamantatura l'app ti ricorda: <b>primo pezzo dopo diamantatura: controlla con calma</b>. Il quaderno elenca diamantature, cambi mola, regolazioni della manopola e note con data, ora e pezzi dalla voce precedente; è nel backup.</p>
       </details>
+      <details class="g-sec" id="gNovita098"><summary><span class="g-ico">⌨</span>Strumenti Bluetooth e difetti</summary>
+        <p><b>Strumenti Bluetooth.</b> Micrometri e comparatori (Sylvac, Mitutoyo…) in modalità <b>tastiera (HID)</b>: collegali al telefono come una tastiera, apri <b>Calcolo</b> e premi il tasto dati dello strumento. La misura arriva con Invio e l'app calcola da sola; sul risultato compare <b>⌨ strumento</b>. Va anche una tastiera vera: cifre, virgola o punto, Invio = Calcola, Canc/Esc = AC. Se lo strumento manda un valore negativo è in modo relativo (zero): rimettilo in assoluto.</p>
+        <p><b>Difetti.</b> In <b>Aiuto → Difetti di rettifica</b> (o dal Quaderno): vibrazioni, bruciature, conicità, ovalità, segni a spirale, finitura scarsa. Per ognuno cause probabili e rimedi; tocca quelli fatti e <b>📓 Annota nel Quaderno</b> scrive la nota per la macchina. Funziona senza rete.</p>
+      </details>
       <details class="g-sec" id="gChecklist"><summary><span class="g-ico">📋</span>Checklist del lavoro e Report</summary>
         <p>Il tasto <b>📋</b> sotto i pulsanti di Calcolo apre la <b>checklist</b>: inizio lavoro (disegno e revisione, strumento pulito, pezzo a temperatura, zero fatto) e fine (ovalità/conicità controllate). Tocca le voci; <b>tieni premuto «Tutto ok»</b> per spuntarle tutte. Con <b>✎ Modifica voci</b> la cambi (massimo 7 per parte). Può arrivare anche nel pacchetto del responsabile.</p>
         <p>In <b>Turno</b>, <b>Storico</b> o <b>Setup → Report</b> crei il <b>report</b> di un turno, di oggi o di un lotto: un <b>PDF di una pagina</b> o un <b>CSV</b> (separatore ;, colonne fisse: lotto, codice, revisione, lavorazione, macchina, serie, esito, limiti). Non contiene dati personali.</p>
@@ -1872,7 +1903,7 @@ html[data-theme="light"] .nv-aiuto svg{stroke:#dc2626}
         <p><b>Guanti?</b><br/>I tasti sono grandi apposta. Ogni bottone foto (📷 Nuovo lavoro, 📷 leggi S, 📷 in Adatta alla femmina) chiede: <b>📷 Scatta foto</b> oppure <b>🖼 Dalla galleria</b> (una foto già fatta). Poi stesso ritaglio e stessa lettura.</p>
       </details>
     </div>
-    <p class="ver">Rettifica Beta v0.9.7</p>
+    <p class="ver">Rettifica Beta v0.9.8</p>
   </section>
   <section class="page" id="page-macchine">
     <button type="button" class="btn btn-sec" id="btnBackSetup1">← Setup</button>
@@ -1940,6 +1971,7 @@ html[data-theme="light"] .nv-aiuto svg{stroke:#dc2626}
 <script src="foglio-parse.js"></script>
 <script src="quota.js"></script>
 <script src="lavoro.js"></script>
+<script src="difetti.js"></script>
 <script src="qrgen.js"></script>
 <script src="qrscan.js"></script>
 <script>window.RETTIFICA_WEB=true;</script>

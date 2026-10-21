@@ -6,7 +6,7 @@
   const CLEAN_KEY = 'rweb_clean_206';       // v2.0.6 one-time clean start done
   const BACKUP_KEY = 'rweb_backup_pre206';
   const BACKUPS_KEY = 'rweb_backups';           // Beta 0.1.0: last 5 automatic backups (before migration / import / wipe)
-  const APP_VERSION = '0.9.7';
+  const APP_VERSION = '0.9.8';
   /** Beta 0.1.0: automatic local backup; also kept as the «hidden restore» backup (Setup). */
   function autoBackup(why, rawData, rawPrefs) {
     try {
@@ -528,7 +528,7 @@
     const prevActive = document.querySelector('.page.active');
     document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
     document.querySelectorAll('.nv').forEach((b) => {
-      const map = { macchine: 'setup', serie: 'setup', train: 'setup', guida: 'setup', chat: 'setup', quaderno: 'setup', disegno: 'aiuto', quota: 'calc', femmina: 'calc', interno: 'calc', manuale: 'calc' };
+      const map = { macchine: 'setup', serie: 'setup', train: 'setup', guida: 'setup', chat: 'setup', quaderno: 'setup', disegno: 'aiuto', difetti: 'aiuto', quota: 'calc', femmina: 'calc', interno: 'calc', manuale: 'calc' };
       b.classList.toggle('on', b.dataset.page === name || b.dataset.page === map[name]);
     });
     const page = $('page-' + name); if (page) page.classList.add('active');
@@ -576,6 +576,7 @@
     let cur = effPrefix() != null ? effPrefix() : bi; const cur0 = cur;
     if (measureDigits) { const p = interpretNearBase(measureDigits, series.base, seriesTol(series), effPrefix()); if (p && p.prefix != null && p.value != null) cur = p.prefix; }
     $('measurePrefix').innerHTML = cur + ',<i>▾</i>';
+    $('measurePrefix').classList.toggle('hidden', measureDigits.includes(',')); // Web 0.9.8: full value typed (or from the instrument) → no «24, 24,512»
     $('measurePrefix').classList.toggle('sticky', sp != null && sp !== bi);
     $('measurePrefix').classList.toggle('auto-chg', cur !== cur0); // v2.0.8: integer changed by itself → orange
     $('prefixMenu').innerHTML = '<div class="pm-h">Intero · resta fisso</div>' + [bi - 1, bi, bi + 1].map((p) =>
@@ -1734,11 +1735,51 @@
   $('keypad').addEventListener('click', (e) => {
     const b = e.target.closest('[data-k]'); if (!b) return;
     const k = b.dataset.k; haptic(12);
-    if (k === 'GO') { doCalcFlow(); return; }
+    if (k === 'GO') { hidBadge(false); doCalcFlow(); return; }
     if (k === 'AC') { measureDigits = ''; manualPrefix = null; pendingTypo = null; $('typoBox').classList.add('hidden'); refreshDisplay(); return; }
     if (k === 'BS') { measureDigits = measureDigits.slice(0, -1); refreshDisplay(); return; }
     if (k === ',') { if (!measureDigits.includes(',')) measureDigits += ','; refreshDisplay(); return; }
     if (measureDigits.length < 8) measureDigits += k; refreshDisplay();
+  });
+  // Web 0.9.8: external keyboard / Bluetooth instruments in HID mode (Sylvac, Mitutoyo: number + Invio).
+  // A fast burst (instrument) replaces the measure; slow typing works like the on-screen keypad.
+  let hidBuf = '', hidT = 0, hidSlow = false, hidTimer = null;
+  function hidReady() {
+    if (document.body.dataset.page !== 'calc' || $('calcInputView').classList.contains('hidden') && $('calcResultView').classList.contains('hidden')) return false;
+    if ($('modalRoot').innerHTML.trim() || ($('cropRoot') && $('cropRoot').innerHTML.trim())) return false;
+    const a = document.activeElement; return !(a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)));
+  }
+  function hidBadge(on) {
+    const b = $('hidBadge'); if (!b) return; b.classList.toggle('hidden', !on);
+    clearTimeout(hidTimer); if (on) hidTimer = setTimeout(() => b.classList.add('hidden'), 20000);
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || !hidReady()) return;
+    const k = e.key, now = Date.now();
+    const ch = /^[0-9]$/.test(k) ? k : (k === '.' || k === ',' || k === 'Decimal') ? ',' : (k === '-' || k === '+' || k === ' ') ? k : null;
+    if (ch == null && !['Enter', 'Backspace', 'Escape', 'Delete'].includes(k)) return;
+    e.preventDefault();
+    if (now - hidT > 400) { hidBuf = ''; hidSlow = false; } else if (hidBuf && now - hidT > 80) hidSlow = true;
+    hidT = now;
+    if (!$('calcResultView').classList.contains('hidden')) { // new measure arriving while the result is shown → like «Rimisura»
+      if (ch == null || ch === ' ') return;
+      hideUndo(); newMeasure();
+    }
+    if (k === 'Escape' || k === 'Delete') { $('keypad').querySelector('[data-k="AC"]').click(); hidBuf = ''; return; }
+    if (k === 'Backspace') { hidBuf = hidBuf.slice(0, -1); measureDigits = measureDigits.slice(0, -1); refreshDisplay(); return; }
+    if (k === 'Enter') {
+      const raw = hidBuf.replace(/\s+/g, ''); hidBuf = '';
+      if (!hidSlow && raw.replace(/\D/g, '').length >= 3) { // instrument: the whole value it sent, nothing typed before
+        if (raw.includes('-')) { toast('Valore negativo: lo strumento è in modo relativo (zero)', 'warn'); return; }
+        measureDigits = raw.replace(/^\+/, '').replace(/^0+(?=\d)/, '').slice(0, 10); manualPrefix = null; refreshDisplay();
+        doCalcFlow(); hidBadge(true); return;
+      }
+      hidBadge(false); doCalcFlow(); return;
+    }
+    hidBuf += ch;
+    if (ch === '-' || ch === '+' || ch === ' ') return;
+    if (ch === ',') { if (!measureDigits.includes(',')) measureDigits += ','; } else if (measureDigits.length < 10) measureDigits += ch;
+    refreshDisplay();
   });
   document.addEventListener('click', (e) => {
     const id = e.target.id;
@@ -3936,8 +3977,9 @@
       return `<div class="qd-ev" data-id="${esc(e.id)}"><div class="qd-ic">${t.icon}</div><div class="qd-bd"><b>${esc(t.label)}</b> <span class="meta">${esc(dmHm(e.ts))}</span>${e.pz != null ? `<div class="meta">${e.pz} ${e.pz === 1 ? 'pezzo' : 'pezzi'} dalla voce precedente</div>` : ''}${e.note ? `<div class="qd-note">${esc(e.note)}</div>` : ''}</div><button type="button" class="job-del" data-evdel="${esc(e.id)}" aria-label="Elimina voce">${TRASH}</button></div>`; }).join('') : '<div class="empty">Nessuna voce: registra la prima con i pulsanti sopra</div>';
     $('qdHead').textContent = mname ? 'Macchina: ' + mname : 'Macchina';
   }
-  function openEventModal(type) {
+  function openEventModal(type, prefill) {
     const t = L9.EVENT_TYPES[type] || L9.EVENT_TYPES.nota;
+    setTimeout(() => { const n = $('evNote'); if (!prefill || !n) return; n.value = String(prefill).slice(0, 300); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 0);
     $('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal" id="evModal"><h2>${t.icon} ${esc(t.label)}</h2>
       <label>Nota ${type === 'nota' ? '' : '(facoltativa)'}</label><textarea id="evNote" class="neu" rows="3" maxlength="300" placeholder="${type === 'manopola' ? 'es. conicità: 2 tacche verso di me' : type === 'mola' ? 'es. mola nuova, codice…' : ''}"></textarea>
       <div id="evErr" class="form-err hidden"></div>
@@ -3964,6 +4006,29 @@
     if (await askBig({ title: 'Eliminare questa voce?', ok: '🗑 Elimina', danger: true })) { L9.removeEvent(state, d.dataset.evdel); saveData(state); renderQuaderno(); renderDress(); }
   });
   $('qdBack').addEventListener('click', () => showPage('setup'));
+  // ── Web 0.9.8: Guida ai difetti (offline, difetti.js) → nota nel Quaderno macchina ──
+  let difettiFrom = 'aiuto';
+  function renderDifetti() {
+    const L = window.DIFETTI || [];
+    $('dfList').innerHTML = L.map((d) => `<details class="card df-card" data-df="${esc(d.id)}"><summary><span class="df-ic">${d.icon}</span>${esc(d.title)}</summary><div class="df-bd">
+      <h3>Come si vede</h3><p class="df-vede">${esc(d.vede)}</p>
+      <h3>Cause probabili</h3><ul>${d.cause.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
+      <h3>Rimedi · tocca quelli fatti</h3>${d.rimedi.map((r, i) => `<button type="button" class="df-rim" data-ri="${i}" aria-pressed="false"><span class="df-n">${i + 1}</span><span>${esc(r.t)}</span></button>`).join('')}
+      <button type="button" class="btn btn-teal df-note" data-dfnote="${esc(d.id)}">📓 Annota nel Quaderno</button></div></details>`).join('');
+  }
+  function openDifetti(from) { difettiFrom = from || 'aiuto'; if (!$('dfList').children.length) renderDifetti(); showPage('difetti'); }
+  $('dfList').addEventListener('click', (e) => {
+    const r = e.target.closest('.df-rim');
+    if (r) { haptic(10); const on = !r.classList.contains('on'); r.classList.toggle('on', on); r.setAttribute('aria-pressed', on ? 'true' : 'false'); r.querySelector('.df-n').textContent = on ? '✓' : String(Number(r.dataset.ri) + 1); return; }
+    const b = e.target.closest('[data-dfnote]'); if (!b) return;
+    const d = (window.DIFETTI || []).find((x) => x.id === b.dataset.dfnote); if (!d) return;
+    const done = [...b.closest('.df-card').querySelectorAll('.df-rim.on')].map((x) => d.rimedi[Number(x.dataset.ri)].k);
+    if (difettiFrom !== 'quaderno') qdSel = null; // from Aiuto: the note goes to the current machine; from the Quaderno: to the one shown there
+    openEventModal('nota', 'Difetto: ' + d.title.toLowerCase() + '. ' + (done.length ? 'Fatto: ' + done.join(', ') + '. ' : 'Intervento: '));
+  });
+  $('dfBack').addEventListener('click', () => showPage(difettiFrom));
+  $('btnDifetti').addEventListener('click', () => { haptic(12); openDifetti('aiuto'); });
+  $('qdDifetti').addEventListener('click', () => { haptic(12); openDifetti('quaderno'); });
 
   /* ───────── Pacchetto: Lavoro ricevuto / Invia lavoro ───────── */
   function fmtT3(x) { return fmtMm3(x); }

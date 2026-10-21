@@ -29,6 +29,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
@@ -70,9 +71,14 @@ public class MainActivity extends Activity {
         super.onCreate(state);
         web = new WebView(this);
         web.setBackgroundColor(0xFF121418);
-        setContentView(web);
+        // 0.9.8: a WebView ignores its own padding, so the insets go on a container around it:
+        // the page then really shrinks above the keyboard (bottom sheets stay visible) and below the status bar
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(0xFF121418);
+        root.addView(web, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        setContentView(root);
         // Android 15 draws edge to edge: keep the page clear of status and navigation bars
-        ViewCompat.setOnApplyWindowInsetsListener(web, (v, insets) -> {
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
             Insets b = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
             Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
             v.setPadding(b.left, b.top, b.right, Math.max(b.bottom, ime.bottom));
@@ -222,6 +228,7 @@ public class MainActivity extends Activity {
         // close an open window of the app first (same as tapping its background), then leave
         web.evaluateJavascript(
                 "(function(){var m=document.getElementById('modalRoot');if(m&&m.innerHTML.trim()){m.innerHTML='';return 1;}" +
+                "var bk=document.querySelector('.page.active .page-head > button.ib');if(bk&&bk.offsetParent){bk.click();return 1;}" + // 0.9.8: sub-pages go back like their own ←
                 "var p=document.body.dataset.page;if(p&&p!=='calc'){var n=document.querySelector('[data-page=\"calc\"]');if(n){n.click();return 1;}}return 0;})()",
                 v -> { if (!"1".equals(v)) { if (web.canGoBack()) web.goBack(); else MainActivity.super.onBackPressed(); } });
     }
